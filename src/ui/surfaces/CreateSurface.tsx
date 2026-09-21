@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
 import { useTransportSnapshot } from "../../audio/useTransport";
-import {
-  FOUNDATION_LANES,
-  FOUNDATION_STEP_COUNT,
-} from "../../music/foundationPattern";
+import { FOUNDATION_LANES } from "../../music/foundationPattern";
+import { sequencerStore } from "../../sequencer/SequencerStore";
+import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { DrumEnginePanel } from "../drums/DrumEngineUI";
 import {
   BeatReactor,
@@ -25,6 +24,7 @@ const mutationKeys = ["HARD", "SPACE", "FUNK", "PUSH", "DIRTY", "BREAK", "WEIRD"
 
 export function CreateSurface() {
   const transport = useTransportSnapshot();
+  const sequencer = useSequencerSnapshot();
   const [seedIndex, setSeedIndex] = useState(0);
   const [pulseVersion, setPulseVersion] = useState(0);
   const [similarity, setSimilarity] = useState(38);
@@ -45,7 +45,7 @@ export function CreateSurface() {
       ? Math.floor(
           transport.position.absoluteTick /
             TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
-        ) % FOUNDATION_STEP_COUNT
+        ) % sequencer.lengthSteps
       : undefined;
 
   const glyphVariant = useMemo(
@@ -193,14 +193,14 @@ export function CreateSurface() {
       <div className="strip-bank">
         <div className="machine-section-label">
           <span>INSTRUMENT / STRIPS</span>
-          <span>{transport.status === "running" ? "LIVE FOUNDATION BEAT" : "RHYTHM / AUDIO SOURCE"}</span>
+          <span>{transport.status === "running" ? "LIVE EDITABLE PATTERN" : "EDIT IN 02 / SEQUENCE"}</span>
         </div>
         {FOUNDATION_LANES.map((strip) => (
           <InstrumentStrip
             key={strip.name}
             code={strip.code}
             name={strip.name}
-            values={strip.values}
+            values={sequencerStore.getLaneValues(strip.id)}
             accent={strip.accent}
             detail={strip.detail}
             activeStep={activeStep}
