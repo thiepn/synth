@@ -1,3 +1,6 @@
+import { useMemo } from "react";
+import { useSequencerSnapshot } from "../../sequencer/useSequencer";
+import { deriveRhythmGlyph } from "../../visual/rhythmGlyph";
 import type { ModeDefinition } from "../pulse/Primitives";
 import { PulseSpine, RhythmGlyph } from "../pulse/Primitives";
 
@@ -15,6 +18,12 @@ const copy: Record<ModeDefinition["id"], string> = {
 };
 
 export function ModePlaceholder({ mode }: ModePlaceholderProps) {
+  const sequencer = useSequencerSnapshot();
+  const geometry = useMemo(
+    () => deriveRhythmGlyph(sequencer.pattern),
+    [sequencer.pattern],
+  );
+
   return (
     <section className="offline-surface" aria-labelledby={"mode-" + mode.id}>
       <div className="offline-surface__index" aria-hidden="true">
@@ -28,8 +37,17 @@ export function ModePlaceholder({ mode }: ModePlaceholderProps) {
         <p>{copy[mode.id]}</p>
         <PulseSpine density={42 + Number(mode.number) * 5} />
         <div className="offline-surface__signature">
-          <RhythmGlyph variant={Number(mode.number)} label={mode.label + " placeholder signal"} />
-          <span>{mode.phase}</span>
+          <RhythmGlyph
+            geometry={geometry}
+            label={
+              mode.label +
+              " preview using current rhythm glyph " +
+              geometry.signature
+            }
+          />
+          <span>
+            {"RG-" + geometry.signature.slice(0, 6)} · {mode.phase}
+          </span>
         </div>
       </div>
     </section>
