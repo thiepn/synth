@@ -89,8 +89,9 @@ Implemented:
 - wet amount
 - compressor
 - master gain
+- final fast output limiter
 
-The compressor acts as the first output-safety stage. Later phases can replace/refine this with a dedicated limiter/metering path.
+The compressor shapes the drum bus while the final limiter provides a separate last-stage ceiling before the browser audio destination.
 
 ## Macros
 
@@ -193,7 +194,7 @@ Those arrive in later phases.
 - [x] foundation beat is scheduled from Phase 2 future timestamps
 - [x] visible rhythm data and playback share one source
 - [x] open hats choke correctly
-- [x] master routing has saturation, space, compression, and gain
+- [x] master routing has saturation, space, compression, gain, and a final limiter
 - [x] engine macros affect real DSP/synthesis parameters
 - [x] stale future transport voices are cancelable through scheduler epochs
 - [x] transport stop/pause clears transport-owned voice tails
