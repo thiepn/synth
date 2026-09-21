@@ -204,7 +204,7 @@ export class DrumEngine {
       for (const hit of hits) {
         this.scheduleVoice(
           hit.voice,
-          pulse.audioTime,
+          pulse.audioTime + hit.timingOffsetUs / 1_000_000,
           hit.velocity,
           pulse.epoch,
         );
