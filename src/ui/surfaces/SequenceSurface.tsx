@@ -58,6 +58,38 @@ export function SequenceSurface() {
     }));
   }, [selection.stepIndex, sequencer.lengthSteps]);
 
+  useEffect(() => {
+    const handleHistoryShortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.matches("input, textarea, select, [role='slider']"))
+      ) {
+        return;
+      }
+
+      const modifier = event.ctrlKey || event.metaKey;
+      if (!modifier) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          sequencerStore.redo();
+        } else {
+          sequencerStore.undo();
+        }
+      } else if (key === "y") {
+        event.preventDefault();
+        sequencerStore.redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleHistoryShortcut);
+    return () => window.removeEventListener("keydown", handleHistoryShortcut);
+  }, []);
+
   const selectedDefinition = laneDefinitionById(selection.laneId);
   const selectedVelocity = stepVelocity(
     sequencer.pattern,
@@ -372,7 +404,8 @@ export function SequenceSurface() {
         Empty step: click to add. Active step: first click selects, click the
         selected step again to remove. Shift-click cycles velocity. DUP ×2
         repeats the current phrase into the next half; at 16 steps it copies
-        steps 1–8 over 9–16. Mute and solo affect playback immediately.
+        steps 1–8 over 9–16. Cmd/Ctrl-Z handles history. Mute and solo affect
+        playback immediately.
       </p>
     </section>
   );
