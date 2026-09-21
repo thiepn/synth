@@ -139,6 +139,8 @@ export class SequencerStore {
   private undoStack: Pattern[] = [];
   private redoStack: Pattern[] = [];
   private revision = 0;
+  private lastCoalesceKey: string | null = null;
+  private lastCoalesceAt = 0;
   private listeners = new Set<StoreListener>();
   private snapshot: SequencerSnapshot = this.buildSnapshot();
 
@@ -245,21 +247,24 @@ export class SequencerStore {
       return;
     }
 
-    this.commit((draft) => {
-      const draftLane = draft.lanes.find((entry) => entry.id === laneId);
-      if (!draftLane) return;
+    this.commit(
+      (draft) => {
+        const draftLane = draft.lanes.find((entry) => entry.id === laneId);
+        if (!draftLane) return;
 
-      const draftEvent = eventAtStep(draftLane, stepIndex);
-      if (draftEvent) {
-        draftEvent.velocity = safeVelocity;
-        draftEvent.accent = accentFromVelocity(safeVelocity);
-      } else {
-        draftLane.events.push(
-          createStepEvent(laneId, stepIndex, safeVelocity),
-        );
-        draftLane.events.sort((a, b) => a.tick - b.tick);
-      }
-    });
+        const draftEvent = eventAtStep(draftLane, stepIndex);
+        if (draftEvent) {
+          draftEvent.velocity = safeVelocity;
+          draftEvent.accent = accentFromVelocity(safeVelocity);
+        } else {
+          draftLane.events.push(
+            createStepEvent(laneId, stepIndex, safeVelocity),
+          );
+          draftLane.events.sort((a, b) => a.tick - b.tick);
+        }
+      },
+      "velocity:" + laneId + ":" + stepIndex,
+    );
   }
 
   cycleStepVelocity(laneId: string, stepIndex: number): void {
@@ -320,6 +325,8 @@ export class SequencerStore {
     this.pushUndo();
     this.pattern = next;
     this.redoStack = [];
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
     this.revision += 1;
     this.publish();
   }
@@ -387,6 +394,8 @@ export class SequencerStore {
 
     this.redoStack.push(clonePattern(this.pattern));
     this.pattern = previous;
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
     this.revision += 1;
     this.publish();
   }
@@ -397,6 +406,8 @@ export class SequencerStore {
 
     this.undoStack.push(clonePattern(this.pattern));
     this.pattern = next;
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
     this.revision += 1;
     this.publish();
   }
@@ -409,20 +420,33 @@ export class SequencerStore {
     );
   }
 
-  private commit(mutator: (draft: Pattern) => void): void {
+  private commit(
+    mutator: (draft: Pattern) => void,
+    coalesceKey: string | null = null,
+  ): void {
     const before = clonePattern(this.pattern);
     const draft = clonePattern(this.pattern);
     mutator(draft);
 
     if (JSON.stringify(before) === JSON.stringify(draft)) return;
 
-    this.undoStack.push(before);
-    if (this.undoStack.length > HISTORY_LIMIT) {
-      this.undoStack.shift();
+    const now = Date.now();
+    const shouldCoalesce =
+      coalesceKey !== null &&
+      this.lastCoalesceKey === coalesceKey &&
+      now - this.lastCoalesceAt < 900;
+
+    if (!shouldCoalesce) {
+      this.undoStack.push(before);
+      if (this.undoStack.length > HISTORY_LIMIT) {
+        this.undoStack.shift();
+      }
     }
 
     this.redoStack = [];
     this.pattern = draft;
+    this.lastCoalesceKey = coalesceKey;
+    this.lastCoalesceAt = coalesceKey === null ? 0 : now;
     this.revision += 1;
     this.publish();
   }
