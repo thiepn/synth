@@ -114,7 +114,9 @@ export function CreateSurface() {
     ? shortSeed(sequencer.pattern.provenance.seed)
     : "MANUAL";
   const canReroll =
-    Boolean(sequencer.pattern.provenance) || lockedLaneIds.length > 0;
+    Boolean(sequencer.pattern.provenance) ||
+    lockedLaneIds.length > 0 ||
+    sequencer.revision > 0;
 
   const glyphVariant = useMemo(
     () => reactorVersion + Math.round(syncopation / 34),
