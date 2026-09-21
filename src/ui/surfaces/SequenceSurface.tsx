@@ -17,8 +17,10 @@ import {
   type SequencerLengthSteps,
 } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
+import { deriveRhythmGlyph } from "../../visual/rhythmGlyph";
 import {
   MachineButton,
+  RhythmGlyph,
   SignalRail,
 } from "../pulse/Primitives";
 import {
@@ -105,6 +107,11 @@ export function SequenceSurface() {
             TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
         ) % sequencer.lengthSteps
       : undefined;
+
+  const glyphGeometry = useMemo(
+    () => deriveRhythmGlyph(sequencer.pattern),
+    [sequencer.pattern],
+  );
 
   const beatColumns = useMemo(
     () =>
@@ -216,6 +223,41 @@ export function SequenceSurface() {
             RESET
           </MachineButton>
         </div>
+      </div>
+
+      <div className="sequence-glyph-strip">
+        <div className="sequence-glyph-strip__identity">
+          <span>RHYTHM / GLYPH</span>
+          <strong>{"RG-" + glyphGeometry.signature.slice(0, 6)}</strong>
+          <span>V{glyphGeometry.version}</span>
+        </div>
+
+        <div className="sequence-glyph-strip__glyph">
+          <RhythmGlyph
+            geometry={glyphGeometry}
+            compact
+            label={"Rhythm glyph " + glyphGeometry.signature}
+          />
+        </div>
+
+        <dl className="sequence-glyph-strip__metrics">
+          <div>
+            <dt>DENS</dt>
+            <dd>{Math.round(glyphGeometry.metrics.density * 100)}</dd>
+          </div>
+          <div>
+            <dt>SYNC</dt>
+            <dd>{Math.round(glyphGeometry.metrics.syncopation * 100)}</dd>
+          </div>
+          <div>
+            <dt>SWNG</dt>
+            <dd>{Math.round(glyphGeometry.metrics.swing * 100)}</dd>
+          </div>
+          <div>
+            <dt>VEL</dt>
+            <dd>{Math.round(glyphGeometry.metrics.meanVelocity * 100)}</dd>
+          </div>
+        </dl>
       </div>
 
       <div className="rhythm-matrix-shell">
