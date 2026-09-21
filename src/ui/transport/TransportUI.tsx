@@ -183,12 +183,12 @@ export function TransportStatusLabel() {
   const snapshot = useTransportSnapshot();
   const status =
     snapshot.status === "running"
-      ? "CLOCK RUNNING / GENERATOR OFFLINE"
+      ? "CLOCK RUNNING / GENERATOR READY"
       : snapshot.status === "suspended"
         ? "CLOCK SUSPENDED / TAP PLAY"
         : snapshot.status === "error"
           ? "AUDIO ERROR / CHECK TRANSPORT"
-          : "CLOCK READY / GENERATOR OFFLINE";
+          : "CLOCK READY / GENERATOR READY";
 
   return (
     <div
