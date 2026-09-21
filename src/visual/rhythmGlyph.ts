@@ -309,8 +309,9 @@ export function deriveRhythmGlyph(pattern: Pattern): RhythmGlyphGeometry {
   );
   const features = collectFeatures(pattern, stepCount);
   const metrics = computeMetrics(pattern, features);
-  const microtimingScale =
-    (X_MAX - X_MIN) / Math.max(1, stepCount - 1) / 180_000;
+  const stepWidth =
+    (X_MAX - X_MIN) / Math.max(1, stepCount - 1);
+  const microtimingScale = stepWidth / 180_000;
 
   const upper: Array<[number, number]> = [];
   const lower: Array<[number, number]> = [];
@@ -324,11 +325,17 @@ export function deriveRhythmGlyph(pattern: Pattern): RhythmGlyphGeometry {
       feature.timingCount > 0
         ? feature.timingTotalUs / feature.timingCount
         : 0;
-    const x = stepX(
+    const baseX = stepX(
       step,
       stepCount,
       timingOffsetUs,
       microtimingScale,
+    );
+    const swingShift =
+      step % 2 === 1 ? stepWidth * metrics.swing * 0.3 : 0;
+    const x = Math.max(
+      X_MIN - 4,
+      Math.min(X_MAX + 4, baseX + swingShift),
     );
 
     const upperY =
