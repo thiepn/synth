@@ -86,6 +86,7 @@ export class AudioTransport {
   private pulseListeners = new Set<PulseListener>();
 
   private desiredPlaying = false;
+  private activationInFlight = false;
   private status: TransportStatus = "idle";
   private bpm = DEFAULT_BPM;
   private meter: Meter = DEFAULT_METER;
@@ -119,13 +120,24 @@ export class AudioTransport {
   };
 
   async start(): Promise<void> {
-    if (this.desiredPlaying && this.status === "running") return;
+    if (
+      this.activationInFlight ||
+      (this.desiredPlaying && this.status === "running")
+    ) {
+      return;
+    }
 
     this.lastError = undefined;
+    this.activationInFlight = true;
 
     try {
       const context = this.ensureContext();
       this.desiredPlaying = true;
+
+      // Anchor before resume so an eager statechange event can never observe
+      // an uninitialized transport origin.
+      this.anchorAudioTime = context.currentTime;
+      this.anchorAbsoluteTick = this.pausedAbsoluteTick;
 
       if (context.state !== "running") {
         await context.resume();
@@ -153,6 +165,8 @@ export class AudioTransport {
       this.stopScheduler();
       this.stopFramePump();
       this.publish();
+    } finally {
+      this.activationInFlight = false;
     }
   }
 
@@ -269,6 +283,11 @@ export class AudioTransport {
       return;
     }
 
+    if (this.activationInFlight) {
+      this.publish();
+      return;
+    }
+
     if (!this.desiredPlaying) {
       this.publish();
       return;
@@ -344,7 +363,10 @@ export class AudioTransport {
     this.nextScheduledTick =
       Math.floor(currentTick / SIXTEENTH_TICKS) * SIXTEENTH_TICKS;
 
-    if (this.audioTimeForAbsoluteTick(this.nextScheduledTick) < (this.context?.currentTime ?? 0) - 0.002) {
+    if (
+      this.audioTimeForAbsoluteTick(this.nextScheduledTick) <
+      (this.context?.currentTime ?? 0) - 0.002
+    ) {
       this.nextScheduledTick += SIXTEENTH_TICKS;
     }
   }
@@ -405,8 +427,13 @@ export class AudioTransport {
         };
 
         this.scheduledPulseCount += 1;
+
         for (const listener of this.pulseListeners) {
-          listener(pulse);
+          try {
+            listener(pulse);
+          } catch (error) {
+            console.error("Synth transport pulse listener failed.", error);
+          }
         }
       }
 
@@ -415,7 +442,10 @@ export class AudioTransport {
   }
 
   private startFramePump(): void {
-    if (this.frameHandle !== null || typeof requestAnimationFrame === "undefined") {
+    if (
+      this.frameHandle !== null ||
+      typeof requestAnimationFrame === "undefined"
+    ) {
       return;
     }
 
@@ -433,7 +463,10 @@ export class AudioTransport {
   }
 
   private stopFramePump(): void {
-    if (this.frameHandle === null || typeof cancelAnimationFrame === "undefined") {
+    if (
+      this.frameHandle === null ||
+      typeof cancelAnimationFrame === "undefined"
+    ) {
       return;
     }
 
@@ -458,7 +491,10 @@ export class AudioTransport {
     const context = this.context;
     const outputLatency =
       context && "outputLatency" in context
-        ? Number((context as AudioContext & { outputLatency?: number }).outputLatency ?? 0)
+        ? Number(
+            (context as AudioContext & { outputLatency?: number })
+              .outputLatency ?? 0,
+          )
         : 0;
 
     return {
