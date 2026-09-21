@@ -119,6 +119,43 @@ export class AudioTransport {
     return () => this.pulseListeners.delete(listener);
   };
 
+  /**
+   * Audio-subsystem escape hatch used by voices and renderers.
+   * UI code should not use the AudioContext directly.
+   */
+  getAudioContext(): AudioContext | null {
+    return this.context && this.context.state !== "closed" ? this.context : null;
+  }
+
+  /**
+   * Unlock/resume Web Audio from an explicit user gesture without starting
+   * transport playback. Used by direct instrument audition.
+   */
+  async unlockAudio(): Promise<AudioContext> {
+    this.lastError = undefined;
+
+    try {
+      const context = this.ensureContext();
+
+      if (context.state !== "running") {
+        await context.resume();
+      }
+
+      if (context.state !== "running") {
+        throw new Error("Audio context could not be resumed.");
+      }
+
+      this.primeAudioGraph(context);
+      this.publish();
+      return context;
+    } catch (error) {
+      this.lastError = this.errorMessage(error);
+      this.status = "error";
+      this.publish();
+      throw error;
+    }
+  }
+
   async start(): Promise<void> {
     if (
       this.activationInFlight ||
