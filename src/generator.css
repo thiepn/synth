@@ -1,0 +1,112 @@
+.style-bank {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 8px;
+  border-top: 1px solid var(--hairline-strong);
+  border-left: 1px solid var(--hairline-strong);
+}
+
+.style-bank__key {
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+  background: var(--graphite);
+  color: #646a60;
+  cursor: pointer;
+  text-align: left;
+}
+
+.style-bank__key:hover {
+  background: var(--carbon);
+  color: var(--bone);
+}
+
+.style-bank__key span {
+  color: currentColor;
+  font: 650 0.5rem/1 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.style-bank__key strong {
+  overflow: hidden;
+  color: var(--bone);
+  font: 680 0.58rem/1 var(--font-mono);
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+}
+
+.style-bank__key.is-active {
+  color: var(--phosphor);
+  background: rgba(207, 255, 71, 0.045);
+  box-shadow: inset 0 -2px 0 var(--phosphor);
+}
+
+.generation-result {
+  width: min(100%, 430px);
+  min-height: 38px;
+  margin: 13px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  color: #687061;
+  font: 600 0.52rem/1 var(--font-mono);
+  letter-spacing: 0.07em;
+}
+
+.generation-result strong {
+  color: var(--phosphor);
+  font-weight: 650;
+}
+
+.generation-result.is-error {
+  color: var(--error);
+}
+
+.generation-result.is-error strong {
+  max-width: 78%;
+  overflow: hidden;
+  color: var(--error);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reactor-lock:disabled,
+.lock-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.mutation-bank .machine-button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+@media (min-width: 1280px) {
+  .style-bank {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .style-bank {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .style-bank__key {
+    min-height: 42px;
+  }
+
+  .generation-result {
+    width: min(100%, 360px);
+  }
+}
