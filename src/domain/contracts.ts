@@ -68,6 +68,8 @@ export interface PatternLane {
   /** Rhythms target a semantic kit slot, not a concrete sound. */
   kitSlotId: EntityId;
   events: StepEvent[];
+  muted?: boolean;
+  solo?: boolean;
   lock: GenerationLock;
   regionLocks?: PatternRegionLock[];
 }
