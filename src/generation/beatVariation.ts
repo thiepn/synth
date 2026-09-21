@@ -233,6 +233,38 @@ function mergeLane(
   };
 }
 
+function laneMusicalSignature(lane: PatternLane): string {
+  return lane.events
+    .map((event) => eventComparable(event))
+    .sort()
+    .join("|");
+}
+
+function assertProtectedLanesPreserved(
+  source: Pattern,
+  next: Pattern,
+  targetLaneIds: Set<string> | null,
+): void {
+  for (const sourceLane of source.lanes) {
+    const protectedByTarget =
+      targetLaneIds !== null && !targetLaneIds.has(sourceLane.id);
+    const protectedLane = sourceLane.lock.rhythm || protectedByTarget;
+    if (!protectedLane) continue;
+
+    const nextLane = next.lanes.find((lane) => lane.id === sourceLane.id);
+    if (
+      !nextLane ||
+      laneMusicalSignature(sourceLane) !==
+        laneMusicalSignature(nextLane)
+    ) {
+      throw new Error(
+        "Reroll invariant failed: protected lane changed: " +
+          sourceLane.id,
+      );
+    }
+  }
+}
+
 function countChanges(
   source: Pattern,
   next: Pattern,
@@ -456,6 +488,12 @@ export function rerollBeat(
       : merged;
 
     changeSummary = countChanges(
+      source,
+      mergedWithFallback,
+      targetLaneIds,
+    );
+
+    assertProtectedLanesPreserved(
       source,
       mergedWithFallback,
       targetLaneIds,
