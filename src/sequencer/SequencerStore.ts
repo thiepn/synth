@@ -18,6 +18,7 @@ export type SequencerLengthSteps =
 export interface SequencerHit {
   voice: DrumVoiceId;
   velocity: number;
+  timingOffsetUs: number;
   laneId: string;
 }
 
@@ -193,6 +194,7 @@ export class SequencerStore {
       hits.push({
         voice: definition.voice,
         velocity: event.velocity,
+        timingOffsetUs: event.timingOffsetUs,
         laneId: lane.id,
       });
     }
