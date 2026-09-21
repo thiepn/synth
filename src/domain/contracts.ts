@@ -48,6 +48,11 @@ export interface StepEvent {
   ratchetCount?: number;
   flamOffsetUs?: Microseconds;
   generatorTags?: string[];
+  grooveBase?: {
+    velocity: Normalized;
+    timingOffsetUs: Microseconds;
+    accent?: "ghost" | "normal" | "accent";
+  };
 }
 
 export interface GenerationLock {
@@ -86,6 +91,9 @@ export interface GrooveProfile {
     | "mechanical"
     | "human";
   roleTimingOffsetUs?: Partial<Record<InstrumentRole, Microseconds>>;
+  ghostNoteAmount?: Normalized;
+  seed?: Seed;
+  engineVersion?: number;
 }
 
 export interface StyleVector {
