@@ -62,7 +62,17 @@ visual ──────────┘
 domain imports none of them.
 ```
 
-## 4. Audio ownership
+## 4. Rhythm/sound separation
+
+Pattern lanes target semantic **kit slots**, not concrete sound objects:
+
+```text
+Pattern lane → Kit slot → Sound specification → Runtime voice
+```
+
+This is a frozen architectural decision. It allows kit swaps, kit generation, sound locking, and rhythm reuse without mutating event data.
+
+## 5. Audio ownership
 
 The audio system owns:
 
@@ -78,7 +88,7 @@ The audio system owns:
 
 The UI may request transport changes but may not emulate transport time using timers or animation frames.
 
-## 5. Generation ownership
+## 6. Generation ownership
 
 Generator functions must be:
 
@@ -98,7 +108,7 @@ generateVariation(source, distance, seed, generatorVersion) -> GeneratedBeat
 
 No generator may rely on ambient `Math.random()` in production logic.
 
-## 6. Command/history model
+## 7. Command/history model
 
 Creative operations become semantic commands, e.g.:
 
@@ -116,9 +126,11 @@ Creative operations become semantic commands, e.g.:
 
 Commands should retain enough metadata for undo, replay, and lineage.
 
+History nodes refer to typed creative artifacts rather than only patterns, allowing kit, sound, scene, and arrangement branches to participate in the evolution model.
+
 The user-facing evolution tree is derived from this history model rather than maintained as unrelated UI state.
 
-## 7. Project persistence
+## 8. Project persistence
 
 Projects are versioned domain documents.
 
@@ -132,12 +144,12 @@ Persistence rules:
 - imported sample blobs are referenced by stable asset IDs
 - no domain object stores transient AudioNode references
 
-## 8. State categories
+## 9. State categories
 
 Keep these separate:
 
 ### Domain state
-Musical truth: patterns, sounds, arrangement, locks, lineage.
+Musical truth: patterns, sounds, kits, arrangement, locks, lineage.
 
 ### Runtime/audio state
 AudioContext, scheduled events, active voices, playback position.
@@ -150,7 +162,7 @@ Theme/accessibility/audio-device preferences and application settings.
 
 Do not persist transient UI state inside core project data unless it has creative meaning.
 
-## 9. Performance rules
+## 10. Performance rules
 
 - transport timing uses Web Audio time
 - UI visualization may lag gracefully; audio may not
@@ -160,7 +172,7 @@ Do not persist transient UI state inside core project data unless it has creativ
 - reduced-motion mode does not alter the musical engine
 - playback must remain valid if React temporarily stalls
 
-## 10. Determinism contract
+## 11. Determinism contract
 
 A generated artifact records at minimum:
 
@@ -175,7 +187,7 @@ Given the same compatible engine version and identical inputs, generation should
 
 When generator behavior intentionally changes, increment the relevant generator version rather than silently changing historical seed meaning.
 
-## 11. Error boundaries
+## 12. Error boundaries
 
 Failures should be localized:
 
@@ -186,7 +198,7 @@ Failures should be localized:
 - persistence failure must surface clearly and keep the in-memory project intact
 - AudioContext suspension must be recoverable
 
-## 12. Testing strategy
+## 13. Testing strategy
 
 ### Pure unit tests
 - generator determinism
@@ -199,6 +211,7 @@ Failures should be localized:
 - no invalid step indices
 - velocities remain bounded
 - mutation preserves locked elements
+- kit swapping does not mutate pattern events
 - generation stays within requested meter/length
 
 ### Integration tests
@@ -210,12 +223,13 @@ Failures should be localized:
 ### Musical certification
 Later phases add corpus-level generation analysis and human listening audits.
 
-## 13. Architecture freeze rule
+## 14. Architecture freeze rule
 
 Changes to the following require an explicit architecture decision:
 
 - project root schema
 - event timing representation
+- pattern → kit-slot → sound relationship
 - seed/version contract
 - asset identity model
 - history lineage semantics
