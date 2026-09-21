@@ -132,7 +132,11 @@ export const SEQUENCER_LANES: readonly SequencerLaneDefinition[] = [
   },
 ];
 
-export const FOUNDATION_LANES = SEQUENCER_LANES.slice(0, 4);
+export const FOUNDATION_LANES = SEQUENCER_LANES.filter((lane) =>
+  ["lane-kick", "lane-snare", "lane-closed-hat", "lane-percussion"].includes(
+    lane.id,
+  ),
+);
 
 export const DRUM_PADS: ReadonlyArray<{
   voice: DrumVoiceId;
