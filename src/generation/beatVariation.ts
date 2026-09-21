@@ -172,12 +172,17 @@ function mergeLane(
     const candidateEvent = candidateByStep.get(step);
 
     if (sourceEvent && candidateEvent) {
+      const sourceBaseVelocity =
+        sourceEvent.grooveBase?.velocity ?? sourceEvent.velocity;
+      const sourceBaseTiming =
+        sourceEvent.grooveBase?.timingOffsetUs ??
+        sourceEvent.timingOffsetUs;
       const velocity =
-        sourceEvent.velocity +
-        (candidateEvent.velocity - sourceEvent.velocity) * velocityMix;
+        sourceBaseVelocity +
+        (candidateEvent.velocity - sourceBaseVelocity) * velocityMix;
       const timingOffsetUs = Math.round(
-        sourceEvent.timingOffsetUs +
-          (candidateEvent.timingOffsetUs - sourceEvent.timingOffsetUs) *
+        sourceBaseTiming +
+          (candidateEvent.timingOffsetUs - sourceBaseTiming) *
             timingMix,
       );
 
@@ -186,6 +191,7 @@ function mergeLane(
         id: sourceEvent.id,
         velocity,
         timingOffsetUs,
+        grooveBase: undefined,
         accent:
           velocity >= 0.85
             ? "accent"
@@ -193,7 +199,9 @@ function mergeLane(
               ? "ghost"
               : "normal",
         generatorTags: [
-          ...(sourceEvent.generatorTags ?? []),
+          ...(sourceEvent.generatorTags ?? []).filter(
+            (tag) => !tag.startsWith("groove-engine"),
+          ),
           BEAT_VARIATION_ID,
           "v" + BEAT_VARIATION_VERSION,
         ],
