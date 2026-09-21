@@ -20,6 +20,16 @@
   cursor: pointer;
 }
 
+.transport-console .transport-key > span {
+  min-width: 0;
+  display: inline;
+  align-self: auto;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+}
+
 .transport-console .transport-key:hover {
   background: rgba(231, 232, 223, 0.025);
   color: var(--bone);
@@ -236,6 +246,10 @@
     display: grid;
     width: 42px;
     height: 47px;
+  }
+
+  .transport-console .transport-key > span {
+    display: inline;
   }
 
   .transport-console__tempo,
