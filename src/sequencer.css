@@ -479,3 +479,117 @@
     transition: none;
   }
 }
+
+
+/* Phase 7 — live Rhythm Glyph diagnostics */
+.sequence-glyph-strip {
+  min-height: 104px;
+  display: grid;
+  grid-template-columns: minmax(155px, 0.5fr) minmax(250px, 1.2fr) minmax(240px, 0.8fr);
+  align-items: stretch;
+  border-bottom: 1px solid var(--hairline-strong);
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(207, 255, 71, 0.012),
+      transparent
+    );
+}
+
+.sequence-glyph-strip > * + * {
+  border-left: 1px solid var(--hairline);
+}
+
+.sequence-glyph-strip__identity {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  color: var(--ash);
+  font: 600 0.5rem/1 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.sequence-glyph-strip__identity strong {
+  color: var(--phosphor);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+}
+
+.sequence-glyph-strip__glyph {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 8px 18px;
+}
+
+.sequence-glyph-strip__metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.sequence-glyph-strip__metrics div {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border-left: 1px solid var(--hairline);
+}
+
+.sequence-glyph-strip__metrics div:first-child {
+  border-left: 0;
+}
+
+.sequence-glyph-strip__metrics dt {
+  color: #60665c;
+  font: 600 0.48rem/1 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.sequence-glyph-strip__metrics dd {
+  margin: 0;
+  color: var(--bone);
+  font: 650 0.82rem/1 var(--font-mono);
+}
+
+@media (max-width: 920px) {
+  .sequence-glyph-strip {
+    grid-template-columns: 140px 1fr;
+  }
+
+  .sequence-glyph-strip__metrics {
+    grid-column: 1 / -1;
+    min-height: 54px;
+    border-left: 0 !important;
+    border-top: 1px solid var(--hairline);
+  }
+}
+
+@media (max-width: 760px) {
+  .sequence-glyph-strip {
+    grid-template-columns: 112px 1fr;
+    min-height: 88px;
+  }
+
+  .sequence-glyph-strip__identity {
+    padding: 0 8px;
+  }
+
+  .sequence-glyph-strip__identity strong {
+    font-size: 0.61rem;
+  }
+
+  .sequence-glyph-strip__glyph {
+    padding-inline: 8px;
+  }
+
+  .sequence-glyph-strip__metrics {
+    min-height: 48px;
+  }
+
+  .sequence-glyph-strip__metrics dd {
+    font-size: 0.68rem;
+  }
+}
