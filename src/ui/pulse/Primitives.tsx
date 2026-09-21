@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useRef,
 } from "react";
+import type { RhythmGlyphGeometry } from "../../visual/rhythmGlyph";
 
 export type ModeId =
   | "create"
@@ -186,29 +187,99 @@ export function InstrumentStrip({
 }
 
 interface RhythmGlyphProps {
-  variant?: number;
+  geometry: RhythmGlyphGeometry;
   label?: string;
+  compact?: boolean;
 }
 
-const glyphPaths = [
-  "M20 50 H64 L76 35 H116 L130 50 H180 M48 25 V76 M94 18 V83 M150 28 V72 M64 50 L82 67 M116 50 L137 31",
-  "M18 51 H57 L72 29 H103 L121 51 H181 M39 30 V72 M88 19 V82 M145 23 V76 M57 51 L76 70 M121 51 L142 33",
-  "M20 52 H52 L69 36 H101 L116 22 L134 52 H180 M44 25 V78 M84 31 V69 M151 26 V75 M52 52 L71 69 M134 52 L153 35",
-];
-
-export function RhythmGlyph({ variant = 0, label = "Rhythm glyph" }: RhythmGlyphProps) {
-  const path = glyphPaths[Math.abs(variant) % glyphPaths.length];
-
+export function RhythmGlyph({
+  geometry,
+  label = "Rhythm glyph",
+  compact = false,
+}: RhythmGlyphProps) {
   return (
     <svg
-      className="rhythm-glyph"
+      className={compact ? "rhythm-glyph is-compact" : "rhythm-glyph"}
       viewBox="0 0 200 100"
       role="img"
       aria-label={label}
+      data-signature={geometry.signature}
     >
-      <path className="rhythm-glyph__ghost" d={path} />
-      <path className="rhythm-glyph__main" d={path} />
-      <circle className="rhythm-glyph__node" cx="94" cy="50" r="3" />
+      <path
+        className="rhythm-glyph__axis"
+        d={geometry.axisPath}
+        aria-hidden="true"
+      />
+      <path
+        className="rhythm-glyph__contour rhythm-glyph__contour--upper"
+        d={geometry.upperPath}
+        aria-hidden="true"
+      />
+      <path
+        className="rhythm-glyph__contour rhythm-glyph__contour--lower"
+        d={geometry.lowerPath}
+        aria-hidden="true"
+      />
+      <path
+        className="rhythm-glyph__main"
+        d={geometry.mainPath}
+        aria-hidden="true"
+      />
+
+      {geometry.ticks.map((tick, index) => (
+        <line
+          key={
+            tick.kind +
+            ":" +
+            index +
+            ":" +
+            tick.x1.toFixed(2) +
+            ":" +
+            tick.y1.toFixed(2)
+          }
+          className={
+            "rhythm-glyph__tick rhythm-glyph__tick--" + tick.kind
+          }
+          x1={tick.x1}
+          y1={tick.y1}
+          x2={tick.x2}
+          y2={tick.y2}
+          style={
+            {
+              "--glyph-strength": tick.strength,
+            } as CSSProperties
+          }
+          aria-hidden="true"
+        />
+      ))}
+
+      {geometry.nodes.map((node, index) =>
+        node.kind === "kick" ? (
+          <rect
+            key={"kick:" + index + ":" + node.x.toFixed(2)}
+            className="rhythm-glyph__node rhythm-glyph__node--kick"
+            x={node.x - node.radius}
+            y={node.y - node.radius}
+            width={node.radius * 2}
+            height={node.radius * 2}
+            transform={
+              "rotate(45 " + node.x.toFixed(2) + " " + node.y.toFixed(2) + ")"
+            }
+            aria-hidden="true"
+          />
+        ) : (
+          <circle
+            key={node.kind + ":" + index + ":" + node.x.toFixed(2)}
+            className={
+              "rhythm-glyph__node rhythm-glyph__node--" + node.kind
+            }
+            cx={node.x}
+            cy={node.y}
+            r={node.radius}
+            aria-hidden="true"
+          />
+        ),
+      )}
     </svg>
   );
 }
