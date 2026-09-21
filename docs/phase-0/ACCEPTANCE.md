@@ -16,10 +16,12 @@ Phase 0 is complete only when every item below is true.
 - [x] PPQ selected
 - [x] stable entity IDs required
 - [x] project schema is versioned
+- [x] rhythm lanes are decoupled from concrete sounds through kit slots
+- [x] projects support multiple kits with one active kit
 - [x] generation provenance is modeled
 - [x] generation locks are domain state
 - [x] style blending is possible in the domain model
-- [x] history supports branching
+- [x] history supports branching across typed creative artifacts
 
 ## Generation
 
