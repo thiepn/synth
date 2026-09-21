@@ -251,7 +251,11 @@ export function SequenceSurface() {
         <div className="sequence-glyph-strip__identity">
           <span>RHYTHM / GLYPH</span>
           <strong>{"RG-" + glyphGeometry.signature.slice(0, 6)}</strong>
-          <span>V{glyphGeometry.version}</span>
+          <span>
+            {(sequencer.pattern.groove?.personality ?? "mechanical")
+              .replace("laidBack", "laid-back")
+              .toUpperCase()}
+          </span>
         </div>
 
         <div className="sequence-glyph-strip__glyph">
@@ -278,6 +282,14 @@ export function SequenceSurface() {
           <div>
             <dt>VEL</dt>
             <dd>{Math.round(glyphGeometry.metrics.meanVelocity * 100)}</dd>
+          </div>
+          <div>
+            <dt>HUMN</dt>
+            <dd>
+              {Math.round(
+                (sequencer.pattern.groove?.humanization ?? 0) * 100,
+              )}
+            </dd>
           </div>
         </dl>
       </div>
