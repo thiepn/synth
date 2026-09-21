@@ -11,9 +11,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 0 — Product Constitution & Architecture Freeze:** complete
 - **Phase 1 — Pulse Architecture UI Foundation:** complete
 - **Phase 2 — Core Audio Clock & Transport:** complete
-- **Next: Phase 3 — Drum Engine V1**
+- **Phase 3 — Drum Engine V1:** complete
+- **Next: Phase 4 — Rhythm Matrix Sequencer V1**
 
-The transport now uses a real lazy-initialized Web Audio clock. React renders clock snapshots but does not advance musical time.
+Synth now has a real Web Audio transport and an eight-voice local synthesized drum engine. React renders clock/engine snapshots but remains outside the musical scheduling path.
 
 ## Run locally
 
@@ -71,6 +72,22 @@ See [Phase 1 implementation notes](docs/phase-1/PHASE_1.md).
 - Space keyboard transport shortcut
 
 See [Phase 2 implementation notes](docs/phase-2/PHASE_2.md).
+
+### Phase 3 — Drum Engine V1
+
+- synthesized kick, snare, clap, closed/open hats, tom, percussion, and crash
+- direct playable pads with keyboard mappings
+- transport-scheduled foundation beat
+- shared visible/audio pattern source
+- velocity-aware synthesis
+- open-hat choke behavior
+- deterministic noise and room impulse generation
+- bounded voice tracking/polyphony
+- master compression and gain
+- PUNCH / TONE / DECAY / GRIT / SPACE macros
+- stale scheduled voice cancellation on transport epoch changes
+
+See [Phase 3 implementation notes](docs/phase-3/PHASE_3.md).
 
 ## Phase 0 architecture
 
