@@ -4,6 +4,7 @@ import { App } from "./App";
 import "./styles.css";
 import "./transport.css";
 import "./drums.css";
+import "./sequencer.css";
 
 const root = document.getElementById("root");
 
