@@ -4,10 +4,19 @@ import { useTransportSnapshot } from "../../audio/useTransport";
 import {
   BEAT_STYLES,
   generateBeat,
+  validateGeneratedBeat,
   type BeatGenerationResult,
   type BeatStyleId,
 } from "../../generation/beatGenerator";
-import { FOUNDATION_LANES } from "../../music/foundationPattern";
+import {
+  rerollBeat,
+  type BeatVariationResult,
+} from "../../generation/beatVariation";
+import { shortSeed } from "../../generation/prng";
+import {
+  FOUNDATION_LANES,
+  SEQUENCER_LANES,
+} from "../../music/foundationPattern";
 import { sequencerStore } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { DrumEnginePanel } from "../drums/DrumEngineUI";
@@ -35,6 +44,31 @@ const mutationKeys = [
   "THIN",
 ];
 
+type ReactorOperation =
+  | {
+      kind: "generate";
+      result: BeatGenerationResult;
+    }
+  | {
+      kind: "reroll";
+      result: BeatVariationResult;
+      target: string;
+    };
+
+function provenanceStyle(
+  styleVector: Record<string, number> | undefined,
+): BeatStyleId | undefined {
+  if (!styleVector) return undefined;
+
+  const strongest = Object.entries(styleVector).sort(
+    (a, b) => b[1] - a[1],
+  )[0]?.[0];
+
+  return BEAT_STYLES.some((entry) => entry.id === strongest)
+    ? (strongest as BeatStyleId)
+    : undefined;
+}
+
 export function CreateSurface() {
   const transport = useTransportSnapshot();
   const sequencer = useSequencerSnapshot();
@@ -45,11 +79,22 @@ export function CreateSurface() {
   const [complexity, setComplexity] = useState(52);
   const [syncopation, setSyncopation] = useState(61);
   const [swing, setSwing] = useState(18);
-  const [generationCounter, setGenerationCounter] = useState(0);
-  const [generationVersion, setGenerationVersion] = useState(0);
-  const [lastGeneration, setLastGeneration] =
-    useState<BeatGenerationResult | null>(null);
-  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [distance, setDistance] = useState(42);
+  const [operationCounter, setOperationCounter] = useState(0);
+  const [reactorVersion, setReactorVersion] = useState(0);
+  const [lastOperation, setLastOperation] =
+    useState<ReactorOperation | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(
+    null,
+  );
+
+  const lockedLaneIds = useMemo(
+    () =>
+      sequencer.pattern.lanes
+        .filter((lane) => lane.lock.rhythm)
+        .map((lane) => lane.id),
+    [sequencer.pattern],
+  );
 
   const activeStep =
     transport.status === "running"
@@ -59,40 +104,55 @@ export function CreateSurface() {
         ) % sequencer.lengthSteps
       : undefined;
 
+  const currentPatternStyle =
+    provenanceStyle(sequencer.pattern.provenance?.style) ?? style;
+  const currentValidation = useMemo(
+    () => validateGeneratedBeat(sequencer.pattern, currentPatternStyle),
+    [sequencer.pattern, currentPatternStyle],
+  );
+  const currentSeed = sequencer.pattern.provenance?.seed
+    ? shortSeed(sequencer.pattern.provenance.seed)
+    : "MANUAL";
+  const canReroll =
+    Boolean(sequencer.pattern.provenance) || lockedLaneIds.length > 0;
+
   const glyphVariant = useMemo(
-    () => generationVersion + Math.round(syncopation / 34),
-    [generationVersion, syncopation],
+    () => reactorVersion + Math.round(syncopation / 34),
+    [reactorVersion, syncopation],
   );
 
-  const generateCurrentBeat = () => {
-    const baseSeed =
-      "create:" +
-      style +
-      ":" +
-      String(generationCounter).padStart(4, "0") +
-      ":" +
-      sequencer.lengthSteps;
+  const intent = () => ({
+    energy: energy / 100,
+    density: density / 100,
+    complexity: complexity / 100,
+    syncopation: syncopation / 100,
+    swing: swing / 100,
+  });
 
+  const recordFailure = (message: string) => {
+    setOperationError(message);
+    setReactorVersion((value) => value + 1);
+    setOperationCounter((value) => value + 1);
+  };
+
+  const generateFreshBeat = () => {
     const result = generateBeat({
-      seed: baseSeed,
+      seed:
+        "create:" +
+        style +
+        ":" +
+        String(operationCounter).padStart(4, "0") +
+        ":" +
+        sequencer.lengthSteps,
       style,
-      intent: {
-        energy: energy / 100,
-        density: density / 100,
-        complexity: complexity / 100,
-        syncopation: syncopation / 100,
-        swing: swing / 100,
-      },
+      intent: intent(),
       stepCount: sequencer.lengthSteps,
       bpm: transport.bpm,
       meter: transport.meter,
     });
 
-    setGenerationCounter((value) => value + 1);
-    setGenerationVersion((value) => value + 1);
-
     if (!result.validation.valid) {
-      setGenerationError(
+      recordFailure(
         "Generator rejected candidate · score " +
           result.validation.score +
           " · " +
@@ -103,14 +163,88 @@ export function CreateSurface() {
 
     try {
       sequencerStore.applyGeneratedPattern(result.pattern);
-      setLastGeneration(result);
-      setGenerationError(null);
+      setLastOperation({ kind: "generate", result });
+      setOperationError(null);
+      setReactorVersion((value) => value + 1);
+      setOperationCounter((value) => value + 1);
     } catch (error) {
-      setGenerationError(
+      recordFailure(
         error instanceof Error ? error.message : String(error),
       );
     }
   };
+
+  const rerollCurrentBeat = (targetLaneIds?: readonly string[]) => {
+    const targetKey =
+      targetLaneIds && targetLaneIds.length > 0
+        ? targetLaneIds.join("+")
+        : "all-unlocked";
+
+    try {
+      const result = rerollBeat({
+        source: sequencer.pattern,
+        seed:
+          "reroll:" +
+          sequencer.pattern.id +
+          ":" +
+          targetKey +
+          ":" +
+          String(operationCounter).padStart(4, "0"),
+        style,
+        intent: intent(),
+        distance: distance / 100,
+        bpm: transport.bpm,
+        targetLaneIds,
+      });
+
+      if (!result.accepted) {
+        recordFailure(
+          "Reroll rejected · score " +
+            result.validation.score +
+            " · " +
+            (result.validation.reasons[0] ?? "quality gate failed"),
+        );
+        return;
+      }
+
+      sequencerStore.applyGeneratedPattern(result.pattern);
+      setLastOperation({
+        kind: "reroll",
+        result,
+        target: targetKey,
+      });
+      setOperationError(null);
+      setReactorVersion((value) => value + 1);
+      setOperationCounter((value) => value + 1);
+    } catch (error) {
+      recordFailure(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  };
+
+  const handleReactorAction = () => {
+    if (canReroll) {
+      rerollCurrentBeat();
+    } else {
+      generateFreshBeat();
+    }
+  };
+
+  const lastStatus =
+    lastOperation?.kind === "reroll"
+      ? "Δ" +
+        String(lastOperation.result.changedStepCount).padStart(2, "0") +
+        " / " +
+        lastOperation.result.changedLaneIds.length +
+        " LANE"
+      : lastOperation?.kind === "generate"
+        ? "Q" +
+          String(lastOperation.result.validation.score).padStart(2, "0") +
+          " / " +
+          lastOperation.result.attempts +
+          " TRY"
+        : "PRESS " + (canReroll ? "REROLL" : "GENERATE");
 
   return (
     <section className="create-surface" aria-labelledby="create-title">
@@ -164,7 +298,6 @@ export function CreateSurface() {
           <SignalRail
             label="COMPLEXITY"
             value={complexity}
-            tone="phosphor"
             onChange={setComplexity}
           />
           <SignalRail
@@ -183,76 +316,112 @@ export function CreateSurface() {
 
         <div className="create-machine__reactor">
           <BeatReactor
-            seed={lastGeneration?.displaySeed ?? "READY"}
-            intensity={complexity}
-            generationVersion={generationVersion}
-            onGenerate={generateCurrentBeat}
-            onIntensityChange={setComplexity}
+            seed={currentSeed}
+            distance={distance}
+            generationVersion={reactorVersion}
+            actionLabel={canReroll ? "REROLL" : "GENERATE"}
+            onAction={handleReactorAction}
+            onDistanceChange={setDistance}
           />
 
-          <div className="reactor-locks" aria-label="Lane locks activate in Phase 6">
-            {FOUNDATION_LANES.map((strip) => (
-              <button
-                type="button"
-                key={strip.name}
-                className="reactor-lock"
-                disabled
-                title="Lock and reroll arrives in Phase 6"
-              >
-                <span>{strip.code}</span>
-                <span className="reactor-lock__lamp" />
-              </button>
-            ))}
+          <div className="reroll-distance-readout">
+            <span>CHANGE / DISTANCE</span>
+            <strong>
+              {distance < 18
+                ? "SUBTLE"
+                : distance < 48
+                  ? "RELATED"
+                  : distance < 78
+                    ? "MUTATE"
+                    : "WILD"}
+            </strong>
+            <span>{String(Math.round(distance)).padStart(3, "0")}</span>
+          </div>
+
+          <div className="reactor-lane-bank" aria-label="Lane lock and reroll controls">
+            {SEQUENCER_LANES.map((definition) => {
+              const locked = sequencerStore.isLaneRhythmLocked(
+                definition.id,
+              );
+
+              return (
+                <div
+                  className={
+                    locked
+                      ? "reactor-lane-control is-locked"
+                      : "reactor-lane-control"
+                  }
+                  key={definition.id}
+                >
+                  <button
+                    type="button"
+                    className="reactor-lane-control__lock"
+                    onClick={() =>
+                      sequencerStore.toggleLaneRhythmLock(definition.id)
+                    }
+                    aria-pressed={locked}
+                    title={
+                      locked
+                        ? "Unlock " + definition.name
+                        : "Lock " + definition.name + " rhythm"
+                    }
+                  >
+                    <span>{definition.code}</span>
+                    <i aria-hidden="true" />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="reactor-lane-control__reroll"
+                    onClick={() => rerollCurrentBeat([definition.id])}
+                    disabled={locked}
+                    aria-label={"Reroll " + definition.name}
+                    title={
+                      locked
+                        ? definition.name + " is locked"
+                        : "Reroll only " + definition.name
+                    }
+                  >
+                    ↻
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <div
             className={
-              generationError
+              operationError
                 ? "generation-result is-error"
                 : "generation-result"
             }
             aria-live="polite"
           >
             <span>
-              {generationError
+              {operationError
                 ? "REJECTED"
-                : lastGeneration
-                  ? "ACCEPTED"
-                  : "READY"}
+                : lastOperation?.kind === "reroll"
+                  ? "REROLLED"
+                  : lastOperation?.kind === "generate"
+                    ? "GENERATED"
+                    : canReroll
+                      ? "READY / " + lockedLaneIds.length + " LOCK"
+                      : "READY"}
             </span>
-            <strong>
-              {generationError
-                ? generationError
-                : lastGeneration
-                  ? "Q" +
-                    String(lastGeneration.validation.score).padStart(2, "0") +
-                    " / " +
-                    lastGeneration.attempts +
-                    " TRY"
-                  : "PRESS GENERATE"}
-            </strong>
+            <strong>{operationError ?? lastStatus}</strong>
           </div>
         </div>
 
         <div className="create-machine__glyph">
           <div className="machine-section-label">
             <span>B / SIGNATURE</span>
-            <span>
-              {lastGeneration
-                ? "SYN-" + lastGeneration.displaySeed
-                : "NO GENERATION"}
-            </span>
+            <span>{"SYN-" + currentSeed}</span>
           </div>
 
           <div className="glyph-stage">
             <RhythmGlyph
               variant={glyphVariant}
-              label={
-                lastGeneration
-                  ? "Generated rhythm signature " +
-                    lastGeneration.displaySeed
-                  : "Waiting for generated rhythm"
-              }
+              label={"Current rhythm signature " + currentSeed}
             />
             <div className="glyph-stage__scan" aria-hidden="true" />
           </div>
@@ -260,23 +429,21 @@ export function CreateSurface() {
           <dl className="signal-readout">
             <div>
               <dt>STYLE</dt>
-              <dd>{BEAT_STYLES.find((entry) => entry.id === style)?.code}</dd>
+              <dd>
+                {BEAT_STYLES.find(
+                  (entry) => entry.id === currentPatternStyle,
+                )?.code ?? "--"}
+              </dd>
             </div>
             <div>
               <dt>QUALITY</dt>
               <dd>
-                {lastGeneration
-                  ? String(lastGeneration.validation.score).padStart(2, "0")
-                  : "--"}
+                {String(currentValidation.score).padStart(2, "0")}
               </dd>
             </div>
             <div>
-              <dt>TRIES</dt>
-              <dd>
-                {lastGeneration
-                  ? String(lastGeneration.attempts).padStart(2, "0")
-                  : "--"}
-              </dd>
+              <dt>LOCKS</dt>
+              <dd>{String(lockedLaneIds.length).padStart(2, "0")}</dd>
             </div>
           </dl>
         </div>
@@ -311,8 +478,8 @@ export function CreateSurface() {
             ))}
           </div>
           <p className="mutation-bank__note">
-            Beat generation is live. Lock / reroll arrives in Phase 6;
-            semantic mutation verbs remain reserved for Phase 9.
+            Lock and reroll are live. Semantic mutation verbs remain
+            reserved for Phase 9.
           </p>
         </div>
       </div>
@@ -324,8 +491,8 @@ export function CreateSurface() {
           <span>INSTRUMENT / STRIPS</span>
           <span>
             {transport.status === "running"
-              ? "LIVE GENERATED PATTERN"
-              : "EDIT IN 02 / SEQUENCE"}
+              ? "LIVE DERIVED PATTERN"
+              : "LOCK / REROLL ACTIVE"}
           </span>
         </div>
         {FOUNDATION_LANES.map((strip) => (
@@ -337,7 +504,10 @@ export function CreateSurface() {
             accent={strip.accent}
             detail={strip.detail}
             activeStep={activeStep}
-            lockDisabled
+            locked={sequencerStore.isLaneRhythmLocked(strip.id)}
+            onToggleLock={() =>
+              sequencerStore.toggleLaneRhythmLock(strip.id)
+            }
           />
         ))}
       </div>
