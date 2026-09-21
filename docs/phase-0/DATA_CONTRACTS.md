@@ -104,6 +104,7 @@ A lane has:
 - semantic role
 - kit-slot reference
 - events
+- optional mute/solo state
 - generation lock state
 
 Locks are granular enough to protect rhythm independently from sound.
