@@ -1,5 +1,6 @@
 import {
   audioTransport,
+  TRANSPORT_SCHEDULER_CONFIG,
   type ScheduledTransportPulse,
   type TransportSnapshot,
 } from "./AudioTransport";
@@ -75,10 +76,17 @@ function velocityGain(velocity: number): number {
 function createDriveCurve(amount: number): Float32Array {
   const size = 1024;
   const curve = new Float32Array(size);
-  const drive = 1 + clamp01(amount) * 28;
+  const normalized = clamp01(amount);
 
   for (let index = 0; index < size; index += 1) {
     const x = (index * 2) / (size - 1) - 1;
+
+    if (normalized <= 0.001) {
+      curve[index] = x;
+      continue;
+    }
+
+    const drive = 1 + normalized * 28;
     curve[index] = Math.tanh(x * drive) / Math.tanh(drive);
   }
 
@@ -185,7 +193,9 @@ export class DrumEngine {
       this.currentTransportEpoch = pulse.epoch;
 
       const stepIndex =
-        Math.floor(pulse.absoluteTick / 240) % FOUNDATION_STEP_COUNT;
+        Math.floor(
+          pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        ) % FOUNDATION_STEP_COUNT;
       const loopBars = audioTransport.getSnapshot().loopBars;
       const hits = foundationHitsForPulse(
         stepIndex,
@@ -347,34 +357,37 @@ export class DrumEngine {
     const graph = this.graph;
     if (!graph) return;
 
-    this.pruneVoices(graph.context.currentTime);
-    this.enforcePolyphony(graph.context.currentTime);
+    const now = graph.context.currentTime;
+    const safeAudioTime = Math.max(audioTime, now + 0.001);
+
+    this.pruneVoices(now);
+    this.enforcePolyphony(now);
 
     switch (voice) {
       case "kick":
-        this.scheduleKick(audioTime, velocity, epoch);
+        this.scheduleKick(safeAudioTime, velocity, epoch);
         break;
       case "snare":
-        this.scheduleSnare(audioTime, velocity, epoch);
+        this.scheduleSnare(safeAudioTime, velocity, epoch);
         break;
       case "clap":
-        this.scheduleClap(audioTime, velocity, epoch);
+        this.scheduleClap(safeAudioTime, velocity, epoch);
         break;
       case "closedHat":
-        this.chokeOpenHats(audioTime);
-        this.scheduleHat("closedHat", audioTime, velocity, epoch);
+        this.chokeOpenHats(safeAudioTime);
+        this.scheduleHat("closedHat", safeAudioTime, velocity, epoch);
         break;
       case "openHat":
-        this.scheduleHat("openHat", audioTime, velocity, epoch);
+        this.scheduleHat("openHat", safeAudioTime, velocity, epoch);
         break;
       case "tom":
-        this.scheduleTom(audioTime, velocity, epoch);
+        this.scheduleTom(safeAudioTime, velocity, epoch);
         break;
       case "percussion":
-        this.schedulePercussion(audioTime, velocity, epoch);
+        this.schedulePercussion(safeAudioTime, velocity, epoch);
         break;
       case "crash":
-        this.scheduleCrash(audioTime, velocity, epoch);
+        this.scheduleCrash(safeAudioTime, velocity, epoch);
         break;
     }
   }
