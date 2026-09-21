@@ -65,7 +65,8 @@ export interface PatternRegionLock extends GenerationLock {
 export interface PatternLane {
   id: EntityId;
   role: InstrumentRole;
-  soundId: EntityId;
+  /** Rhythms target a semantic kit slot, not a concrete sound. */
+  kitSlotId: EntityId;
   events: StepEvent[];
   lock: GenerationLock;
   regionLocks?: PatternRegionLock[];
@@ -141,9 +142,9 @@ export interface SynthSoundSpec {
 export interface SampleSoundSpec {
   kind: "sample";
   assetId: EntityId;
-  trimStart: number;
-  trimEnd?: number;
-  gain: number;
+  trimStartSeconds: number;
+  trimEndSeconds?: number;
+  gainDb: number;
   pitchSemitones: number;
   reversed: boolean;
 }
@@ -163,10 +164,17 @@ export interface Sound {
   provenance?: GenerationProvenance;
 }
 
+export interface KitSlot {
+  id: EntityId;
+  role: InstrumentRole;
+  label?: string;
+  soundId: EntityId;
+}
+
 export interface Kit {
   id: EntityId;
   name: string;
-  soundIds: EntityId[];
+  slots: KitSlot[];
   provenance?: GenerationProvenance;
 }
 
@@ -174,6 +182,7 @@ export interface Scene {
   id: EntityId;
   name: string;
   patternIds: EntityId[];
+  kitId?: EntityId;
   energy: Normalized;
 }
 
@@ -204,13 +213,25 @@ export type HistoryOperation =
   | "generateTransition"
   | "arrange";
 
+export type HistoryArtifactKind =
+  | "pattern"
+  | "kit"
+  | "sound"
+  | "scene"
+  | "arrangement";
+
+export interface HistoryArtifactRef {
+  kind: HistoryArtifactKind;
+  id: EntityId;
+}
+
 export interface HistoryNode {
   id: EntityId;
   parentId?: EntityId;
   operation: HistoryOperation;
   operationParams: Record<string, unknown>;
   seed?: Seed;
-  patternIds: EntityId[];
+  artifacts: HistoryArtifactRef[];
   createdAt: string;
   name?: string;
   favorite?: boolean;
@@ -223,7 +244,8 @@ export interface SynthProject {
   createdAt: string;
   updatedAt: string;
   transport: TransportDefaults;
-  kit: Kit;
+  kits: Kit[];
+  activeKitId: EntityId;
   sounds: Sound[];
   patterns: Pattern[];
   scenes: Scene[];
