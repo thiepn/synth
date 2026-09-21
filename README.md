@@ -12,9 +12,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 1 — Pulse Architecture UI Foundation:** complete
 - **Phase 2 — Core Audio Clock & Transport:** complete
 - **Phase 3 — Drum Engine V1:** complete
-- **Next: Phase 4 — Rhythm Matrix Sequencer V1**
+- **Phase 4 — Rhythm Matrix Sequencer V1:** complete
+- **Next: Phase 5 — Beat Generator V1**
 
-Synth now has a real Web Audio transport and an eight-voice local synthesized drum engine. React renders clock/engine snapshots but remains outside the musical scheduling path.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, and an editable domain-backed sequencer. React renders external-store snapshots but remains outside both musical timing and canonical pattern state.
 
 ## Run locally
 
@@ -88,6 +89,24 @@ See [Phase 2 implementation notes](docs/phase-2/PHASE_2.md).
 - stale scheduled voice cancellation on transport epoch changes
 
 See [Phase 3 implementation notes](docs/phase-3/PHASE_3.md).
+
+### Phase 4 — Rhythm Matrix Sequencer V1
+
+- editable 8-lane domain Pattern
+- 4 / 8 / 16-step pattern lengths
+- velocity encoded as hit geometry
+- per-step velocity editor
+- lane mute and solo
+- direct lane audition
+- clear / reset / duplicate
+- 100-state undo/redo history
+- velocity-drag history coalescing
+- Cmd/Ctrl-Z history shortcuts
+- hot-edit scheduler invalidation
+- CREATE strips and Drum Engine share sequencer state
+- responsive sticky-lane Rhythm Matrix
+
+See [Phase 4 implementation notes](docs/phase-4/PHASE_4.md).
 
 ## Phase 0 architecture
 
