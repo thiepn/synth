@@ -299,16 +299,22 @@
   width: 7px;
   height: calc(4px + (var(--step-velocity) * 37px));
   background: #30352e;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--step-offset, 0px)));
   transition:
     height 90ms ease,
     background 90ms ease,
-    box-shadow 90ms ease;
+    box-shadow 90ms ease,
+    transform 90ms ease;
 }
 
 .sequence-step.is-on .sequence-step__hit {
   background: currentColor;
   box-shadow: 0 0 10px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.sequence-step.is-ghost .sequence-step__hit {
+  opacity: 0.46;
+  width: 5px;
 }
 
 .sequence-step.is-current.is-on .sequence-step__hit {
