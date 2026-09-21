@@ -280,10 +280,26 @@ export function BeatReactor({
 interface GrooveFieldProps {
   x: number;
   y: number;
+  labels?: {
+    nw: string;
+    ne: string;
+    sw: string;
+    se: string;
+  };
   onChange: (x: number, y: number) => void;
 }
 
-export function GrooveField({ x, y, onChange }: GrooveFieldProps) {
+export function GrooveField({
+  x,
+  y,
+  labels = {
+    nw: "BUSY",
+    ne: "MOTION",
+    sw: "STRAIGHT",
+    se: "SPARSE",
+  },
+  onChange,
+}: GrooveFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
 
   const setFromPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -340,10 +356,10 @@ export function GrooveField({ x, y, onChange }: GrooveFieldProps) {
         }}
       >
         <span className="groove-field__grid" aria-hidden="true" />
-        <span className="groove-field__label groove-field__label--nw">BUSY</span>
-        <span className="groove-field__label groove-field__label--ne">MOTION</span>
-        <span className="groove-field__label groove-field__label--sw">STRAIGHT</span>
-        <span className="groove-field__label groove-field__label--se">SPARSE</span>
+        <span className="groove-field__label groove-field__label--nw">{labels.nw}</span>
+        <span className="groove-field__label groove-field__label--ne">{labels.ne}</span>
+        <span className="groove-field__label groove-field__label--sw">{labels.sw}</span>
+        <span className="groove-field__label groove-field__label--se">{labels.se}</span>
         <button
           type="button"
           className="groove-field__cursor"
