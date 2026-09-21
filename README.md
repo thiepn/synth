@@ -16,9 +16,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 5 — Beat Generator V1:** complete
 - **Phase 6 — Beat Reactor: Lock / Reroll / Similarity:** complete
 - **Phase 7 — Rhythm Glyph System:** complete
-- **Next: Phase 8 — Groove & Humanization Engine**
+- **Phase 8 — Groove & Humanization Engine:** complete
+- **Next: Phase 9 — Groove Field & Musical Mutation**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, and Pattern-derived visual rhythm identity. React remains outside musical timing, canonical pattern state, generator logic, and glyph derivation.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, and deterministic groove/humanization. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, and groove transformation.
 
 ## Run locally
 
@@ -122,7 +123,7 @@ See [Phase 4 implementation notes](docs/phase-4/PHASE_4.md).
 - rejected candidates never replace the active pattern
 - generated Pattern becomes normal editable sequencer state
 - generated velocity drives synthesis and matrix geometry
-- audible generated swing through event microtiming
+- generated Swing stored in the Pattern groove profile and applied by the Web Audio scheduler
 - generation is one undoable editor action
 - hot generation reschedules already queued Web Audio events safely
 - Phase 6 lock controls remain visibly disabled until implemented
@@ -166,6 +167,24 @@ See [Phase 6 implementation notes](docs/phase-6/PHASE_6.md).
 - reusable feature-distance utility for later similar-beat workflows
 
 See [Phase 7 implementation notes](docs/phase-7/PHASE_7.md).
+
+### Phase 8 — Groove & Humanization Engine
+
+- Mechanical / Tight / Deep / Laid-back / Pushing / Loose / Human personalities
+- deterministic correlated timing rather than independent random jitter
+- role-specific pocket offsets
+- beat-group timing drift + local microtiming
+- velocity contour humanization
+- deterministic snare/percussion/hat ghost-note vocabulary
+- non-cumulative groove baselines
+- Apply Feel / Reset Feel as undoable Pattern transforms
+- Pattern-level Swing applied exactly once at Web Audio scheduling time
+- generated and rerolled beats inherit the active feel
+- Rhythm Matrix shows actual timing displacement and ghost notes
+- Rhythm Glyph reflects swing, human microtiming, dynamics, and ghosts
+- SEQUENCE exposes active personality and Humanization
+
+See [Phase 8 implementation notes](docs/phase-8/PHASE_8.md).
 
 ## Phase 0 architecture
 
