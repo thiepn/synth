@@ -251,7 +251,7 @@ function occupiedSteps(lane: PatternLane): Set<number> {
 }
 
 function ghostCandidates(role: InstrumentRole, stepCount: number): number[] {
-  if (role === "snare" || role === "clap") {
+  if (role === "snare") {
     return Array.from({ length: stepCount }, (_, index) => index).filter(
       (step) => step % 4 === 1 || step % 4 === 3,
     );
@@ -291,7 +291,7 @@ function addGhostNotes(
     const probability =
       request.ghostNoteAmount *
       definition.ghostScale *
-      (lane.role === "snare" || lane.role === "clap" ? 0.42 : 0.28);
+      (lane.role === "snare" ? 0.42 : 0.28);
 
     if (!random.chance(probability)) continue;
 
