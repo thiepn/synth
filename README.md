@@ -83,7 +83,7 @@ See [Phase 2 implementation notes](docs/phase-2/PHASE_2.md).
 - open-hat choke behavior
 - deterministic noise and room impulse generation
 - bounded voice tracking/polyphony
-- master compression and gain
+- master compression, gain, and final output limiting
 - PUNCH / TONE / DECAY / GRIT / SPACE macros
 - stale scheduled voice cancellation on transport epoch changes
 
