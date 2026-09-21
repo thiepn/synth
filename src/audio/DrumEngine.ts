@@ -9,6 +9,7 @@ import {
   type DrumVoiceId,
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
+import { swingOffsetUsForStep } from "../groove/grooveEngine";
 
 export interface DrumMacros {
   punch: number;
@@ -199,12 +200,20 @@ export class DrumEngine {
       const stepIndex = Math.floor(
         pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
       );
+      const sequencer = sequencerStore.getSnapshot();
       const hits = sequencerStore.getHitsForStep(stepIndex);
+      const transport = audioTransport.getSnapshot();
+      const swingOffsetUs = swingOffsetUsForStep(
+        stepIndex,
+        transport.bpm,
+        sequencer.pattern.groove?.swing ?? 0,
+      );
 
       for (const hit of hits) {
         this.scheduleVoice(
           hit.voice,
-          pulse.audioTime + hit.timingOffsetUs / 1_000_000,
+          pulse.audioTime +
+            (swingOffsetUs + hit.timingOffsetUs) / 1_000_000,
           hit.velocity,
           pulse.epoch,
         );
