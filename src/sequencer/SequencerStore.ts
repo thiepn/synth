@@ -412,6 +412,9 @@ export class SequencerStore {
   }
 
   applyPatternTransform(nextPattern: Pattern): void {
+    if (JSON.stringify(nextPattern) === JSON.stringify(this.pattern)) {
+      return;
+    }
     this.applyGeneratedPattern(nextPattern);
   }
 
