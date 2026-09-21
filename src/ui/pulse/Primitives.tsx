@@ -237,7 +237,7 @@ export function BeatReactor({
     >
       <div className="beat-reactor__caption">
         <span>BEAT / REACTOR</span>
-        <span>GEN / V1</span>
+        <span>GEN / DERIVE</span>
       </div>
 
       <div className="beat-reactor__machine">
@@ -262,7 +262,7 @@ export function BeatReactor({
       </div>
 
       <label className="beat-reactor__distance">
-        <span>SAFE</span>
+        <span>SAME</span>
         <input
           type="range"
           min="0"
