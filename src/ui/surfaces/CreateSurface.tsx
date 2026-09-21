@@ -13,6 +13,7 @@ import {
   type BeatVariationResult,
 } from "../../generation/beatVariation";
 import { shortSeed } from "../../generation/prng";
+import { deriveRhythmGlyph } from "../../visual/rhythmGlyph";
 import {
   FOUNDATION_LANES,
   SEQUENCER_LANES,
@@ -118,9 +119,9 @@ export function CreateSurface() {
     lockedLaneIds.length > 0 ||
     sequencer.revision > 0;
 
-  const glyphVariant = useMemo(
-    () => reactorVersion + Math.round(syncopation / 34),
-    [reactorVersion, syncopation],
+  const glyphGeometry = useMemo(
+    () => deriveRhythmGlyph(sequencer.pattern),
+    [sequencer.pattern],
   );
 
   const intent = () => ({
@@ -417,13 +418,17 @@ export function CreateSurface() {
         <div className="create-machine__glyph">
           <div className="machine-section-label">
             <span>B / SIGNATURE</span>
-            <span>{"SYN-" + currentSeed}</span>
+            <span>{"RG-" + glyphGeometry.signature.slice(0, 6)}</span>
           </div>
 
           <div className="glyph-stage">
             <RhythmGlyph
-              variant={glyphVariant}
-              label={"Current rhythm signature " + currentSeed}
+              geometry={glyphGeometry}
+              label={
+                "Rhythm glyph " +
+                glyphGeometry.signature +
+                " for current pattern"
+              }
             />
             <div className="glyph-stage__scan" aria-hidden="true" />
           </div>
