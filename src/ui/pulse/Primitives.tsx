@@ -118,10 +118,11 @@ export function SignalRail({
 interface InstrumentStripProps {
   code: string;
   name: string;
-  values: number[];
+  values: readonly number[];
   locked?: boolean;
   accent?: "phosphor" | "heat" | "ice";
   detail: string;
+  activeStep?: number;
   onToggleLock?: () => void;
 }
 
@@ -132,6 +133,7 @@ export function InstrumentStrip({
   locked = false,
   accent = "phosphor",
   detail,
+  activeStep,
   onToggleLock,
 }: InstrumentStripProps) {
   return (
@@ -148,7 +150,11 @@ export function InstrumentStrip({
         {values.map((value, index) => (
           <span
             key={index}
-            className={value > 0 ? "hit is-on" : "hit"}
+            className={[
+              "hit",
+              value > 0 ? "is-on" : "",
+              activeStep === index ? "is-current" : "",
+            ].join(" ")}
             style={{ "--hit-level": value } as CSSProperties}
           />
         ))}
