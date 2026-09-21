@@ -15,9 +15,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 4 — Rhythm Matrix Sequencer V1:** complete
 - **Phase 5 — Beat Generator V1:** complete
 - **Phase 6 — Beat Reactor: Lock / Reroll / Similarity:** complete
-- **Next: Phase 7 — Rhythm Glyph System**
+- **Phase 7 — Rhythm Glyph System:** complete
+- **Next: Phase 8 — Groove & Humanization Engine**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, and lock-aware iterative rerolling. React remains outside musical timing, canonical pattern state, and generator logic.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, and Pattern-derived visual rhythm identity. React remains outside musical timing, canonical pattern state, generator logic, and glyph derivation.
 
 ## Run locally
 
@@ -145,6 +146,26 @@ See [Phase 5 implementation notes](docs/phase-5/PHASE_5.md).
 - rerolls remain undoable and hot-playback safe
 
 See [Phase 6 implementation notes](docs/phase-6/PHASE_6.md).
+
+### Phase 7 — Rhythm Glyph System
+
+- deterministic Pattern-derived musical sigils
+- exact-structure RG signatures independent of IDs/provenance
+- continuous geometry rather than hash-driven artwork
+- kick anchors and lower contour
+- backbeat upper anchors
+- hi-hat signal teeth
+- percussion branches
+- cymbal traces
+- velocity-sensitive geometry
+- swing and microtiming displacement
+- density / syncopation / velocity / instrumentation metrics
+- live CREATE glyph identity
+- live SEQUENCE glyph diagnostic strip
+- future modes use the actual current Pattern glyph
+- reusable feature-distance utility for later similar-beat workflows
+
+See [Phase 7 implementation notes](docs/phase-7/PHASE_7.md).
 
 ## Phase 0 architecture
 
