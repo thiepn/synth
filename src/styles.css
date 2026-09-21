@@ -1462,3 +1462,108 @@ button:disabled {
 .instrument-strip:has(.hit.is-current) .instrument-strip__code {
   color: currentColor;
 }
+
+
+/* Phase 7 — Pattern-derived Rhythm Glyph */
+.rhythm-glyph {
+  overflow: visible;
+  color: var(--phosphor);
+  filter: drop-shadow(0 0 7px rgba(207, 255, 71, 0.035));
+}
+
+.rhythm-glyph.is-compact {
+  width: min(100%, 210px);
+  max-height: 78px;
+}
+
+.rhythm-glyph__axis,
+.rhythm-glyph__contour,
+.rhythm-glyph__main,
+.rhythm-glyph__tick {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.rhythm-glyph__axis {
+  stroke: var(--etch);
+  stroke-width: 0.8;
+  stroke-dasharray: 2 5;
+  opacity: 0.7;
+}
+
+.rhythm-glyph__contour {
+  stroke-width: 1;
+}
+
+.rhythm-glyph__contour--upper {
+  stroke: var(--ice);
+  opacity: 0.34;
+}
+
+.rhythm-glyph__contour--lower {
+  stroke: var(--heat);
+  opacity: 0.34;
+}
+
+.rhythm-glyph__main {
+  stroke: var(--phosphor);
+  stroke-width: 1.6;
+  opacity: 0.92;
+}
+
+.rhythm-glyph__tick {
+  stroke-width: calc(0.55px + (var(--glyph-strength, 0.5) * 0.8px));
+}
+
+.rhythm-glyph__tick--hat {
+  stroke: var(--ice);
+  opacity: 0.74;
+}
+
+.rhythm-glyph__tick--percussion {
+  stroke: var(--phosphor);
+  opacity: 0.62;
+}
+
+.rhythm-glyph__tick--cymbal {
+  stroke: var(--bone);
+  opacity: 0.42;
+}
+
+.rhythm-glyph__node {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1;
+}
+
+.rhythm-glyph__node--kick {
+  fill: var(--void);
+  stroke: var(--heat);
+}
+
+.rhythm-glyph__node--backbeat {
+  fill: var(--void);
+  stroke: var(--phosphor);
+}
+
+.rhythm-glyph__node--accent {
+  fill: var(--phosphor);
+  stroke: var(--void);
+  opacity: 0.78;
+}
+
+.glyph-stage .rhythm-glyph {
+  animation: glyph-energize 260ms ease-out;
+}
+
+@keyframes glyph-energize {
+  0% {
+    opacity: 0.35;
+    transform: scaleX(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
