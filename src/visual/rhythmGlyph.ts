@@ -242,6 +242,7 @@ function computeMetrics(
   const stepCount = Math.max(1, features.length);
   const velocities: number[] = [];
   let totalEvents = 0;
+  let primaryEvents = 0;
   let syncopatedEvents = 0;
   let kickTotal = 0;
   let backbeatTotal = 0;
@@ -258,11 +259,14 @@ function computeMetrics(
     hatTotal += feature.hats;
     percussionTotal += feature.percussion;
 
+    const primaryAtStep =
+      Number(feature.kick > 0) +
+      Number(feature.backbeat > 0) +
+      Number(feature.percussion > 0);
+    primaryEvents += primaryAtStep;
+
     if (step % 4 !== 0) {
-      syncopatedEvents +=
-        Number(feature.kick > 0) +
-        Number(feature.backbeat > 0) +
-        Number(feature.percussion > 0);
+      syncopatedEvents += primaryAtStep;
     }
 
     if (feature.timingCount > 0) {
@@ -276,23 +280,7 @@ function computeMetrics(
   }
 
   const possiblePrimaryEvents = stepCount * Math.max(1, pattern.lanes.length);
-  const syncopationDenominator = Math.max(
-    1,
-    pattern.lanes.reduce(
-      (sum, lane) =>
-        sum +
-        lane.events.filter((event) => {
-          const step = stepIndexForEvent(event, stepCount);
-          return (
-            step % 4 !== 0 &&
-            ["kick", "snare", "clap", "tom", "percussion"].includes(
-              lane.role,
-            )
-          );
-        }).length,
-      0,
-    ),
-  );
+  const syncopationDenominator = Math.max(1, primaryEvents);
 
   return {
     density: clamp01(totalEvents / Math.max(1, possiblePrimaryEvents * 0.38)),
