@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
 import { drumEngine } from "../../audio/DrumEngine";
 import { useTransportSnapshot } from "../../audio/useTransport";
@@ -53,9 +58,6 @@ export function SequenceSurface() {
     }));
   }, [selection.stepIndex, sequencer.lengthSteps]);
 
-  const selectedLane = sequencer.pattern.lanes.find(
-    (lane) => lane.id === selection.laneId,
-  );
   const selectedDefinition = laneDefinitionById(selection.laneId);
   const selectedVelocity = stepVelocity(
     sequencer.pattern,
@@ -173,7 +175,7 @@ export function SequenceSurface() {
             REDO
           </MachineButton>
           <MachineButton compact onClick={() => sequencerStore.duplicate()}>
-            DUP
+            DUP ×2
           </MachineButton>
           <MachineButton compact onClick={() => sequencerStore.clearPattern()}>
             CLEAR
@@ -189,7 +191,7 @@ export function SequenceSurface() {
           className="rhythm-matrix"
           style={{
             "--matrix-steps": sequencer.lengthSteps,
-          } as React.CSSProperties}
+          } as CSSProperties}
         >
           <div className="rhythm-matrix__corner">
             <span>LANE</span>
@@ -293,7 +295,7 @@ export function SequenceSurface() {
                         ].join(" ")}
                         style={{
                           "--step-velocity": velocity ?? 0,
-                        } as React.CSSProperties}
+                        } as CSSProperties}
                         onClick={(event) =>
                           handleStep(
                             definition.id,
@@ -368,8 +370,9 @@ export function SequenceSurface() {
 
       <p className="sequence-hint">
         Empty step: click to add. Active step: first click selects, click the
-        selected step again to remove. Shift-click cycles velocity. Mute and
-        solo affect scheduled playback immediately.
+        selected step again to remove. Shift-click cycles velocity. DUP ×2
+        repeats the current phrase into the next half; at 16 steps it copies
+        steps 1–8 over 9–16. Mute and solo affect playback immediately.
       </p>
     </section>
   );
