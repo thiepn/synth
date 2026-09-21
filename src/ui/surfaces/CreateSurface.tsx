@@ -13,6 +13,12 @@ import {
   type BeatVariationResult,
 } from "../../generation/beatVariation";
 import { shortSeed } from "../../generation/prng";
+import {
+  applyGroove,
+  resetGroove,
+  type GrooveApplyResult,
+  type GroovePersonalityId,
+} from "../../groove/grooveEngine";
 import { deriveRhythmGlyph } from "../../visual/rhythmGlyph";
 import {
   FOUNDATION_LANES,
@@ -21,6 +27,7 @@ import {
 import { sequencerStore } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { DrumEnginePanel } from "../drums/DrumEngineUI";
+import { GrooveEnginePanel } from "../groove/GrooveEngineUI";
 import {
   BeatReactor,
   GrooveField,
@@ -80,6 +87,12 @@ export function CreateSurface() {
   const [complexity, setComplexity] = useState(52);
   const [syncopation, setSyncopation] = useState(61);
   const [swing, setSwing] = useState(18);
+  const [personality, setPersonality] =
+    useState<GroovePersonalityId>("human");
+  const [humanization, setHumanization] = useState(46);
+  const [ghostNotes, setGhostNotes] = useState(28);
+  const [lastGrooveResult, setLastGrooveResult] =
+    useState<GrooveApplyResult | null>(null);
   const [distance, setDistance] = useState(42);
   const [operationCounter, setOperationCounter] = useState(0);
   const [reactorVersion, setReactorVersion] = useState(0);
@@ -124,6 +137,33 @@ export function CreateSurface() {
     [sequencer.pattern],
   );
 
+  const grooveRequest = (pattern: typeof sequencer.pattern, seed?: string) => ({
+    source: pattern,
+    seed:
+      seed ??
+      pattern.groove?.seed ??
+      "groove:" + (pattern.provenance?.seed ?? pattern.id),
+    personality,
+    humanization: humanization / 100,
+    ghostNoteAmount: ghostNotes / 100,
+    swing: swing / 100,
+  });
+
+  const applyCurrentFeel = () => {
+    const result = applyGroove(grooveRequest(sequencer.pattern));
+    sequencerStore.applyPatternTransform(result.pattern);
+    setLastGrooveResult(result);
+  };
+
+  const resetCurrentFeel = () => {
+    sequencerStore.applyPatternTransform(resetGroove(sequencer.pattern));
+    setPersonality("mechanical");
+    setHumanization(0);
+    setGhostNotes(0);
+    setSwing(0);
+    setLastGrooveResult(null);
+  };
+
   const intent = () => ({
     energy: energy / 100,
     density: density / 100,
@@ -165,7 +205,11 @@ export function CreateSurface() {
     }
 
     try {
-      sequencerStore.applyGeneratedPattern(result.pattern);
+      const grooved = applyGroove(
+        grooveRequest(result.pattern, "groove:" + result.effectiveSeed),
+      );
+      sequencerStore.applyGeneratedPattern(grooved.pattern);
+      setLastGrooveResult(grooved);
       setLastOperation({ kind: "generate", result });
       setOperationError(null);
       setReactorVersion((value) => value + 1);
@@ -210,7 +254,15 @@ export function CreateSurface() {
         return;
       }
 
-      sequencerStore.applyGeneratedPattern(result.pattern);
+      const grooved = applyGroove(
+        grooveRequest(
+          result.pattern,
+          sequencer.pattern.groove?.seed ??
+            "groove:" + result.effectiveSeed,
+        ),
+      );
+      sequencerStore.applyGeneratedPattern(grooved.pattern);
+      setLastGrooveResult(grooved);
       setLastOperation({
         kind: "reroll",
         result,
@@ -308,12 +360,6 @@ export function CreateSurface() {
             value={syncopation}
             tone="ice"
             onChange={setSyncopation}
-          />
-          <SignalRail
-            label="SWING"
-            value={swing}
-            tone="ice"
-            onChange={setSwing}
           />
         </div>
 
@@ -490,6 +536,20 @@ export function CreateSurface() {
           </p>
         </div>
       </div>
+
+      <GrooveEnginePanel
+        personality={personality}
+        humanization={humanization}
+        ghostNotes={ghostNotes}
+        swing={swing}
+        lastResult={lastGrooveResult}
+        onPersonalityChange={setPersonality}
+        onHumanizationChange={setHumanization}
+        onGhostNotesChange={setGhostNotes}
+        onSwingChange={setSwing}
+        onApply={applyCurrentFeel}
+        onReset={resetCurrentFeel}
+      />
 
       <DrumEnginePanel />
 
