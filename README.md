@@ -14,9 +14,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 3 — Drum Engine V1:** complete
 - **Phase 4 — Rhythm Matrix Sequencer V1:** complete
 - **Phase 5 — Beat Generator V1:** complete
-- **Next: Phase 6 — Beat Reactor: Lock / Reroll / Similarity**
+- **Phase 6 — Beat Reactor: Lock / Reroll / Similarity:** complete
+- **Next: Phase 7 — Rhythm Glyph System**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, and deterministic style-aware beat generation. React remains outside musical timing, canonical pattern state, and generator logic.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, and lock-aware iterative rerolling. React remains outside musical timing, canonical pattern state, and generator logic.
 
 ## Run locally
 
@@ -126,6 +127,24 @@ See [Phase 4 implementation notes](docs/phase-4/PHASE_4.md).
 - Phase 6 lock controls remain visibly disabled until implemented
 
 See [Phase 5 implementation notes](docs/phase-5/PHASE_5.md).
+
+### Phase 6 — Beat Reactor: Lock / Reroll / Similarity
+
+- real rhythm locks stored in Pattern lane state
+- lock controls in CREATE and SEQUENCE
+- full reroll of unlocked lanes
+- selective reroll for all eight drum lanes
+- SAME ↔ WILD derivation distance
+- deterministic structural / velocity / timing interpolation
+- manual beats can become reroll sources
+- all-locked rerolls are blocked explicitly
+- selective reroll preserves non-target lanes and global groove metadata
+- protected-lane invariants verify locked material is unchanged
+- quality-gated derived beats
+- sourceEntityId / mutationId lineage metadata
+- rerolls remain undoable and hot-playback safe
+
+See [Phase 6 implementation notes](docs/phase-6/PHASE_6.md).
 
 ## Phase 0 architecture
 
