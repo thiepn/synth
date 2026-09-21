@@ -7,6 +7,8 @@ import {
 import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
 import { drumEngine } from "../../audio/DrumEngine";
 import { useTransportSnapshot } from "../../audio/useTransport";
+import type { StepEvent } from "../../domain/contracts";
+import { swingOffsetUsForStep } from "../../groove/grooveEngine";
 import {
   SEQUENCER_LANES,
   laneDefinitionById,
@@ -33,15 +35,27 @@ interface Selection {
   stepIndex: number;
 }
 
+function stepEvent(
+  pattern: ReturnType<typeof sequencerStore.getSnapshot>["pattern"],
+  laneId: string,
+  stepIndex: number,
+): StepEvent | undefined {
+  const lane = pattern.lanes.find((entry) => entry.id === laneId);
+  if (!lane) return undefined;
+  const tick = stepIndex * TRANSPORT_SCHEDULER_CONFIG.pulseTicks;
+  return lane.events.find((event) => event.tick === tick);
+}
+
 function stepVelocity(
   pattern: ReturnType<typeof sequencerStore.getSnapshot>["pattern"],
   laneId: string,
   stepIndex: number,
 ): number | undefined {
-  const lane = pattern.lanes.find((entry) => entry.id === laneId);
-  if (!lane) return undefined;
-  const tick = stepIndex * TRANSPORT_SCHEDULER_CONFIG.pulseTicks;
-  return lane.events.find((event) => event.tick === tick)?.velocity;
+  return stepEvent(pattern, laneId, stepIndex)?.velocity;
+}
+
+function visualTimingOffsetPx(timingOffsetUs: number): number {
+  return Math.max(-10, Math.min(10, timingOffsetUs / 2500));
 }
 
 export function SequenceSurface() {
@@ -93,12 +107,20 @@ export function SequenceSurface() {
   }, []);
 
   const selectedDefinition = laneDefinitionById(selection.laneId);
-  const selectedVelocity = stepVelocity(
+  const selectedEvent = stepEvent(
     sequencer.pattern,
     selection.laneId,
     selection.stepIndex,
   );
-  const selectedOn = selectedVelocity !== undefined;
+  const selectedVelocity = selectedEvent?.velocity;
+  const selectedOn = selectedEvent !== undefined;
+  const selectedTimingUs =
+    (selectedEvent?.timingOffsetUs ?? 0) +
+    swingOffsetUsForStep(
+      selection.stepIndex,
+      transport.bpm,
+      sequencer.pattern.groove?.swing ?? 0,
+    );
 
   const activeStep =
     transport.status === "running"
@@ -360,12 +382,21 @@ export function SequenceSurface() {
 
                 <div className="rhythm-matrix__steps">
                   {beatColumns.map(({ index, major }) => {
-                    const velocity = stepVelocity(
+                    const event = stepEvent(
                       sequencer.pattern,
                       definition.id,
                       index,
                     );
-                    const isOn = velocity !== undefined;
+                    const velocity = event?.velocity;
+                    const isOn = event !== undefined;
+                    const timingUs =
+                      (event?.timingOffsetUs ?? 0) +
+                      swingOffsetUsForStep(
+                        index,
+                        transport.bpm,
+                        sequencer.pattern.groove?.swing ?? 0,
+                      );
+                    const timingPx = visualTimingOffsetPx(timingUs);
                     const isSelected =
                       selection.laneId === definition.id &&
                       selection.stepIndex === index;
@@ -380,9 +411,11 @@ export function SequenceSurface() {
                           isSelected ? "is-selected" : "",
                           activeStep === index ? "is-current" : "",
                           major ? "is-major" : "",
+                          event?.accent === "ghost" ? "is-ghost" : "",
                         ].join(" ")}
                         style={{
                           "--step-velocity": velocity ?? 0,
+                          "--step-offset": timingPx + "px",
                         } as CSSProperties}
                         onClick={(event) =>
                           handleStep(
@@ -399,7 +432,10 @@ export function SequenceSurface() {
                           (index + 1) +
                           (isOn
                             ? ", velocity " +
-                              Math.round((velocity ?? 0) * 100)
+                              Math.round((velocity ?? 0) * 100) +
+                              ", timing " +
+                              Math.round(timingUs / 1000) +
+                              " milliseconds"
                             : ", off")
                         }
                       >
@@ -422,7 +458,15 @@ export function SequenceSurface() {
             {selectedDefinition?.code ?? "--"} ·
             {String(selection.stepIndex + 1).padStart(2, "0")}
           </strong>
-          <span>{selectedOn ? "ACTIVE" : "EMPTY"}</span>
+          <span>
+            {selectedOn
+              ? (selectedEvent?.accent ?? "normal").toUpperCase() +
+                " · " +
+                (selectedTimingUs >= 0 ? "+" : "") +
+                Math.round(selectedTimingUs / 1000) +
+                "ms"
+              : "EMPTY"}
+          </span>
         </div>
 
         <div className="step-editor__toggle">
