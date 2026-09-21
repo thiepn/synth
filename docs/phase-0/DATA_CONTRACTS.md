@@ -12,10 +12,11 @@ Canonical units are explicit:
 - probability: normalized 0..1
 - pan: -1..1
 - timing offset: integer microseconds relative to the grid
-- gain parameters: normalized domain values unless explicitly dB
+- sample trim: seconds
+- sample gain: dB
 - time signature: numerator + denominator
 
-Floating-point seconds are runtime audio values, not canonical project positions.
+Floating-point seconds are runtime audio values except for sample-local trim positions. Musical positions are never serialized as browser-clock seconds.
 
 ## 2. PPQ
 
@@ -37,6 +38,7 @@ Examples:
 - project ID
 - pattern ID
 - lane ID
+- kit/kit-slot ID
 - sound ID
 - scene ID
 - asset ID
@@ -50,13 +52,13 @@ A project contains:
 
 - metadata
 - transport defaults
-- kit
+- kits + active kit
+- sounds
 - patterns
 - scenes
 - arrangement
 - history lineage
 - asset references
-- generator metadata
 - schema version
 
 ## 5. Pattern
@@ -71,20 +73,42 @@ A pattern defines:
 
 Patterns store editable musical events, not rendered audio.
 
-## 6. Lane
+## 6. Rhythm/sound decoupling
+
+A rhythm lane does **not** reference a concrete sound directly.
+
+```text
+Pattern Lane
+   ↓
+Kit Slot
+   ↓
+Sound
+```
+
+This is required so the same rhythm can immediately audition another kit without rewriting the pattern.
+
+A kit slot has:
+
+- stable ID
+- semantic instrument role
+- optional label
+- sound reference
+
+A kit is an ordered collection of slots. A project can contain multiple kits and has one active kit.
+
+## 7. Lane
 
 A lane has:
 
 - stable ID
-- role (kick/snare/hat/etc.)
-- sound reference
-- mute/solo defaults when musically relevant
+- semantic role
+- kit-slot reference
 - events
 - generation lock state
 
 Locks are granular enough to protect rhythm independently from sound.
 
-## 7. Event
+## 8. Event
 
 An event contains:
 
@@ -98,7 +122,7 @@ An event contains:
 - optional semantic accent
 - optional generator tags
 
-## 8. Sound
+## 9. Sound
 
 A sound is a versioned specification, not an AudioNode graph.
 
@@ -110,19 +134,18 @@ Supported conceptual sources:
 
 A hybrid may reference a sample asset plus synthesis layers.
 
-## 9. Groove profile
+## 10. Groove profile
 
 Groove is explicit and reusable:
 
 - swing
 - timing personality
 - humanization amount
-- velocity personality
-- optional per-role offsets
+- optional per-role timing offsets
 
 Generated microtiming may be materialized into events while retaining provenance.
 
-## 10. Generation provenance
+## 11. Generation provenance
 
 Every generated entity can record:
 
@@ -130,13 +153,14 @@ Every generated entity can record:
 - generator ID
 - generator version
 - source ID
+- source history node
 - mutation operation
 - requested style vector
-- requested control vector
+- requested intent vector
 
 This supports exact recreation and evolution trees.
 
-## 11. Locks
+## 12. Locks
 
 Locks are creative constraints, not UI-only toggles.
 
@@ -151,7 +175,7 @@ A lock can protect:
 
 Generator operations must consume lock state as an input and prove that protected data remains unchanged.
 
-## 12. Style representation
+## 13. Style representation
 
 Genres are not exclusive enum presets at the deepest layer.
 
@@ -167,7 +191,7 @@ The canonical generator input supports a weighted style vector, for example:
 
 Early UI may expose one primary style; the domain must not block later blending.
 
-## 13. Musical intent controls
+## 14. Musical intent controls
 
 Normalized intent controls should remain orthogonal where feasible:
 
@@ -182,21 +206,23 @@ Normalized intent controls should remain orthogonal where feasible:
 
 A style generator interprets these values contextually.
 
-## 14. History lineage
+## 15. History lineage
 
-A generated/mutated beat node stores:
+A generated/mutated node stores:
 
 - parent node ID
 - operation
 - operation parameters
 - seed
-- resulting pattern references
+- affected/result artifact references
 - timestamp
 - optional favorite/name
 
+Artifact references are typed and may point to patterns, kits, sounds, scenes, or arrangement results. The lineage model therefore supports sound and arrangement evolution rather than assuming all history is pattern-only.
+
 Branching is first-class. Undo history and creative lineage may share infrastructure but are not assumed to be identical user concepts.
 
-## 15. Serialization
+## 16. Serialization
 
 Project serialization:
 
