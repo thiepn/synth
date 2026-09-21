@@ -982,7 +982,7 @@ button:disabled {
 .instrument-strip__pattern {
   height: 58px;
   display: grid;
-  grid-template-columns: repeat(16, 1fr);
+  grid-template-columns: repeat(var(--step-count, 16), 1fr);
   align-items: center;
   gap: clamp(3px, 0.55vw, 8px);
   padding: 0 clamp(12px, 2vw, 28px);
