@@ -241,6 +241,13 @@ function deterministicVelocity(
   );
 }
 
+function isGeneratedGrooveGhost(event: StepEvent): boolean {
+  return Boolean(
+    event.generatorTags?.includes("ghost") &&
+      event.generatorTags.some((tag) => tag.startsWith("groove-engine")),
+  );
+}
+
 function occupiedSteps(lane: PatternLane): Set<number> {
   return new Set(lane.events.map(eventStep));
 }
@@ -355,6 +362,10 @@ export function applyGroove(
   for (const lane of pattern.lanes) {
     if (lane.lock.rhythm) continue;
 
+    lane.events = lane.events.filter(
+      (event) => !isGeneratedGrooveGhost(event),
+    );
+
     for (const event of lane.events) {
       const base = baseEvent(event);
       const previousVelocity = event.velocity;
@@ -461,11 +472,7 @@ export function resetGroove(source: Pattern): Pattern {
     const retained: StepEvent[] = [];
 
     for (const event of lane.events) {
-      const isGeneratedGhost =
-        event.generatorTags?.includes("ghost") &&
-        event.generatorTags.some((tag) => tag.startsWith("groove-engine"));
-
-      if (isGeneratedGhost) continue;
+      if (isGeneratedGrooveGhost(event)) continue;
 
       if (event.grooveBase) {
         event.velocity = event.grooveBase.velocity;
