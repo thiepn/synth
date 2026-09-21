@@ -31,6 +31,7 @@ export interface BeatVariationRequest {
 }
 
 export interface BeatVariationResult {
+  accepted: boolean;
   pattern: Pattern;
   effectiveSeed: string;
   displaySeed: string;
@@ -504,6 +505,7 @@ export function rerollBeat(
       !newCriticalFailure(sourceValidation, validation);
 
     const result: BeatVariationResult = {
+      accepted: acceptable,
       pattern: mergedWithFallback,
       effectiveSeed,
       displaySeed: seedCode,
