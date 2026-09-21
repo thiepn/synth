@@ -1438,3 +1438,27 @@ button:disabled {
       0 0 32px rgba(207, 255, 71, 0.035);
   }
 }
+
+
+/* Phase 3 — transport-coupled strip position */
+.hit.is-current::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 50%;
+  width: 1px;
+  background: currentColor;
+  opacity: 0.18;
+  transform: translateX(-50%);
+}
+
+.hit.is-current.is-on::after {
+  box-shadow:
+    0 0 7px color-mix(in srgb, currentColor 38%, transparent),
+    0 0 16px color-mix(in srgb, currentColor 13%, transparent);
+}
+
+.instrument-strip:has(.hit.is-current) .instrument-strip__code {
+  color: currentColor;
+}
