@@ -37,6 +37,7 @@ interface MasterGraph {
   convolver: ConvolverNode;
   wet: GainNode;
   master: GainNode;
+  limiter: DynamicsCompressorNode;
 }
 
 interface ActiveVoice {
@@ -73,7 +74,7 @@ function velocityGain(velocity: number): number {
   return 0.22 + safe * 0.78;
 }
 
-function createDriveCurve(amount: number): Float32Array {
+function createDriveCurve(amount: number): Float32Array<ArrayBuffer> {
   const size = 1024;
   const curve = new Float32Array(size);
   const normalized = clamp01(amount);
@@ -258,6 +259,7 @@ export class DrumEngine {
     const convolver = context.createConvolver();
     const wet = context.createGain();
     const master = context.createGain();
+    const limiter = context.createDynamicsCompressor();
 
     drive.oversample = "2x";
     compressor.threshold.value = -10;
@@ -265,6 +267,12 @@ export class DrumEngine {
     compressor.ratio.value = 8;
     compressor.attack.value = 0.003;
     compressor.release.value = 0.12;
+
+    limiter.threshold.value = -1.5;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.001;
+    limiter.release.value = 0.06;
 
     convolver.buffer = this.createImpulseResponse(context);
     master.gain.value = this.master * 0.92;
@@ -277,7 +285,8 @@ export class DrumEngine {
     wet.connect(compressor);
 
     compressor.connect(master);
-    master.connect(context.destination);
+    master.connect(limiter);
+    limiter.connect(context.destination);
 
     this.graph = {
       context,
@@ -287,6 +296,7 @@ export class DrumEngine {
       convolver,
       wet,
       master,
+      limiter,
     };
 
     this.applyGraphMacros();
