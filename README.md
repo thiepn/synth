@@ -6,6 +6,27 @@
 
 Synth is not intended to be a general-purpose DAW or a drum-practice application. Its job is to help a user reach interesting, coherent, original beats quickly while preserving enough control to shape the result deeply.
 
+## Current status
+
+- **Phase 0 — Product Constitution & Architecture Freeze:** complete
+- **Phase 1 — Pulse Architecture UI Foundation:** complete
+- **Next: Phase 2 — Core Audio Clock & Transport**
+
+The current app is intentionally a UI foundation. Interactive controls manipulate visual/demo state only; transport audio is disabled until Phase 2 rather than being simulated with UI timers.
+
+## Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Production build:
+
+```bash
+npm run build
+```
+
 ## Product pillars
 
 1. **Good beats fast** — a useful musical result should appear within seconds.
@@ -16,9 +37,24 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 6. **Instrument, not dashboard** — Synth uses the Pulse Architecture visual language and should feel like musical hardware in a browser.
 7. **Deep when wanted** — manual sequencing and synthesis exist, but they are never prerequisites for making a good beat.
 
-## Phase 0
+## Implemented Pulse Architecture foundation
 
-Phase 0 freezes the product boundaries, architecture, domain contracts, visual language, and future interoperability rules before implementation begins.
+Phase 1 establishes the actual product shell and reusable visual primitives:
+
+- Pulse Spine
+- Beat Reactor
+- Rhythm Glyph
+- Instrument Strips
+- Signal Rails
+- Groove Field
+- machine-style mutation controls
+- responsive CREATE surface
+- dedicated desktop/tablet/mobile layout behavior
+- mode rail for CREATE / SEQUENCE / SOUND / ARRANGE / LIVE / ARCHIVE
+
+See [Phase 1 implementation notes](docs/phase-1/PHASE_1.md).
+
+## Phase 0 architecture
 
 See:
 
@@ -29,7 +65,7 @@ See:
 - [Steadybar Interoperability Contract](docs/phase-0/STEADYBAR_INTEROP.md)
 - [Phase 0 Acceptance Gate](docs/phase-0/ACCEPTANCE.md)
 
-## Planned top-level product modes
+## Top-level product modes
 
 - **01 / CREATE** — generation, locking, rerolling, groove shaping, mutation.
 - **02 / SEQUENCE** — detailed rhythm matrix and region editing.
@@ -40,8 +76,4 @@ See:
 
 ## Architectural rule
 
-The audio engine, generation engine, domain model, persistence, and export pipeline must remain independent of the React rendering layer. UI state may observe and command these systems; it must never become their source of truth.
-
----
-
-Phase 0 status: **architecture frozen for implementation**.
+The audio engine, generation engine, domain model, persistence, and export pipeline remain independent of the React rendering layer. UI state may observe and command these systems; it must never become their source of truth.
