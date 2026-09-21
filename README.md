@@ -13,9 +13,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 2 — Core Audio Clock & Transport:** complete
 - **Phase 3 — Drum Engine V1:** complete
 - **Phase 4 — Rhythm Matrix Sequencer V1:** complete
-- **Next: Phase 5 — Beat Generator V1**
+- **Phase 5 — Beat Generator V1:** complete
+- **Next: Phase 6 — Beat Reactor: Lock / Reroll / Similarity**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, and an editable domain-backed sequencer. React renders external-store snapshots but remains outside both musical timing and canonical pattern state.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, and deterministic style-aware beat generation. React remains outside musical timing, canonical pattern state, and generator logic.
 
 ## Run locally
 
@@ -107,6 +108,24 @@ See [Phase 3 implementation notes](docs/phase-3/PHASE_3.md).
 - responsive sticky-lane Rhythm Matrix
 
 See [Phase 4 implementation notes](docs/phase-4/PHASE_4.md).
+
+### Phase 5 — Beat Generator V1
+
+- real Beat Reactor generation
+- seven style rule sets: Rock / Funk / Hip-Hop / House / Trap / Breakbeat / Electronic
+- Energy / Density / Complexity / Syncopation / Swing intent controls
+- deterministic seeded PRNG with no ambient Math.random()
+- versioned generator provenance
+- candidate quality scoring and deterministic retry
+- rejected candidates never replace the active pattern
+- generated Pattern becomes normal editable sequencer state
+- generated velocity drives synthesis and matrix geometry
+- audible generated swing through event microtiming
+- generation is one undoable editor action
+- hot generation reschedules already queued Web Audio events safely
+- Phase 6 lock controls remain visibly disabled until implemented
+
+See [Phase 5 implementation notes](docs/phase-5/PHASE_5.md).
 
 ## Phase 0 architecture
 
