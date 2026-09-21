@@ -6,6 +6,7 @@ import "./transport.css";
 import "./drums.css";
 import "./sequencer.css";
 import "./generator.css";
+import "./groove.css";
 
 const root = document.getElementById("root");
 
