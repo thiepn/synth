@@ -276,6 +276,26 @@ export class AudioTransport {
     this.publish();
   }
 
+  /**
+   * Invalidates already-published future scheduler events after pattern edits.
+   * Audio subscribers can cancel the previous epoch and the scheduler refills
+   * the current look-ahead window from the edited musical state.
+   */
+  invalidateScheduledEvents(): void {
+    this.bumpSchedulerEpoch();
+    this.resetSchedulerCursor();
+
+    if (
+      this.desiredPlaying &&
+      this.status === "running" &&
+      this.context?.state === "running"
+    ) {
+      this.scheduleWindow();
+    }
+
+    this.publish();
+  }
+
   async recoverIfNeeded(): Promise<void> {
     if (!this.desiredPlaying || !this.context) return;
 
