@@ -110,7 +110,7 @@ export function CreateSurface() {
     setHumanization(Math.round(groove.humanization * 100));
     setGhostNotes(Math.round((groove.ghostNoteAmount ?? 0) * 100));
     setSwing(Math.round(groove.swing * 100));
-  }, [sequencer.pattern.id]);
+  }, [sequencer.revision]);
 
   const lockedLaneIds = useMemo(
     () =>
@@ -215,9 +215,10 @@ export function CreateSurface() {
     }
 
     try {
-      const grooved = applyGroove(
-        grooveRequest(result.pattern, "groove:" + result.effectiveSeed),
-      );
+      const grooved = applyGroove({
+        ...grooveRequest(result.pattern, "groove:" + result.effectiveSeed),
+        swing: result.pattern.groove?.swing ?? swing / 100,
+      });
       sequencerStore.applyGeneratedPattern(grooved.pattern);
       setLastGrooveResult(grooved);
       setLastOperation({ kind: "generate", result });
