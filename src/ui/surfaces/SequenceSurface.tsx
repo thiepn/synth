@@ -227,7 +227,7 @@ export function SequenceSurface() {
         >
           <div className="rhythm-matrix__corner">
             <span>LANE</span>
-            <span>M / S</span>
+            <span>M / S / L</span>
           </div>
 
           <div className="rhythm-matrix__step-header">
@@ -253,6 +253,7 @@ export function SequenceSurface() {
 
             const muted = Boolean(lane.muted);
             const solo = Boolean(lane.solo);
+            const locked = Boolean(lane.lock.rhythm);
             const suppressed =
               sequencer.soloLaneCount > 0 && !solo;
 
@@ -263,6 +264,7 @@ export function SequenceSurface() {
                   muted ? "is-muted" : "",
                   solo ? "is-solo" : "",
                   suppressed ? "is-suppressed" : "",
+                  locked ? "is-locked" : "",
                   "rhythm-matrix__row--" + definition.accent,
                 ].join(" ")}
                 key={definition.id}
@@ -298,6 +300,18 @@ export function SequenceSurface() {
                       aria-label={"Solo " + definition.name}
                     >
                       S
+                    </button>
+                    <button
+                      type="button"
+                      className={locked ? "is-active" : ""}
+                      onClick={() =>
+                        sequencerStore.toggleLaneRhythmLock(definition.id)
+                      }
+                      aria-pressed={locked}
+                      aria-label={(locked ? "Unlock " : "Lock ") + definition.name}
+                      title="Protect this lane from Beat Reactor rerolls"
+                    >
+                      L
                     </button>
                   </div>
                 </div>
@@ -405,7 +419,7 @@ export function SequenceSurface() {
         selected step again to remove. Shift-click cycles velocity. DUP ×2
         repeats the current phrase into the next half; at 16 steps it copies
         steps 1–8 over 9–16. Cmd/Ctrl-Z handles history. Mute and solo affect
-        playback immediately.
+        playback immediately; L protects a lane from Beat Reactor rerolls.
       </p>
     </section>
   );
