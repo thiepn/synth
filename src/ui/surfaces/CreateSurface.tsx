@@ -4,10 +4,13 @@ import {
   GrooveField,
   InstrumentStrip,
   MachineButton,
-  PulseSpine,
   RhythmGlyph,
   SignalRail,
 } from "../pulse/Primitives";
+import {
+  TransportPulseSpine,
+  TransportStatusLabel,
+} from "../transport/TransportUI";
 
 const seedSequence = ["7F2", "A14", "C83", "19E", "D4B", "6C9"];
 
@@ -78,13 +81,10 @@ export function CreateSurface() {
           <p className="eyebrow">01 / CREATE</p>
           <h1 id="create-title">Shape the signal.</h1>
         </div>
-        <div className="surface-heading__status">
-          <span className="status-lamp" aria-hidden="true" />
-          <span>UI FOUNDATION / GENERATOR OFFLINE</span>
-        </div>
+        <TransportStatusLabel />
       </div>
 
-      <PulseSpine active={pulseVersion > 0} density={density} />
+      <TransportPulseSpine />
 
       <div className="create-machine">
         <div className="create-machine__intent">
