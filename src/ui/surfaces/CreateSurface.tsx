@@ -286,6 +286,12 @@ export function CreateSurface() {
         <GrooveField
           x={syncopation}
           y={density}
+          labels={{
+            nw: "DENSE",
+            ne: "DENSE / SYNC",
+            sw: "STRAIGHT",
+            se: "SPARSE / SYNC",
+          }}
           onChange={(x, y) => {
             setSyncopation(x);
             setDensity(y);
