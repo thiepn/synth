@@ -382,6 +382,6 @@ Those belong to later phases.
 
 ## Next phase
 
-**Phase 9 — Groove Engine 2.0 / Advanced Sequencing Foundation**
+**Phase 9 — Groove Field & Musical Mutation**
 
-Before semantic mutation commands, the next phase should deepen rhythm behavior with probability, flam, ratchets, richer timing control, per-lane lengths, and more advanced groove-editing primitives while preserving the automation-first workflow.
+Phase 9 should make Synth's semantic creative controls real: HARDER, SPARSER, FUNKIER, MORE SPACE, PUSH, DRAG, DIRTY, WEIRD, and related commands should transform multiple musical dimensions coherently while retaining deterministic lineage and the current groove personality.
