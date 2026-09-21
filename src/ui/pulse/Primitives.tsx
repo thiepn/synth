@@ -145,6 +145,7 @@ export function InstrumentStrip({
 
       <div
         className="instrument-strip__pattern"
+        style={{ "--step-count": Math.max(1, values.length) } as CSSProperties}
         aria-label={name + " rhythm preview"}
       >
         {values.map((value, index) => (
