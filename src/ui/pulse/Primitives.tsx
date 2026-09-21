@@ -123,6 +123,7 @@ interface InstrumentStripProps {
   accent?: "phosphor" | "heat" | "ice";
   detail: string;
   activeStep?: number;
+  lockDisabled?: boolean;
   onToggleLock?: () => void;
 }
 
@@ -134,6 +135,7 @@ export function InstrumentStrip({
   accent = "phosphor",
   detail,
   activeStep,
+  lockDisabled = false,
   onToggleLock,
 }: InstrumentStripProps) {
   return (
@@ -167,11 +169,17 @@ export function InstrumentStrip({
         type="button"
         className={locked ? "lock-switch is-locked" : "lock-switch"}
         onClick={onToggleLock}
+        disabled={lockDisabled}
         aria-pressed={locked}
-        aria-label={(locked ? "Unlock " : "Lock ") + name}
+        aria-label={
+          lockDisabled
+            ? name + " locking becomes active in Phase 6"
+            : (locked ? "Unlock " : "Lock ") + name
+        }
+        title={lockDisabled ? "Lock / reroll arrives in Phase 6" : undefined}
       >
         <span className="lock-switch__lamp" aria-hidden="true" />
-        <span>{locked ? "LOCK" : "FREE"}</span>
+        <span>{lockDisabled ? "P6" : locked ? "LOCK" : "FREE"}</span>
       </button>
     </div>
   );
