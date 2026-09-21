@@ -207,27 +207,27 @@ export function RhythmGlyph({ variant = 0, label = "Rhythm glyph" }: RhythmGlyph
 
 interface BeatReactorProps {
   seed: string;
-  similarity: number;
-  pulseVersion: number;
-  onPulse: () => void;
-  onSimilarityChange: (next: number) => void;
+  intensity: number;
+  generationVersion: number;
+  onGenerate: () => void;
+  onIntensityChange: (next: number) => void;
 }
 
 export function BeatReactor({
   seed,
-  similarity,
-  pulseVersion,
-  onPulse,
-  onSimilarityChange,
+  intensity,
+  generationVersion,
+  onGenerate,
+  onIntensityChange,
 }: BeatReactorProps) {
   return (
     <div
       className="beat-reactor"
-      style={{ "--reactor-similarity": similarity / 100 } as CSSProperties}
+      style={{ "--reactor-similarity": intensity / 100 } as CSSProperties}
     >
       <div className="beat-reactor__caption">
         <span>BEAT / REACTOR</span>
-        <span>UI CORE</span>
+        <span>GEN / V1</span>
       </div>
 
       <div className="beat-reactor__machine">
@@ -239,29 +239,29 @@ export function BeatReactor({
         <span className="beat-reactor__marker beat-reactor__marker--west" aria-hidden="true" />
 
         <button
-          key={pulseVersion}
+          key={generationVersion}
           type="button"
           className="beat-reactor__core"
-          onClick={onPulse}
-          aria-label="Pulse the Beat Reactor visual preview"
+          onClick={onGenerate}
+          aria-label="Generate a new beat"
         >
           <span className="beat-reactor__seed">{seed}</span>
           <span className="beat-reactor__pulse-dot" aria-hidden="true" />
-          <span className="beat-reactor__action">PULSE</span>
+          <span className="beat-reactor__action">GENERATE</span>
         </button>
       </div>
 
       <label className="beat-reactor__distance">
-        <span>SAME</span>
+        <span>SAFE</span>
         <input
           type="range"
           min="0"
           max="100"
-          value={similarity}
+          value={intensity}
           onChange={(event) =>
-            onSimilarityChange(Number(event.currentTarget.value))
+            onIntensityChange(Number(event.currentTarget.value))
           }
-          aria-label="Generation change distance"
+          aria-label="Beat generation complexity"
         />
         <span>WILD</span>
       </label>
