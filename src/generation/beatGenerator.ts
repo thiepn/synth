@@ -789,18 +789,6 @@ function effectiveSwing(
   return clamp01((definition?.baseSwing ?? 0) + requestedSwing * 0.7);
 }
 
-function timingOffsetUs(
-  stepIndex: number,
-  bpm: number,
-  swing: number,
-): number {
-  if (stepIndex % 2 === 0 || swing <= 0) return 0;
-
-  const safeBpm = Math.min(300, Math.max(30, bpm));
-  const sixteenthSeconds = 60 / safeBpm / 4;
-  return Math.round(sixteenthSeconds * swing * 0.3 * 1_000_000);
-}
-
 function styleVector(style: BeatStyleId): StyleVector {
   return { [style]: 1 };
 }
@@ -845,11 +833,7 @@ function buildPattern(
         tick: stepIndex * FOUNDATION_STEP_TICKS,
         velocity,
         probability: 1,
-        timingOffsetUs: timingOffsetUs(
-          stepIndex,
-          request.bpm,
-          swing,
-        ),
+        timingOffsetUs: 0,
         accent:
           velocity >= 0.85
             ? "accent"
