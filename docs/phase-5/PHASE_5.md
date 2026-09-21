@@ -172,15 +172,11 @@ The generator adapts structural anchors for short loops rather than assuming eve
 
 Generated swing is not cosmetic metadata.
 
-The generator writes positive microtiming offsets to odd sixteenth subdivisions, scaled by:
+The generator stores Swing in the Pattern groove profile, including style-specific base swing.
 
-- requested Swing
-- style-specific base swing
-- current BPM
+As of Phase 8, Swing is applied at Web Audio scheduling time rather than baked into each generated event. Per-event `timingOffsetUs` is reserved for human feel and role-specific microtiming.
 
-The Drum Engine now reads each event's `timingOffsetUs` and schedules it at the corresponding future Web Audio timestamp.
-
-This creates real audible swing while keeping React outside the scheduling path.
+This avoids double-swing, keeps Swing editable after generation, and still keeps React outside the scheduling path.
 
 ## Velocity
 
@@ -255,7 +251,7 @@ These remain later phases.
 - [x] rejected candidates do not replace the current beat
 - [x] quality validator retries weak generations
 - [x] generated velocity affects sound and visual hit geometry
-- [x] generated swing is audible through event microtiming
+- [x] generated swing is audible through the Pattern groove profile and Web Audio scheduling
 - [x] hot generation invalidates stale future scheduled notes
 - [x] Phase 6 locks are not falsely presented as functional
 
