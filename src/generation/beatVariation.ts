@@ -377,14 +377,18 @@ export function rerollBeat(
     )
     .map((lane) => lane.id);
 
-  if (
-    targetLaneIds &&
-    [...targetLaneIds].every((laneId) => {
-      const lane = source.lanes.find((entry) => entry.id === laneId);
-      return !lane || lane.lock.rhythm;
-    })
-  ) {
-    throw new Error("Selected lane is locked.");
+  const mutableLaneIds = source.lanes
+    .filter(
+      (lane) =>
+        !lane.lock.rhythm &&
+        (!targetLaneIds || targetLaneIds.has(lane.id)),
+    )
+    .map((lane) => lane.id);
+
+  if (mutableLaneIds.length === 0) {
+    throw new Error(
+      targetLaneIds ? "Selected lane is locked." : "All lanes are locked.",
+    );
   }
 
   let best: BeatVariationResult | null = null;
@@ -466,19 +470,28 @@ export function rerollBeat(
           : request.style.toUpperCase()) +
       " / " +
       seedCode;
-    mergedWithFallback.groove = candidateResult.pattern.groove
-      ? {
-          ...candidateResult.pattern.groove,
-          roleTimingOffsetUs:
-            candidateResult.pattern.groove.roleTimingOffsetUs
-              ? {
-                  ...candidateResult.pattern.groove.roleTimingOffsetUs,
-                }
+    mergedWithFallback.groove = targetLaneIds
+      ? source.groove
+        ? {
+            ...source.groove,
+            roleTimingOffsetUs: source.groove.roleTimingOffsetUs
+              ? { ...source.groove.roleTimingOffsetUs }
               : undefined,
-        }
-      : source.groove
-        ? { ...source.groove }
-        : undefined;
+          }
+        : undefined
+      : candidateResult.pattern.groove
+        ? {
+            ...candidateResult.pattern.groove,
+            roleTimingOffsetUs:
+              candidateResult.pattern.groove.roleTimingOffsetUs
+                ? {
+                    ...candidateResult.pattern.groove.roleTimingOffsetUs,
+                  }
+                : undefined,
+          }
+        : source.groove
+          ? { ...source.groove }
+          : undefined;
     mergedWithFallback.provenance = {
       seed: effectiveSeed,
       generatorId: BEAT_VARIATION_ID,
