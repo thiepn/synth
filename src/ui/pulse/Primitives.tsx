@@ -215,23 +215,25 @@ export function RhythmGlyph({ variant = 0, label = "Rhythm glyph" }: RhythmGlyph
 
 interface BeatReactorProps {
   seed: string;
-  intensity: number;
+  distance: number;
   generationVersion: number;
-  onGenerate: () => void;
-  onIntensityChange: (next: number) => void;
+  actionLabel: "GENERATE" | "REROLL";
+  onAction: () => void;
+  onDistanceChange: (next: number) => void;
 }
 
 export function BeatReactor({
   seed,
-  intensity,
+  distance,
   generationVersion,
-  onGenerate,
-  onIntensityChange,
+  actionLabel,
+  onAction,
+  onDistanceChange,
 }: BeatReactorProps) {
   return (
     <div
       className="beat-reactor"
-      style={{ "--reactor-similarity": intensity / 100 } as CSSProperties}
+      style={{ "--reactor-similarity": distance / 100 } as CSSProperties}
     >
       <div className="beat-reactor__caption">
         <span>BEAT / REACTOR</span>
@@ -250,12 +252,12 @@ export function BeatReactor({
           key={generationVersion}
           type="button"
           className="beat-reactor__core"
-          onClick={onGenerate}
-          aria-label="Generate a new beat"
+          onClick={onAction}
+          aria-label={actionLabel === "GENERATE" ? "Generate a new beat" : "Reroll unlocked beat lanes"}
         >
           <span className="beat-reactor__seed">{seed}</span>
           <span className="beat-reactor__pulse-dot" aria-hidden="true" />
-          <span className="beat-reactor__action">GENERATE</span>
+          <span className="beat-reactor__action">{actionLabel}</span>
         </button>
       </div>
 
@@ -265,11 +267,11 @@ export function BeatReactor({
           type="range"
           min="0"
           max="100"
-          value={intensity}
+          value={distance}
           onChange={(event) =>
-            onIntensityChange(Number(event.currentTarget.value))
+            onDistanceChange(Number(event.currentTarget.value))
           }
-          aria-label="Beat generation complexity"
+          aria-label="Reroll change distance"
         />
         <span>WILD</span>
       </label>
