@@ -10,9 +10,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 
 - **Phase 0 — Product Constitution & Architecture Freeze:** complete
 - **Phase 1 — Pulse Architecture UI Foundation:** complete
-- **Next: Phase 2 — Core Audio Clock & Transport**
+- **Phase 2 — Core Audio Clock & Transport:** complete
+- **Next: Phase 3 — Drum Engine V1**
 
-The current app is intentionally a UI foundation. Interactive controls manipulate visual/demo state only; transport audio is disabled until Phase 2 rather than being simulated with UI timers.
+The transport now uses a real lazy-initialized Web Audio clock. React renders clock snapshots but does not advance musical time.
 
 ## Run locally
 
@@ -37,9 +38,9 @@ npm run build
 6. **Instrument, not dashboard** — Synth uses the Pulse Architecture visual language and should feel like musical hardware in a browser.
 7. **Deep when wanted** — manual sequencing and synthesis exist, but they are never prerequisites for making a good beat.
 
-## Implemented Pulse Architecture foundation
+## Implemented foundation
 
-Phase 1 establishes the actual product shell and reusable visual primitives:
+### Phase 1 — Pulse Architecture
 
 - Pulse Spine
 - Beat Reactor
@@ -50,9 +51,26 @@ Phase 1 establishes the actual product shell and reusable visual primitives:
 - machine-style mutation controls
 - responsive CREATE surface
 - dedicated desktop/tablet/mobile layout behavior
-- mode rail for CREATE / SEQUENCE / SOUND / ARRANGE / LIVE / ARCHIVE
+- CREATE / SEQUENCE / SOUND / ARRANGE / LIVE / ARCHIVE shell
 
 See [Phase 1 implementation notes](docs/phase-1/PHASE_1.md).
+
+### Phase 2 — Core Audio Clock & Transport
+
+- lazy user-gesture AudioContext
+- Web Audio time as musical source of truth
+- play / pause / stop
+- BPM 30–300
+- meter switching
+- 1 / 2 / 4 / 8 / 16-bar loop lengths
+- 960 PPQ runtime positioning
+- bar / beat / tick readout
+- look-ahead scheduling contract
+- suspension/visibility recovery
+- real clock-driven Pulse Spine
+- Space keyboard transport shortcut
+
+See [Phase 2 implementation notes](docs/phase-2/PHASE_2.md).
 
 ## Phase 0 architecture
 
