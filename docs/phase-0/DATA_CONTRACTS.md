@@ -122,6 +122,7 @@ An event contains:
 - optional ratchet/flam metadata
 - optional semantic accent
 - optional generator tags
+- optional groove baseline used to make humanization re-applicable and resettable
 
 ## 9. Sound
 
@@ -143,8 +144,11 @@ Groove is explicit and reusable:
 - timing personality
 - humanization amount
 - optional per-role timing offsets
+- optional ghost-note amount
+- optional deterministic groove seed
+- optional groove-engine version
 
-Generated microtiming may be materialized into events while retaining provenance.
+Swing is stored at Pattern level and applied at playback time. Human feel such as role timing, correlated drift, and local jitter is materialized into event microtiming. Events may retain a groove baseline so repeated feel changes are deterministic rather than cumulative.
 
 ## 11. Generation provenance
 
