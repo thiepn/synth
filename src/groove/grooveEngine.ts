@@ -177,8 +177,7 @@ function deterministicTimingOffsetUs(
   if (
     request.humanization <= 0 ||
     definition.timingScale <= 0 ||
-    lane.lock.timing ||
-    lane.lock.rhythm
+    lane.lock.timing
   ) {
     return base.timingOffsetUs;
   }
@@ -220,8 +219,7 @@ function deterministicVelocity(
   if (
     request.humanization <= 0 ||
     definition.velocityScale <= 0 ||
-    lane.lock.dynamics ||
-    lane.lock.rhythm
+    lane.lock.dynamics
   ) {
     return base.velocity;
   }
@@ -360,11 +358,11 @@ export function applyGroove(
   let maxTimingOffsetUs = 0;
 
   for (const lane of pattern.lanes) {
-    if (lane.lock.rhythm) continue;
-
-    lane.events = lane.events.filter(
-      (event) => !isGeneratedGrooveGhost(event),
-    );
+    if (!lane.lock.rhythm) {
+      lane.events = lane.events.filter(
+        (event) => !isGeneratedGrooveGhost(event),
+      );
+    }
 
     for (const event of lane.events) {
       const base = baseEvent(event);
