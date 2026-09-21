@@ -163,6 +163,10 @@
   background: rgba(207, 255, 71, 0.018);
 }
 
+.rhythm-matrix__row.is-muted.is-solo {
+  opacity: 0.34;
+}
+
 .rhythm-matrix__lane {
   position: sticky;
   left: 0;
@@ -230,8 +234,9 @@
 }
 
 .rhythm-matrix__lane-switches button.is-active {
-  color: currentColor;
-  background: color-mix(in srgb, currentColor 5%, transparent);
+  color: var(--phosphor);
+  background: rgba(207, 255, 71, 0.055);
+  box-shadow: inset 0 -2px 0 var(--phosphor);
 }
 
 .rhythm-matrix__steps {
