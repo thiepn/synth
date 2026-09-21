@@ -244,11 +244,7 @@ export function RhythmGlyph({
           y1={tick.y1}
           x2={tick.x2}
           y2={tick.y2}
-          style={
-            {
-              "--glyph-strength": tick.strength,
-            } as CSSProperties
-          }
+          strokeWidth={0.55 + tick.strength * 0.8}
           aria-hidden="true"
         />
       ))}
