@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
 import { useTransportSnapshot } from "../../audio/useTransport";
 import {
   FOUNDATION_LANES,
@@ -41,7 +42,10 @@ export function CreateSurface() {
   const currentSeed = seedSequence[seedIndex % seedSequence.length];
   const activeStep =
     transport.status === "running"
-      ? Math.floor(transport.position.absoluteTick / 240) % FOUNDATION_STEP_COUNT
+      ? Math.floor(
+          transport.position.absoluteTick /
+            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        ) % FOUNDATION_STEP_COUNT
       : undefined;
 
   const glyphVariant = useMemo(
