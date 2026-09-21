@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CreateSurface } from "./ui/surfaces/CreateSurface";
 import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
+import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
 import {
   MODES,
   type ModeDefinition,
@@ -25,7 +26,13 @@ export function App() {
       <UtilityRail mode={mode} />
 
       <main className="synth-workspace">
-        {modeId === "create" ? <CreateSurface /> : <ModePlaceholder mode={mode} />}
+        {modeId === "create" ? (
+          <CreateSurface />
+        ) : modeId === "sequence" ? (
+          <SequenceSurface />
+        ) : (
+          <ModePlaceholder mode={mode} />
+        )}
       </main>
 
       <ModeRail active={modeId} onChange={setModeId} />
@@ -78,7 +85,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 02</span>
+        <span>PHASE 04</span>
       </div>
     </nav>
   );
