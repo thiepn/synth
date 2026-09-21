@@ -152,6 +152,32 @@ export class SequencerStore {
 
   readonly getSnapshot = (): SequencerSnapshot => this.snapshot;
 
+  isLaneRhythmLocked(laneId: string): boolean {
+    return Boolean(
+      this.pattern.lanes.find((lane) => lane.id === laneId)?.lock.rhythm,
+    );
+  }
+
+  getLockedLaneIds(): string[] {
+    return this.pattern.lanes
+      .filter((lane) => lane.lock.rhythm)
+      .map((lane) => lane.id);
+  }
+
+  toggleLaneRhythmLock(laneId: string): void {
+    const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
+    if (!lane) return;
+
+    this.commit((draft) => {
+      const draftLane = draft.lanes.find((entry) => entry.id === laneId);
+      if (!draftLane) return;
+      draftLane.lock = {
+        ...draftLane.lock,
+        rhythm: !draftLane.lock.rhythm,
+      };
+    });
+  }
+
   getLaneValues(laneId: string): number[] {
     const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
     const length = lengthStepsFromPattern(this.pattern);
@@ -367,6 +393,8 @@ export class SequencerStore {
         ...lane,
         muted: current?.muted ?? false,
         solo: current?.solo ?? false,
+        lock: current ? { ...current.lock } : { ...lane.lock },
+        regionLocks: current?.regionLocks?.map((lock) => ({ ...lock })),
       };
     });
 
