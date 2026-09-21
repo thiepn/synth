@@ -6,10 +6,9 @@ import {
 } from "./AudioTransport";
 import {
   DRUM_PADS,
-  FOUNDATION_STEP_COUNT,
-  foundationHitsForPulse,
   type DrumVoiceId,
 } from "../music/foundationPattern";
+import { sequencerStore } from "../sequencer/SequencerStore";
 
 export interface DrumMacros {
   punch: number;
@@ -129,6 +128,10 @@ export class DrumEngine {
     audioTransport.subscribe(() => {
       this.handleTransportState(audioTransport.getSnapshot());
     });
+
+    sequencerStore.subscribe(() => {
+      audioTransport.invalidateScheduledEvents();
+    });
   }
 
   readonly subscribe = (listener: StoreListener): (() => void) => {
@@ -193,16 +196,10 @@ export class DrumEngine {
       this.cancelObsoleteEpochVoices(pulse.epoch, context.currentTime);
       this.currentTransportEpoch = pulse.epoch;
 
-      const stepIndex =
-        Math.floor(
-          pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
-        ) % FOUNDATION_STEP_COUNT;
-      const loopBars = audioTransport.getSnapshot().loopBars;
-      const hits = foundationHitsForPulse(
-        stepIndex,
-        pulse.barIndex,
-        loopBars,
+      const stepIndex = Math.floor(
+        pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
       );
+      const hits = sequencerStore.getHitsForStep(stepIndex);
 
       for (const hit of hits) {
         this.scheduleVoice(
