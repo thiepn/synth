@@ -6,6 +6,10 @@ import {
   type ModeDefinition,
   type ModeId,
 } from "./ui/pulse/Primitives";
+import {
+  TransportControls,
+  TransportLifecycle,
+} from "./ui/transport/TransportUI";
 
 export function App() {
   const [modeId, setModeId] = useState<ModeId>("create");
@@ -17,6 +21,7 @@ export function App() {
 
   return (
     <div className="synth-app">
+      <TransportLifecycle />
       <UtilityRail mode={mode} />
 
       <main className="synth-workspace">
@@ -45,17 +50,7 @@ function UtilityRail({ mode }: { mode: ModeDefinition }) {
         <strong>SYN-7F2</strong>
       </div>
 
-      <div className="transport-readout" aria-label="Transport preview; audio engine not online yet">
-        <button type="button" disabled title="Audio engine arrives in Phase 2" aria-label="Play disabled until Phase 2">
-          ▶
-        </button>
-        <button type="button" disabled title="Audio engine arrives in Phase 2" aria-label="Stop disabled until Phase 2">
-          ■
-        </button>
-        <span><b>128.0</b> BPM</span>
-        <span><b>4/4</b></span>
-        <span className="transport-readout__mode">{mode.number} / {mode.label}</span>
-      </div>
+      <TransportControls mode={mode} />
     </header>
   );
 }
@@ -83,7 +78,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 01</span>
+        <span>PHASE 02</span>
       </div>
     </nav>
   );
