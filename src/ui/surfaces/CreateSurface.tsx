@@ -1,4 +1,10 @@
 import { useMemo, useState } from "react";
+import { useTransportSnapshot } from "../../audio/useTransport";
+import {
+  FOUNDATION_LANES,
+  FOUNDATION_STEP_COUNT,
+} from "../../music/foundationPattern";
+import { DrumEnginePanel } from "../drums/DrumEngineUI";
 import {
   BeatReactor,
   GrooveField,
@@ -14,40 +20,10 @@ import {
 
 const seedSequence = ["7F2", "A14", "C83", "19E", "D4B", "6C9"];
 
-const baseStrips = [
-  {
-    code: "KD",
-    name: "KICK",
-    accent: "heat" as const,
-    detail: "PUNCH 74",
-    values: [1, 0, 0, 0.62, 0, 0, 0.82, 0, 1, 0, 0, 0, 0, 0.72, 0, 0],
-  },
-  {
-    code: "SN",
-    name: "SNARE",
-    accent: "phosphor" as const,
-    detail: "BODY 61",
-    values: [0, 0, 0, 0, 1, 0, 0.18, 0, 0, 0, 0, 0.25, 1, 0, 0.16, 0],
-  },
-  {
-    code: "HH",
-    name: "HATS",
-    accent: "ice" as const,
-    detail: "AIR 82",
-    values: [0.38, 0, 0.58, 0, 0.42, 0, 0.72, 0, 0.42, 0, 0.62, 0, 0.42, 0.28, 0.82, 0],
-  },
-  {
-    code: "PC",
-    name: "PERC",
-    accent: "phosphor" as const,
-    detail: "SPACE 43",
-    values: [0, 0, 0.24, 0, 0, 0, 0, 0, 0, 0.3, 0, 0, 0, 0, 0.36, 0],
-  },
-];
-
 const mutationKeys = ["HARD", "SPACE", "FUNK", "PUSH", "DIRTY", "BREAK", "WEIRD", "THIN"];
 
 export function CreateSurface() {
+  const transport = useTransportSnapshot();
   const [seedIndex, setSeedIndex] = useState(0);
   const [pulseVersion, setPulseVersion] = useState(0);
   const [similarity, setSimilarity] = useState(38);
@@ -63,6 +39,10 @@ export function CreateSurface() {
   const [activeMutation, setActiveMutation] = useState("FUNK");
 
   const currentSeed = seedSequence[seedIndex % seedSequence.length];
+  const activeStep =
+    transport.status === "running"
+      ? Math.floor(transport.position.absoluteTick / 240) % FOUNDATION_STEP_COUNT
+      : undefined;
 
   const glyphVariant = useMemo(
     () => seedIndex + Math.round(groove.x / 34),
@@ -127,7 +107,7 @@ export function CreateSurface() {
           />
 
           <div className="reactor-locks" aria-label="Generation lock preview">
-            {baseStrips.map((strip) => (
+            {FOUNDATION_LANES.map((strip) => (
               <button
                 type="button"
                 key={strip.name}
@@ -204,15 +184,22 @@ export function CreateSurface() {
         </div>
       </div>
 
+      <DrumEnginePanel />
+
       <div className="strip-bank">
         <div className="machine-section-label">
           <span>INSTRUMENT / STRIPS</span>
-          <span>RHYTHM PREVIEW</span>
+          <span>{transport.status === "running" ? "LIVE FOUNDATION BEAT" : "RHYTHM / AUDIO SOURCE"}</span>
         </div>
-        {baseStrips.map((strip) => (
+        {FOUNDATION_LANES.map((strip) => (
           <InstrumentStrip
             key={strip.name}
-            {...strip}
+            code={strip.code}
+            name={strip.name}
+            values={strip.values}
+            accent={strip.accent}
+            detail={strip.detail}
+            activeStep={activeStep}
             locked={locked[strip.name]}
             onToggleLock={() =>
               setLocked((value) => ({
