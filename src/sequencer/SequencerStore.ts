@@ -284,6 +284,10 @@ export class SequencerStore {
         if (draftEvent) {
           draftEvent.velocity = safeVelocity;
           draftEvent.accent = accentFromVelocity(safeVelocity);
+          delete draftEvent.grooveBase;
+          draftEvent.generatorTags = draftEvent.generatorTags?.filter(
+            (tag) => !tag.startsWith("groove-engine"),
+          );
         } else {
           draftLane.events.push(
             createStepEvent(laneId, stepIndex, safeVelocity),
@@ -405,6 +409,10 @@ export class SequencerStore {
     this.lastCoalesceAt = 0;
     this.revision += 1;
     this.publish();
+  }
+
+  applyPatternTransform(nextPattern: Pattern): void {
+    this.applyGeneratedPattern(nextPattern);
   }
 
   setLengthSteps(nextLength: SequencerLengthSteps): void {
