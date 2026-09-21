@@ -331,6 +331,52 @@ export class SequencerStore {
     this.publish();
   }
 
+  applyGeneratedPattern(nextPattern: Pattern): void {
+    const allowedLengths = new Set(
+      SEQUENCER_LENGTH_OPTIONS.map(
+        (steps) => steps * FOUNDATION_STEP_TICKS,
+      ),
+    );
+
+    if (nextPattern.ppq !== this.pattern.ppq) {
+      throw new Error("Generated pattern PPQ does not match the sequencer.");
+    }
+
+    if (!allowedLengths.has(nextPattern.lengthTicks)) {
+      throw new Error("Generated pattern length is not supported by V1.");
+    }
+
+    const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
+    const missingLane = SEQUENCER_LANES.find(
+      (definition) => !nextLaneIds.has(definition.id),
+    );
+    if (missingLane) {
+      throw new Error("Generated pattern is missing lane " + missingLane.id);
+    }
+
+    const currentById = new Map(
+      this.pattern.lanes.map((lane) => [lane.id, lane]),
+    );
+    const generated = clonePattern(nextPattern);
+
+    generated.lanes = generated.lanes.map((lane) => {
+      const current = currentById.get(lane.id);
+      return {
+        ...lane,
+        muted: current?.muted ?? false,
+        solo: current?.solo ?? false,
+      };
+    });
+
+    this.pushUndo();
+    this.pattern = generated;
+    this.redoStack = [];
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
+    this.revision += 1;
+    this.publish();
+  }
+
   setLengthSteps(nextLength: SequencerLengthSteps): void {
     if (!SEQUENCER_LENGTH_OPTIONS.includes(nextLength)) return;
 
