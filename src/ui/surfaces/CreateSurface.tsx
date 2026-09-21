@@ -102,6 +102,14 @@ export function CreateSurface() {
     null,
   );
 
+  const storedGrooveKey = [
+    sequencer.pattern.groove?.personality ?? "",
+    sequencer.pattern.groove?.humanization ?? 0,
+    sequencer.pattern.groove?.ghostNoteAmount ?? 0,
+    sequencer.pattern.groove?.swing ?? 0,
+    sequencer.pattern.groove?.seed ?? "",
+  ].join(":");
+
   useEffect(() => {
     const groove = sequencer.pattern.groove;
     if (!groove) return;
@@ -110,7 +118,7 @@ export function CreateSurface() {
     setHumanization(Math.round(groove.humanization * 100));
     setGhostNotes(Math.round((groove.ghostNoteAmount ?? 0) * 100));
     setSwing(Math.round(groove.swing * 100));
-  }, [sequencer.revision]);
+  }, [storedGrooveKey]);
 
   const lockedLaneIds = useMemo(
     () =>
