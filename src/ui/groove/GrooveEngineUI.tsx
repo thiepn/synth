@@ -101,8 +101,9 @@ export function GrooveEnginePanel({
       </div>
 
       <p className="groove-engine-panel__note">
-        Timing is correlated by beat and instrument role. Locked rhythm lanes
-        remain untouched. The same settings and seed are reproducible.
+        Timing is correlated by beat and instrument role. Rhythm locks block
+        new ghost hits but still allow existing hits to receive feel. The same
+        settings and seed are reproducible.
       </p>
     </section>
   );
