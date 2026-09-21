@@ -163,6 +163,10 @@
   background: rgba(207, 255, 71, 0.018);
 }
 
+.rhythm-matrix__row.is-locked .rhythm-matrix__lane {
+  box-shadow: inset 2px 0 0 rgba(207, 255, 71, 0.55);
+}
+
 .rhythm-matrix__row.is-muted.is-solo {
   opacity: 0.34;
 }
@@ -173,7 +177,7 @@
   z-index: 5;
   min-height: 64px;
   display: grid;
-  grid-template-columns: 1fr 54px;
+  grid-template-columns: 1fr 72px;
   border-right: 1px solid var(--hairline-strong);
   border-bottom: 1px solid var(--hairline);
   background: var(--void);
@@ -212,7 +216,7 @@
 
 .rhythm-matrix__lane-switches {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   border-left: 1px solid var(--hairline);
 }
 
@@ -431,7 +435,7 @@
   }
 
   .rhythm-matrix__lane {
-    grid-template-columns: 1fr 44px;
+    grid-template-columns: 1fr 60px;
   }
 
   .rhythm-matrix__audition {
