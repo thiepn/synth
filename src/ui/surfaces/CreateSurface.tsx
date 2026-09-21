@@ -90,7 +90,6 @@ export function CreateSurface() {
 
     setGenerationCounter((value) => value + 1);
     setGenerationVersion((value) => value + 1);
-    setLastGeneration(result);
 
     if (!result.validation.valid) {
       setGenerationError(
@@ -104,6 +103,7 @@ export function CreateSurface() {
 
     try {
       sequencerStore.applyGeneratedPattern(result.pattern);
+      setLastGeneration(result);
       setGenerationError(null);
     } catch (error) {
       setGenerationError(
