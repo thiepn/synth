@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
 import { useTransportSnapshot } from "../../audio/useTransport";
 import {
@@ -101,6 +101,16 @@ export function CreateSurface() {
   const [operationError, setOperationError] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    const groove = sequencer.pattern.groove;
+    if (!groove) return;
+
+    setPersonality(groove.personality);
+    setHumanization(Math.round(groove.humanization * 100));
+    setGhostNotes(Math.round((groove.ghostNoteAmount ?? 0) * 100));
+    setSwing(Math.round(groove.swing * 100));
+  }, [sequencer.pattern.id]);
 
   const lockedLaneIds = useMemo(
     () =>
