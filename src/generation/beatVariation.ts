@@ -447,7 +447,7 @@ export function rerollBeat(
       intent: request.intent,
       stepCount: Math.round(
         source.lengthTicks / FOUNDATION_STEP_TICKS,
-      ) as 4 | 8 | 16,
+      ) as 4 | 8 | 16 | 32 | 64,
       bpm: request.bpm,
       meter: source.meter,
     };
