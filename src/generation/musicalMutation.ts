@@ -227,9 +227,17 @@ function baselineEvent(event: StepEvent): StepEvent {
   }
 
   delete base.grooveBase;
+  const wasGeneratedGhost = isGrooveGeneratedGhost(event);
   base.generatorTags = base.generatorTags?.filter(
     (tag) => !tag.startsWith("groove-engine"),
   );
+  if (wasGeneratedGhost) {
+    base.generatorTags = [
+      ...(base.generatorTags ?? []).filter((tag) => tag !== "ghost"),
+      "groove-engine",
+      "ghost",
+    ];
+  }
 
   return base;
 }
