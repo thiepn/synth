@@ -344,6 +344,9 @@ function validateBlueprint(
   const reasons: string[] = [];
   let score = 100;
   let expectedStart = 0;
+  const sceneIds = new Set(
+    blueprint.scenes.map((scene) => scene.id),
+  );
 
   for (const section of blueprint.sections) {
     if (section.startTick !== expectedStart) {
@@ -354,6 +357,14 @@ function validateBlueprint(
       reasons.push("section has zero duration");
       score -= 25;
     }
+    if (!sceneIds.has(section.sceneId)) {
+      reasons.push("section references an unknown Scene");
+      score -= 20;
+    }
+    if (section.cycleCount !== section.patternSequence.length) {
+      reasons.push("section cycle count does not match Pattern sequence");
+      score -= 15;
+    }
     if (
       section.patternSequence.some(
         (patternId) => !patternIds.has(patternId),
@@ -361,6 +372,20 @@ function validateBlueprint(
     ) {
       reasons.push("section references a Pattern outside the Beat Family");
       score -= 25;
+    }
+    if (
+      section.fillPatternId &&
+      !patternIds.has(section.fillPatternId)
+    ) {
+      reasons.push("section fill route leaves the Beat Family");
+      score -= 15;
+    }
+    if (
+      section.transitionPatternId &&
+      !patternIds.has(section.transitionPatternId)
+    ) {
+      reasons.push("section transition route leaves the Beat Family");
+      score -= 15;
     }
     expectedStart += section.lengthTicks;
   }
