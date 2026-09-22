@@ -2,6 +2,7 @@ import {
   DRUM_SYNTH_ENGINE_VERSION,
   type DrumMaterialSpec,
   type Kit,
+  type KitDNA,
   type Sound,
   type SynthSoundSpec,
 } from "../domain/contracts";
@@ -25,7 +26,7 @@ export interface ActiveGeneratedKit {
   sounds: Sound[];
   direction: string;
   seed: string;
-  dna: Record<string, number>;
+  dna: KitDNA;
   modified: boolean;
 }
 
@@ -285,7 +286,7 @@ export class DrumSoundStore {
     sounds: Sound[];
     direction: string;
     seed: string;
-    dna: Record<string, number>;
+    dna: KitDNA;
   }): void {
     const next = {} as Record<DrumVoiceId, DrumMaterialSpec>;
 
