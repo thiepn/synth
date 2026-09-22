@@ -177,7 +177,7 @@
   z-index: 5;
   min-height: 64px;
   display: grid;
-  grid-template-columns: 1fr 72px;
+  grid-template-columns: 1fr 116px;
   border-right: 1px solid var(--hairline-strong);
   border-bottom: 1px solid var(--hairline);
   background: var(--void);
@@ -186,7 +186,7 @@
 .rhythm-matrix__audition {
   min-width: 0;
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px 1fr auto;
   align-items: center;
   gap: 9px;
   padding: 0 12px;
@@ -214,9 +214,15 @@
   text-overflow: ellipsis;
 }
 
+.rhythm-matrix__audition small {
+  color: #555b52;
+  font: 600 0.45rem/1 var(--font-mono);
+  white-space: nowrap;
+}
+
 .rhythm-matrix__lane-switches {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border-left: 1px solid var(--hairline);
 }
 
@@ -282,6 +288,20 @@
   box-shadow: inset 0 0 0 1px currentColor;
 }
 
+.sequence-step.is-beyond-loop {
+  opacity: 0.18;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 5px,
+      rgba(231, 232, 223, 0.025) 5px 6px
+    );
+}
+
+.sequence-step.is-probabilistic .sequence-step__hit {
+  opacity: calc(0.35 + var(--step-probability, 1) * 0.65);
+}
+
 .sequence-step__rail {
   position: absolute;
   top: 12px;
@@ -323,10 +343,19 @@
     0 0 19px color-mix(in srgb, currentColor 18%, transparent);
 }
 
+.sequence-step__meta {
+  position: absolute;
+  top: 5px;
+  right: 4px;
+  color: currentColor;
+  font: 650 0.42rem/1 var(--font-mono);
+  opacity: 0.75;
+}
+
 .step-editor {
   min-height: 96px;
   display: grid;
-  grid-template-columns: minmax(170px, 0.55fr) minmax(200px, 0.65fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(150px, 0.42fr) minmax(180px, 0.5fr) minmax(240px, 0.7fr) minmax(360px, 1.15fr);
   border-bottom: 1px solid var(--hairline-strong);
 }
 
@@ -369,6 +398,59 @@
 
 .step-editor__velocity .signal-rail {
   margin-top: 0;
+}
+
+.step-editor__advanced {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px 16px;
+  align-content: center;
+}
+
+.step-editor__advanced label {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px 1fr 58px;
+  align-items: center;
+  gap: 7px;
+  color: #60665c;
+  font: 600 0.46rem/1 var(--font-mono);
+}
+
+.step-editor__advanced input {
+  min-width: 0;
+  width: 100%;
+  accent-color: var(--phosphor);
+}
+
+.step-editor__advanced b {
+  color: var(--bone);
+  text-align: right;
+  font-weight: 650;
+}
+
+.step-editor__ratchets {
+  display: grid;
+  grid-template-columns: 48px repeat(4, 1fr);
+  align-items: center;
+  gap: 4px;
+  color: #60665c;
+  font: 600 0.46rem/1 var(--font-mono);
+}
+
+.step-editor__ratchets button {
+  min-height: 26px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ash);
+  cursor: pointer;
+  font: 650 0.46rem/1 var(--font-mono);
+}
+
+.step-editor__ratchets button.is-active {
+  color: var(--phosphor);
+  border-color: rgba(207, 255, 71, 0.4);
+  background: rgba(207, 255, 71, 0.035);
 }
 
 .sequence-hint {
@@ -441,7 +523,7 @@
   }
 
   .rhythm-matrix__lane {
-    grid-template-columns: 1fr 60px;
+    grid-template-columns: 1fr 104px;
   }
 
   .rhythm-matrix__audition {
@@ -469,6 +551,11 @@
   .step-editor > * + * {
     border-left: 0;
     border-top: 1px solid var(--hairline);
+  }
+
+  .step-editor__advanced {
+    grid-template-columns: 1fr;
+    padding-inline: 0;
   }
 
   .step-editor__toggle {
