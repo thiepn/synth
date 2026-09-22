@@ -16,6 +16,8 @@ import {
   type DrumVoiceId,
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
+import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
+import { getPatternHitsForAbsoluteStep } from "../sequencer/patternPlayback";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
 import {
   eventPassesProbability,
@@ -346,16 +348,46 @@ export class DrumEngine {
       this.cancelObsoleteEpochVoices(pulse.epoch, context.currentTime);
       this.currentTransportEpoch = pulse.epoch;
 
-      const stepIndex = Math.floor(
-        pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
-      );
-      const sequencer = sequencerStore.getSnapshot();
-      const hits = sequencerStore.getHitsForStep(stepIndex);
       const transport = audioTransport.getSnapshot();
+      const arrangementPlayback =
+        arrangementPlaybackStore.getSnapshot();
+      const arrangementResolved =
+        arrangementPlayback.engaged
+          ? arrangementPlaybackStore.resolveTransportTick(
+              pulse.absoluteTick,
+            )
+          : null;
+
+      let stepIndex: number;
+      let hits;
+      let swing: number;
+
+      if (arrangementPlayback.engaged) {
+        if (!arrangementResolved) return;
+
+        stepIndex = Math.floor(
+          arrangementResolved.localTick /
+            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        );
+        hits = getPatternHitsForAbsoluteStep(
+          arrangementResolved.pattern,
+          stepIndex,
+          arrangementResolved.occurrenceIndex * 1024,
+        );
+        swing = arrangementResolved.pattern.groove?.swing ?? 0;
+      } else {
+        stepIndex = Math.floor(
+          pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        );
+        const sequencer = sequencerStore.getSnapshot();
+        hits = sequencerStore.getHitsForStep(stepIndex);
+        swing = sequencer.pattern.groove?.swing ?? 0;
+      }
+
       const swingOffsetUs = swingOffsetUsForStep(
         stepIndex,
         transport.bpm,
-        sequencer.pattern.groove?.swing ?? 0,
+        swing,
       );
 
       const stepSeconds = 60 / transport.bpm / 4;
