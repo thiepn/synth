@@ -10,8 +10,14 @@ import {
   laneDefinitionById,
   type DrumVoiceId,
 } from "../music/foundationPattern";
+import {
+  clampManualTimingOffsetUs,
+  eventPassesProbability,
+  normalizedFlamOffsetUs,
+  normalizedRatchetCount,
+} from "./playbackRules";
 
-export const SEQUENCER_LENGTH_OPTIONS = [4, 8, 16] as const;
+export const SEQUENCER_LENGTH_OPTIONS = [4, 8, 16, 32, 64] as const;
 export type SequencerLengthSteps =
   (typeof SEQUENCER_LENGTH_OPTIONS)[number];
 
@@ -20,7 +26,11 @@ export interface SequencerHit {
   kitSlotId: string;
   velocity: number;
   timingOffsetUs: number;
+  ratchetCount: number;
+  flamOffsetUs: number;
   laneId: string;
+  laneStepIndex: number;
+  laneCycleIndex: number;
 }
 
 export interface SequencerSnapshot {
@@ -90,7 +100,9 @@ function lengthStepsFromPattern(pattern: Pattern): SequencerLengthSteps {
   const steps = Math.round(pattern.lengthTicks / FOUNDATION_STEP_TICKS);
   if (steps <= 4) return 4;
   if (steps <= 8) return 8;
-  return 16;
+  if (steps <= 16) return 16;
+  if (steps <= 32) return 32;
+  return 64;
 }
 
 function eventAtStep(
@@ -230,19 +242,39 @@ export class SequencerStore {
   }
 
   getHitsForStep(stepIndex: number): SequencerHit[] {
-    const length = lengthStepsFromPattern(this.pattern);
-    const normalizedStep =
-      ((Math.floor(stepIndex) % length) + length) % length;
+    const absoluteStep = Math.max(0, Math.floor(stepIndex));
+    const patternLength = lengthStepsFromPattern(this.pattern);
     const soloActive = this.pattern.lanes.some((lane) => lane.solo);
-
     const hits: SequencerHit[] = [];
 
     for (const lane of this.pattern.lanes) {
       if (lane.muted) continue;
       if (soloActive && !lane.solo) continue;
 
-      const event = eventAtStep(lane, normalizedStep);
-      if (!event || event.probability <= 0) continue;
+      const laneLength = Math.max(
+        1,
+        Math.min(
+          patternLength,
+          Math.round(
+            (lane.loopLengthTicks ?? this.pattern.lengthTicks) /
+              FOUNDATION_STEP_TICKS,
+          ),
+        ),
+      );
+      const laneStepIndex = absoluteStep % laneLength;
+      const laneCycleIndex = Math.floor(absoluteStep / laneLength);
+      const event = eventAtStep(lane, laneStepIndex);
+      if (!event) continue;
+      if (
+        !eventPassesProbability(
+          this.pattern.id,
+          lane.id,
+          event,
+          laneCycleIndex,
+        )
+      ) {
+        continue;
+      }
 
       const definition = laneDefinitionById(lane.id);
       if (!definition) continue;
@@ -252,7 +284,11 @@ export class SequencerStore {
         kitSlotId: lane.kitSlotId,
         velocity: event.velocity,
         timingOffsetUs: event.timingOffsetUs,
+        ratchetCount: normalizedRatchetCount(event),
+        flamOffsetUs: normalizedFlamOffsetUs(event),
         laneId: lane.id,
+        laneStepIndex,
+        laneCycleIndex,
       });
     }
 
@@ -328,6 +364,88 @@ export class SequencerStore {
       },
       "velocity:" + laneId + ":" + stepIndex,
     );
+  }
+
+  setStepProbability(
+    laneId: string,
+    stepIndex: number,
+    probability: number,
+  ): void {
+    this.updateAdvancedEvent(
+      laneId,
+      stepIndex,
+      "probability",
+      Math.max(0, Math.min(1, probability)),
+    );
+  }
+
+  setStepRatchetCount(
+    laneId: string,
+    stepIndex: number,
+    count: number,
+  ): void {
+    this.updateAdvancedEvent(
+      laneId,
+      stepIndex,
+      "ratchetCount",
+      Math.max(1, Math.min(4, Math.round(count))),
+    );
+  }
+
+  setStepFlamOffsetUs(
+    laneId: string,
+    stepIndex: number,
+    offsetUs: number,
+  ): void {
+    this.updateAdvancedEvent(
+      laneId,
+      stepIndex,
+      "flamOffsetUs",
+      Math.max(0, Math.min(60_000, Math.round(offsetUs))),
+    );
+  }
+
+  setStepTimingOffsetUs(
+    laneId: string,
+    stepIndex: number,
+    offsetUs: number,
+  ): void {
+    this.updateAdvancedEvent(
+      laneId,
+      stepIndex,
+      "timingOffsetUs",
+      clampManualTimingOffsetUs(offsetUs),
+    );
+  }
+
+  getLaneLengthSteps(laneId: string): number {
+    const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
+    if (!lane) return lengthStepsFromPattern(this.pattern);
+    return Math.max(
+      1,
+      Math.min(
+        lengthStepsFromPattern(this.pattern),
+        Math.round(
+          (lane.loopLengthTicks ?? this.pattern.lengthTicks) /
+            FOUNDATION_STEP_TICKS,
+        ),
+      ),
+    );
+  }
+
+  setLaneLengthSteps(laneId: string, steps: number): void {
+    const safe = Math.max(
+      1,
+      Math.min(lengthStepsFromPattern(this.pattern), Math.round(steps)),
+    );
+    this.commit((draft) => {
+      const lane = draft.lanes.find((entry) => entry.id === laneId);
+      if (!lane) return;
+      lane.loopLengthTicks =
+        safe === lengthStepsFromPattern(draft)
+          ? undefined
+          : safe * FOUNDATION_STEP_TICKS;
+    });
   }
 
   cycleStepVelocity(laneId: string, stepIndex: number): void {
@@ -406,7 +524,7 @@ export class SequencerStore {
     }
 
     if (!allowedLengths.has(nextPattern.lengthTicks)) {
-      throw new Error("Generated pattern length is not supported by V1.");
+      throw new Error("Generated pattern length is not supported by Sequencer V2.");
     }
 
     const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
@@ -461,7 +579,7 @@ export class SequencerStore {
     }
 
     if (!allowedLengths.has(nextPattern.lengthTicks)) {
-      throw new Error("History Pattern length is not supported by V1.");
+      throw new Error("History Pattern length is not supported by Sequencer V2.");
     }
 
     const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
@@ -514,15 +632,21 @@ export class SequencerStore {
         lane.events = lane.events.filter(
           (event) => event.tick < draft.lengthTicks,
         );
+        if (
+          lane.loopLengthTicks &&
+          lane.loopLengthTicks > draft.lengthTicks
+        ) {
+          lane.loopLengthTicks = draft.lengthTicks;
+        }
       }
     });
   }
 
   duplicate(): void {
     const length = lengthStepsFromPattern(this.pattern);
-    const sourceLength = length < 16 ? length : 8;
-    const targetStart = length < 16 ? length : 8;
-    const nextLength = Math.min(16, length < 16 ? length * 2 : 16);
+    const sourceLength = length < 64 ? length : 32;
+    const targetStart = length < 64 ? length : 32;
+    const nextLength = Math.min(64, length < 64 ? length * 2 : 64);
 
     this.commit((draft) => {
       draft.lengthTicks = nextLength * FOUNDATION_STEP_TICKS;
@@ -580,6 +704,47 @@ export class SequencerStore {
     this.lastCoalesceAt = 0;
     this.revision += 1;
     this.publish();
+  }
+
+  private updateAdvancedEvent(
+    laneId: string,
+    stepIndex: number,
+    key: "probability" | "ratchetCount" | "flamOffsetUs" | "timingOffsetUs",
+    value: number,
+  ): void {
+    if (!this.isValidStep(stepIndex)) return;
+
+    this.commit(
+      (draft) => {
+        const lane = draft.lanes.find((entry) => entry.id === laneId);
+        if (!lane) return;
+        let event = eventAtStep(lane, stepIndex);
+        if (!event) {
+          event = createStepEvent(
+            laneId,
+            stepIndex,
+            laneDefaultVelocity(laneId, stepIndex),
+          );
+          lane.events.push(event);
+          lane.events.sort((a, b) => a.tick - b.tick);
+        }
+
+        if (key === "timingOffsetUs") {
+          event.timingOffsetUs = value;
+          delete event.grooveBase;
+          event.generatorTags = event.generatorTags?.filter(
+            (tag) => !tag.startsWith("groove-engine"),
+          );
+        } else if (key === "probability") {
+          event.probability = value;
+        } else if (key === "ratchetCount") {
+          event.ratchetCount = value <= 1 ? undefined : value;
+        } else {
+          event.flamOffsetUs = value <= 0 ? undefined : value;
+        }
+      },
+      key + ":" + laneId + ":" + stepIndex,
+    );
   }
 
   private isValidStep(stepIndex: number): boolean {
