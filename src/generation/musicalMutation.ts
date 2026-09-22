@@ -824,12 +824,16 @@ function finalizeMutation(
 
   const sourceValidation = validateGeneratedBeat(source, style);
   const validation = validateGeneratedBeat(grooved.pattern, style);
+  const isBreak = mutationId === "mutation:break";
+  const isWeird = mutationId === "mutation:weird";
+  const maximumFloor = isBreak ? 58 : isWeird ? 64 : 72;
+  const allowedDrop = isBreak ? 45 : isWeird ? 32 : 22;
   const minimumScore = Math.min(
-    72,
-    Math.max(48, sourceValidation.score - 22),
+    maximumFloor,
+    Math.max(42, sourceValidation.score - allowedDrop),
   );
   const allowedCritical = new Set<string>();
-  if (mutationId === "mutation:break") {
+  if (isBreak) {
     allowedCritical.add("house pulse lost four-on-floor foundation");
   }
 
@@ -884,21 +888,32 @@ export function mutateMusically(
   let baseline: Pattern;
 
   if (request.mutation === "funkier" || request.mutation === "weird") {
-    const rerolled = rerollBeat({
-      source: sourceBaseline,
-      seed: deriveSeed(effectiveSeed, "derive"),
-      style: request.mutation === "funkier" ? "funk" : request.style,
-      intent: targetIntent,
-      distance:
-        request.mutation === "funkier"
-          ? 0.2 + amount * 0.45
-          : 0.4 + amount * 0.45,
-      bpm: request.bpm,
-    });
+    try {
+      const rerolled = rerollBeat({
+        source: sourceBaseline,
+        seed: deriveSeed(effectiveSeed, "derive"),
+        style: request.mutation === "funkier" ? "funk" : request.style,
+        intent: targetIntent,
+        distance:
+          request.mutation === "funkier"
+            ? 0.2 + amount * 0.45
+            : 0.4 + amount * 0.45,
+        bpm: request.bpm,
+      });
 
-    baseline = resetGroove(
-      rerolled.accepted ? rerolled.pattern : sourceBaseline,
-    );
+      baseline = resetGroove(
+        rerolled.accepted ? rerolled.pattern : sourceBaseline,
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.toLowerCase().includes("locked")
+      ) {
+        baseline = sourceBaseline;
+      } else {
+        throw error;
+      }
+    }
   } else {
     baseline = directMutation(
       sourceBaseline,
