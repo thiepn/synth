@@ -4,7 +4,11 @@ import {
   type ScheduledTransportPulse,
   type TransportSnapshot,
 } from "./AudioTransport";
-import type { Pattern } from "../domain/contracts";
+import {
+  DRUM_SYNTH_ENGINE_VERSION,
+  type DrumMaterialSpec,
+  type Pattern,
+} from "../domain/contracts";
 import {
   DRUM_PADS,
   FOUNDATION_STEP_TICKS,
@@ -13,11 +17,7 @@ import {
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
-import {
-  DRUM_SYNTH_ENGINE_VERSION,
-  drumSoundStore,
-  type DrumMaterialSpec,
-} from "./drumSoundModel";
+import { drumSoundStore } from "./drumSoundModel";
 
 export interface DrumMacros {
   punch: number;
