@@ -1,4 +1,9 @@
-import type { SynthSoundSpec } from "../domain/contracts";
+import type {
+  DrumMaterialSpec,
+  Kit,
+  Sound,
+  SynthSoundSpec,
+} from "../domain/contracts";
 import {
   DRUM_PADS,
   type DrumVoiceId,
@@ -16,27 +21,23 @@ export type DrumMaterialParam =
   | "pitch"
   | "character";
 
-export interface DrumMaterialSpec {
-  voice: DrumVoiceId;
-  engineVersion: typeof DRUM_SYNTH_ENGINE_VERSION;
-  impact: number;
-  body: number;
-  noise: number;
-  air: number;
-  tone: number;
-  decay: number;
-  pitch: number;
-  character: number;
+export interface ActiveGeneratedKit {
+  kit: Kit;
+  sounds: Sound[];
+  direction: string;
+  seed: string;
+  dna: Record<string, number>;
 }
 
 export interface DrumSoundSnapshot {
   specs: Record<DrumVoiceId, DrumMaterialSpec>;
+  activeKit?: ActiveGeneratedKit;
   revision: number;
 }
 
 type StoreListener = () => void;
 
-const DEFAULTS: Record<DrumVoiceId, DrumMaterialSpec> = {
+export const DRUM_DEFAULT_SPECS: Record<DrumVoiceId, DrumMaterialSpec> = {
   kick: {
     voice: "kick",
     engineVersion: DRUM_SYNTH_ENGINE_VERSION,
@@ -182,7 +183,8 @@ function cloneSpecs(
 
 export class DrumSoundStore {
   private listeners = new Set<StoreListener>();
-  private specs = cloneSpecs(DEFAULTS);
+  private specs = cloneSpecs(DRUM_DEFAULT_SPECS);
+  private activeKit: ActiveGeneratedKit | undefined;
   private revision = 0;
   private snapshot: DrumSoundSnapshot = this.buildSnapshot();
 
@@ -235,16 +237,82 @@ export class DrumSoundStore {
     this.publish();
   }
 
-  resetVoice(voice: DrumVoiceId): void {
-    this.specs = {
-      ...this.specs,
-      [voice]: cloneSpec(DEFAULTS[voice]),
+  applyGeneratedKit(input: {
+    specs: Record<DrumVoiceId, DrumMaterialSpec>;
+    kit: Kit;
+    sounds: Sound[];
+    direction: string;
+    seed: string;
+    dna: Record<string, number>;
+  }): void {
+    const next = {} as Record<DrumVoiceId, DrumMaterialSpec>;
+
+    for (const pad of DRUM_PADS) {
+      const spec = input.specs[pad.voice];
+      next[pad.voice] = {
+        ...spec,
+        voice: pad.voice,
+        engineVersion: DRUM_SYNTH_ENGINE_VERSION,
+        impact: clamp01(spec.impact),
+        body: clamp01(spec.body),
+        noise: clamp01(spec.noise),
+        air: clamp01(spec.air),
+        tone: clamp01(spec.tone),
+        decay: clamp01(spec.decay),
+        pitch: clamp01(spec.pitch),
+        character: clamp01(spec.character),
+      };
+    }
+
+    this.specs = next;
+    this.activeKit = {
+      kit: {
+        ...input.kit,
+        slots: input.kit.slots.map((slot) => ({ ...slot })),
+        provenance: input.kit.provenance
+          ? {
+              ...input.kit.provenance,
+              style: { ...input.kit.provenance.style },
+              intent: { ...input.kit.provenance.intent },
+            }
+          : undefined,
+      },
+      sounds: input.sounds.map((sound) => ({
+        ...sound,
+        spec:
+          sound.spec.kind === "synth"
+            ? {
+                ...sound.spec,
+                params: { ...sound.spec.params },
+              }
+            : sound.spec,
+        provenance: sound.provenance
+          ? {
+              ...sound.provenance,
+              style: { ...sound.provenance.style },
+              intent: { ...sound.provenance.intent },
+            }
+          : undefined,
+      })),
+      direction: input.direction,
+      seed: input.seed,
+      dna: { ...input.dna },
     };
     this.publish();
   }
 
+  resetVoice(voice: DrumVoiceId): void {
+    this.specs = {
+      ...this.specs,
+      [voice]: cloneSpec(DRUM_DEFAULT_SPECS[voice]),
+    };
+    this.activeKit = undefined;
+    this.publish();
+  }
+
   resetAll(): void {
-    this.specs = cloneSpecs(DEFAULTS);
+    this.specs = cloneSpecs(DRUM_DEFAULT_SPECS);
+    this.activeKit = undefined;
     this.publish();
   }
 
@@ -285,6 +353,18 @@ export class DrumSoundStore {
   private buildSnapshot(): DrumSoundSnapshot {
     return {
       specs: cloneSpecs(this.specs),
+      activeKit: this.activeKit
+        ? {
+            kit: {
+              ...this.activeKit.kit,
+              slots: this.activeKit.kit.slots.map((slot) => ({ ...slot })),
+            },
+            sounds: this.activeKit.sounds.map((sound) => ({ ...sound })),
+            direction: this.activeKit.direction,
+            seed: this.activeKit.seed,
+            dna: { ...this.activeKit.dna },
+          }
+        : undefined,
       revision: this.revision,
     };
   }
