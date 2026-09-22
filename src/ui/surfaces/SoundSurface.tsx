@@ -40,6 +40,7 @@ import {
   TransportPulseSpine,
   TransportStatusLabel,
 } from "../transport/TransportUI";
+import { SampleSourcePanel } from "../sound/SampleSourcePanel";
 
 function paramLabel(
   voice: DrumVoiceId,
@@ -565,10 +566,12 @@ export function SoundSurface() {
         </div>
 
         <p className="kit-generator-panel__note">
-          One shared DNA shapes all eight voices. HYBRID remains synth-only
-          until the later sample/hybrid engine.
+          One shared DNA shapes all eight V2 synth voices. Imported sample
+          layers are preserved across Kit generation and mutation.
         </p>
       </section>
+
+      <SampleSourcePanel voice={selectedVoice} />
 
       <section className="sound-evolution-panel" aria-labelledby="sound-evolution-title">
         <div className="machine-section-label">
