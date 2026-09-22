@@ -199,6 +199,36 @@ export class DrumSoundStore {
     return cloneSpec(this.specs[voice]);
   }
 
+  resolveVoiceForSlot(
+    kitSlotId: string,
+    fallbackVoice: DrumVoiceId,
+  ): DrumVoiceId {
+    const activeKit = this.activeKit;
+    if (!activeKit) return fallbackVoice;
+
+    const slot = activeKit.kit.slots.find(
+      (entry) => entry.id === kitSlotId,
+    );
+    if (!slot) return fallbackVoice;
+
+    const sound = activeKit.sounds.find(
+      (entry) => entry.id === slot.soundId,
+    );
+    if (!sound || sound.spec.kind !== "synth") {
+      return fallbackVoice;
+    }
+
+    const sourceVoice = sound.spec.params.sourceVoice;
+    if (
+      typeof sourceVoice !== "string" ||
+      !DRUM_PADS.some((pad) => pad.voice === sourceVoice)
+    ) {
+      return fallbackVoice;
+    }
+
+    return sourceVoice as DrumVoiceId;
+  }
+
   setParam(
     voice: DrumVoiceId,
     param: DrumMaterialParam,
