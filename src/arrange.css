@@ -511,3 +511,25 @@
   color: var(--heat);
   border-color: rgba(255, 116, 72, 0.3);
 }
+
+
+.arrange-footer__actions {
+  display: grid;
+  grid-template-columns: 82px 82px minmax(190px, 1fr);
+  align-items: stretch;
+}
+
+.arrange-footer__actions .machine-button {
+  min-height: 52px;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .arrange-footer__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .arrange-footer__actions .machine-button:last-child {
+    grid-column: 1 / -1;
+  }
+}
