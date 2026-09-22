@@ -73,6 +73,7 @@ export interface KitCoherenceMetrics {
   materialSpread: number;
   lowEndFoundation: number;
   cymbalAir: number;
+  directionFit: number;
 }
 
 export interface KitCoherenceValidation {
@@ -601,8 +602,78 @@ function abs(a: number, b: number): number {
   return Math.abs(a - b);
 }
 
+function average(
+  specs: Record<DrumVoiceId, DrumMaterialSpec>,
+  key: keyof Pick<
+    DrumMaterialSpec,
+    "impact" | "body" | "noise" | "air" | "tone" | "decay" | "pitch" | "character"
+  >,
+): number {
+  return (
+    DRUM_PADS.reduce(
+      (sum, pad) => sum + specs[pad.voice][key],
+      0,
+    ) / DRUM_PADS.length
+  );
+}
+
+function directionFit(
+  specs: Record<DrumVoiceId, DrumMaterialSpec>,
+  direction: KitDirectionId,
+  tonalSpread: number,
+  materialSpread: number,
+): number {
+  const impact = average(specs, "impact");
+  const body = average(specs, "body");
+  const noise = average(specs, "noise");
+  const air = average(specs, "air");
+  const tone = average(specs, "tone");
+  const decay = average(specs, "decay");
+  const character = average(specs, "character");
+
+  switch (direction) {
+    case "tight":
+      return clamp01((1 - decay) * 0.58 + impact * 0.42);
+    case "huge":
+      return clamp01(body * 0.54 + decay * 0.46);
+    case "dark":
+      return clamp01((1 - tone) * 0.62 + (1 - air) * 0.38);
+    case "bright":
+      return clamp01(tone * 0.56 + air * 0.44);
+    case "clean":
+      return clamp01((1 - noise) * 0.72 + impact * 0.28);
+    case "dirty":
+      return clamp01(noise * 0.5 + character * 0.5);
+    case "electronic":
+      return clamp01(character * 0.7 + tone * 0.3);
+    case "hybrid":
+      return clamp01(
+        1 - Math.abs(character - 0.62) * 1.7,
+      );
+    case "vintage":
+      return clamp01(
+        (1 - tone) * 0.42 +
+          (1 - air) * 0.32 +
+          noise * 0.26,
+      );
+    case "industrial":
+      return clamp01(
+        noise * 0.38 +
+          character * 0.4 +
+          impact * 0.22,
+      );
+    case "experimental":
+      return clamp01(
+        0.24 +
+          tonalSpread * 0.68 +
+          materialSpread * 0.72,
+      );
+  }
+}
+
 export function validateGeneratedKit(
   specs: Record<DrumVoiceId, DrumMaterialSpec>,
+  direction: KitDirectionId,
 ): KitCoherenceValidation {
   const closed = specs.closedHat;
   const open = specs.openHat;
@@ -631,6 +702,12 @@ export function validateGeneratedKit(
     closed.air * 0.2 +
     open.air * 0.3 +
     crash.air * 0.5;
+  const requestedDirectionFit = directionFit(
+    specs,
+    direction,
+    tonalSpread,
+    materialSpread,
+  );
 
   const reasons: string[] = [];
   let score = 100;
@@ -665,6 +742,15 @@ export function validateGeneratedKit(
     score -= 12;
   }
 
+  const minimumDirectionFit =
+    direction === "experimental" ? 0.42 : 0.48;
+  if (requestedDirectionFit < minimumDirectionFit) {
+    reasons.push("kit does not express the requested direction strongly enough");
+    score -= Math.round(
+      (minimumDirectionFit - requestedDirectionFit) * 80 + 12,
+    );
+  }
+
   score = Math.max(0, Math.round(score));
 
   return {
@@ -678,6 +764,7 @@ export function validateGeneratedKit(
       materialSpread,
       lowEndFoundation,
       cymbalAir,
+      directionFit: requestedDirectionFit,
     },
   };
 }
@@ -714,7 +801,10 @@ export function generateKit(
       ]),
     ) as Record<DrumVoiceId, DrumMaterialSpec>;
 
-    const validation = validateGeneratedKit(specs);
+    const validation = validateGeneratedKit(
+      specs,
+      requestInput.direction,
+    );
     const domain = buildDomainKit(
       requestInput.direction,
       effectiveSeed,
