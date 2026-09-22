@@ -281,6 +281,7 @@ export interface Scene {
   transitionPatternId?: EntityId;
   kitId?: EntityId;
   energy: Normalized;
+  provenance?: GenerationProvenance;
 }
 
 export interface SectionBlueprint {
