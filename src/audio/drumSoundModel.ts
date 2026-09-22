@@ -45,6 +45,7 @@ export interface ActiveGeneratedKit {
 export interface SoundMorphEndpoint {
   label: string;
   specs: Record<DrumVoiceId, DrumMaterialSpec>;
+  sourceStates: Record<DrumVoiceId, DrumVoiceSourceState>;
   activeKit?: ActiveGeneratedKit;
 }
 
@@ -304,6 +305,7 @@ function cloneMorphEndpoint(
   return {
     label: endpoint.label,
     specs: cloneSpecs(endpoint.specs),
+    sourceStates: cloneSourceStates(endpoint.sourceStates),
     activeKit: cloneActiveKit(endpoint.activeKit),
   };
 }
