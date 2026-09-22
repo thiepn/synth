@@ -3,11 +3,13 @@ import { drumEngine } from "../../audio/DrumEngine";
 import {
   DRUM_MATERIAL_LABELS,
   DRUM_MATERIAL_PARAMS,
-  DRUM_SYNTH_ENGINE_VERSION,
   drumSoundStore,
   type DrumMaterialParam,
-  type DrumMaterialSpec,
 } from "../../audio/drumSoundModel";
+import {
+  DRUM_SYNTH_ENGINE_VERSION,
+  type DrumMaterialSpec,
+} from "../../domain/contracts";
 import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
 import {
   DRUM_PADS,
