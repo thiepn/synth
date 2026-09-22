@@ -88,6 +88,7 @@ function creativeSignature(pattern: Pattern): string {
       id: lane.id,
       role: lane.role,
       kitSlotId: lane.kitSlotId,
+      loopLengthTicks: lane.loopLengthTicks,
       events: lane.events.map((event) => ({
         tick: event.tick,
         durationTicks: event.durationTicks,
