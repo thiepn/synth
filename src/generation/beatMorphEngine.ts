@@ -610,6 +610,22 @@ export function morphPatterns(
     const laneB = bByLane.get(laneA.id);
     if (!laneB) return cloneLane(laneA);
 
+    const laneDimensions: BeatMorphDimensions = {
+      rhythm: laneA.lock.rhythm
+        ? 0
+        : dimensions.rhythm,
+      dynamics: laneA.lock.dynamics
+        ? 0
+        : dimensions.dynamics,
+      timing: laneA.lock.timing
+        ? 0
+        : dimensions.timing,
+      groove: dimensions.groove,
+      styleDNA: laneA.lock.rhythm
+        ? 0
+        : dimensions.styleDNA,
+    };
+
     const aEvents = eventMap(laneA);
     const bEvents = eventMap(laneB);
     const steps = new Set([
@@ -631,7 +647,7 @@ export function morphPatterns(
         eventA,
         eventB,
         step,
-        dimensions,
+        laneDimensions,
         deriveSeed(
           request.seed,
           laneA.id + ":" + step,
@@ -645,21 +661,21 @@ export function morphPatterns(
     return {
       ...cloneLane(laneA),
       kitSlotId:
-        dimensions.rhythm < 0.5
+        laneA.lock.sound || laneDimensions.rhythm < 0.5
           ? laneA.kitSlotId
           : laneB.kitSlotId,
       muted:
-        dimensions.rhythm < 0.5
+        laneDimensions.rhythm < 0.5
           ? laneA.muted
           : laneB.muted,
       solo:
-        dimensions.rhythm < 0.5
+        laneDimensions.rhythm < 0.5
           ? laneA.solo
           : laneB.solo,
       loopLengthTicks: discreteChoice(
         laneA.loopLengthTicks,
         laneB.loopLengthTicks,
-        dimensions.rhythm,
+        laneDimensions.rhythm,
         request.seed + ":" + laneA.id + ":loop",
       ),
       events,
