@@ -21,9 +21,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 10 — Generation History & Evolution Tree:** complete
 - **Phase 11 — Drum Synthesis Engine V2:** complete
 - **Phase 12 — Kit Generator:** complete
-- **Next: Phase 13 — Sound Morphing & Kit Mutation**
+- **Phase 13 — Sound Morphing & Kit Mutation:** complete
+- **Next: Phase 14 — Advanced Sequencer V2**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, and deterministic coherent Kit generation. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, and Kit generation.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, and lock-aware sound evolution/morphing. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, and sound-evolution logic.
 
 ## Run locally
 
@@ -271,6 +272,28 @@ See [Phase 11 implementation notes](docs/phase-11/PHASE_11.md).
 - generated Kit/Sound snapshots are deep-cloned
 
 See [Phase 12 implementation notes](docs/phase-12/PHASE_12.md).
+
+### Phase 13 — Sound Morphing & Kit Mutation
+
+- eight deterministic semantic sound mutations: Darker / Brighter / Heavier / Cleaner / Dirtier / Tighter / Bigger / Stranger
+- four relatedness levels: Very Similar / Similar / Different / Wild
+- deterministic 8-attempt Kit mutation retry
+- whole-kit mutation
+- selected-voice mutation
+- real sound locks using PatternLane.lock.sound
+- fresh Kit generation honors sound locks
+- mutation and morph enforce exact locked-voice invariants
+- modified kits infer DNA from live material specs
+- immutable A/B morph snapshots owned by DrumSoundStore
+- continuous material-spec A↔B morph preview
+- coherence-only morph validation avoids false direction rejection at midpoints
+- committed morph creates new Kit + eight Sound artifacts
+- Kit/Sound provenance stores source Kit + mutation/morph IDs
+- live morphing uses the existing 32 ms sound scheduler coalescing
+- RESET ALL clears the A/B workspace
+- direct manual material edits intentionally remain explicit lock overrides
+
+See [Phase 13 implementation notes](docs/phase-13/PHASE_13.md).
 
 ## Phase 0 architecture
 
