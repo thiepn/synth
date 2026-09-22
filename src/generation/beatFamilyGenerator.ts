@@ -486,6 +486,7 @@ function criticalValidationScore(validation: BeatValidation): number {
     [
       "missing kick foundation",
       "missing backbeat",
+      "style pulse lost four-on-floor foundation",
     ].includes(reason),
   );
   return critical ? Math.min(validation.score, 45) : validation.score;
