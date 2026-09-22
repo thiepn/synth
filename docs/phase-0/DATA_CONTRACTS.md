@@ -346,3 +346,12 @@ HybridSoundSpec combines one SampleSoundSpec with one or more SynthSoundSpec lay
 Runtime source selection remains independent from Pattern lanes: Pattern Lane → Kit Slot → SoundSpec → Synth/Sample/Hybrid playback.
 
 Current sample bytes/cache persistence is session-local. Future persistence should store raw bytes under the deterministic asset ID rather than embedding AudioBuffer/runtime objects in project JSON.
+## 22. Style DNA
+
+Style DNA is a versioned application-level registry referenced by stable style ID rather than embedded wholesale inside every artifact.
+
+GenerationProvenance may store styleDnaId and styleDnaVersion alongside the existing StyleVector. The vector remains useful for future blends; the explicit ID/version identifies the primary profile that generated the artifact.
+
+A Style DNA profile describes rhythm archetype, subdivision vocabulary, kick/backbeat/instrument tendencies, groove defaults, fill vocabulary, sound-material tendencies, BPM reference range and arrangement Scene energy.
+
+Pattern, Kit, BeatFamily and Arrangement provenance can therefore preserve one coherent style lineage without duplicating the full registry profile into serialized artifacts.
