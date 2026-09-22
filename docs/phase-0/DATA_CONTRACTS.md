@@ -275,3 +275,18 @@ Rhythm Exchange preserves Advanced Sequencer event behavior:
 - velocity/accent
 
 This prevents polymetric or probabilistic patterns from collapsing into plain on/off steps during interchange.
+
+
+## 18. Beat Families
+
+A BeatFamily is a serialized semantic grouping of related Pattern artifacts around one core Pattern.
+
+Family members carry:
+
+- semantic role
+- Pattern ID
+- member label
+- normalized energy
+- member kind: core / variation / section / fill / transition
+
+Generated family Patterns store familyId and familyRole in generation provenance. BeatFamily provides the stable bridge from Pattern generation into future Scene/Arrangement systems.
