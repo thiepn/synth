@@ -509,12 +509,12 @@
   }
 
   .rhythm-matrix {
-    grid-template-columns: 128px minmax(calc(var(--matrix-steps) * 44px), 1fr);
-    min-width: calc(128px + (var(--matrix-steps) * 44px));
+    grid-template-columns: 190px minmax(calc(var(--matrix-steps) * 44px), 1fr);
+    min-width: calc(190px + (var(--matrix-steps) * 44px));
   }
 
   .rhythm-matrix__row {
-    grid-template-columns: 128px minmax(calc(var(--matrix-steps) * 44px), 1fr);
+    grid-template-columns: 190px minmax(calc(var(--matrix-steps) * 44px), 1fr);
   }
 
   .rhythm-matrix__step-header,
@@ -523,7 +523,11 @@
   }
 
   .rhythm-matrix__lane {
-    grid-template-columns: 1fr 104px;
+    grid-template-columns: 1fr 150px;
+  }
+
+  .rhythm-matrix__lane-switches button {
+    min-width: 30px;
   }
 
   .rhythm-matrix__audition {
