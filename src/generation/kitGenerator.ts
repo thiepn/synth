@@ -9,6 +9,7 @@ import {
 } from "../domain/contracts";
 import {
   DRUM_PADS,
+  SEQUENCER_LANES,
   type DrumVoiceId,
 } from "../music/foundationPattern";
 import { SeededRandom, deriveSeed, shortSeed } from "./prng";
@@ -583,14 +584,11 @@ function buildDomainKit(
   const kit: Kit = {
     id: "kit-" + code,
     name: directionLabel + " / " + code,
-    slots: DRUM_PADS.map((pad) => ({
-      id: "slot-" + pad.voice.replace("Hat", "-hat"),
-      role:
-        pad.voice === "crash"
-          ? "cymbal"
-          : pad.voice,
-      label: pad.label,
-      soundId: soundByVoice.get(pad.voice) ?? "",
+    slots: SEQUENCER_LANES.map((lane) => ({
+      id: lane.kitSlotId,
+      role: lane.role,
+      label: lane.name,
+      soundId: soundByVoice.get(lane.voice) ?? "",
     })),
     provenance,
   };
