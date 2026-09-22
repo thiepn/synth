@@ -14,9 +14,14 @@ import {
   type DrumVoiceId,
 } from "../music/foundationPattern";
 import { SeededRandom, deriveSeed, shortSeed } from "./prng";
+import {
+  STYLE_DNA_VERSION,
+  getStyleDNA,
+  type StyleDNAId,
+} from "../style/styleDNA";
 
 export const KIT_GENERATOR_ID = "kit-generator";
-export const KIT_GENERATOR_VERSION = 1;
+export const KIT_GENERATOR_VERSION = 2;
 
 export type KitDirectionId =
   | "tight"
@@ -55,6 +60,7 @@ export interface KitGenerationRequest {
   seed: string;
   direction: KitDirectionId;
   intensity: number;
+  styleId?: StyleDNAId;
   lockedSpecs?: Partial<Record<DrumVoiceId, DrumMaterialSpec>>;
 }
 
@@ -238,6 +244,38 @@ function deriveDNA(
     variance: clamp01(
       base.variance * (0.55 + strength * 0.9) +
         variation(random, drift * 0.35),
+    ),
+  };
+}
+
+function applyStyleSoundDNA(
+  dna: KitDNA,
+  styleId: StyleDNAId | undefined,
+): KitDNA {
+  if (!styleId) return dna;
+
+  const sound = getStyleDNA(styleId).sound;
+  const blend = 0.56;
+  const mix = (a: number, b: number) =>
+    clamp01(a + (b - a) * blend);
+
+  return {
+    brightness: mix(dna.brightness, sound.brightness),
+    weight: mix(dna.weight, sound.weight),
+    tightness: mix(dna.tightness, sound.tightness),
+    roughness: mix(dna.roughness, sound.roughness),
+    synthetic: mix(dna.synthetic, sound.synthetic),
+    depth: mix(
+      dna.depth,
+      clamp01(sound.weight * 0.62 + (1 - sound.tightness) * 0.38),
+    ),
+    air: mix(
+      dna.air,
+      clamp01(sound.brightness * 0.78 + (1 - sound.roughness) * 0.22),
+    ),
+    variance: mix(
+      dna.variance,
+      clamp01(0.14 + sound.roughness * 0.26 + sound.synthetic * 0.1),
     ),
   };
 }
@@ -507,8 +545,16 @@ function intentVector(
   };
 }
 
-function styleVector(direction: KitDirectionId): StyleVector {
-  return { ["kit:" + direction]: 1 };
+function styleVector(
+  direction: KitDirectionId,
+  styleId?: StyleDNAId,
+): StyleVector {
+  return styleId
+    ? {
+        [styleId]: 1,
+        ["kit:" + direction]: 0.45,
+      }
+    : { ["kit:" + direction]: 1 };
 }
 
 function synthSpec(
@@ -544,6 +590,7 @@ function buildDomainKit(
   specs: Record<DrumVoiceId, DrumMaterialSpec>,
   dna: KitDNA,
   intensity: number,
+  styleId?: StyleDNAId,
 ): { kit: Kit; sounds: Sound[] } {
   const code = shortSeed(effectiveSeed);
   const directionLabel =
@@ -554,7 +601,9 @@ function buildDomainKit(
     seed: effectiveSeed,
     generatorId: KIT_GENERATOR_ID,
     generatorVersion: KIT_GENERATOR_VERSION,
-    style: styleVector(direction),
+    styleDnaId: styleId,
+    styleDnaVersion: styleId ? STYLE_DNA_VERSION : undefined,
+    style: styleVector(direction, styleId),
     intent: intentVector(dna, intensity),
   };
 
@@ -814,10 +863,13 @@ export function generateKit(
     const random = new SeededRandom(
       deriveSeed(effectiveSeed, "dna"),
     );
-    const dna = deriveDNA(
-      requestInput.direction,
-      intensity,
-      random,
+    const dna = applyStyleSoundDNA(
+      deriveDNA(
+        requestInput.direction,
+        intensity,
+        random,
+      ),
+      requestInput.styleId,
     );
 
     const specs = Object.fromEntries(
@@ -849,6 +901,7 @@ export function generateKit(
       specs,
       actualDna,
       intensity,
+      requestInput.styleId,
     );
 
     const result: GeneratedKitResult = {
