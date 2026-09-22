@@ -200,6 +200,11 @@ export class GenerationHistoryStore {
   branchFrom(nodeId: string): EvolutionNode {
     const parent = this.requireNode(nodeId);
     const pattern = clonePattern(parent.pattern);
+
+    if (pattern.provenance) {
+      pattern.provenance.sourceHistoryNodeId = parent.id;
+    }
+
     const node = this.createNode({
       parentId: parent.id,
       pattern,
