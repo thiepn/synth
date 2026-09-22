@@ -8,7 +8,11 @@ import {
   useTransportLifecycle,
   useTransportSnapshot,
 } from "../../audio/useTransport";
-import type { Meter } from "../../domain/contracts";
+import { PPQ, type Meter } from "../../domain/contracts";
+import {
+  arrangementPlaybackStore,
+} from "../../arrange/ArrangementPlaybackStore";
+import { useArrangementPlaybackSnapshot } from "../../arrange/useArrangement";
 import type { ModeDefinition } from "../pulse/Primitives";
 import { PulseSpine } from "../pulse/Primitives";
 
@@ -39,13 +43,30 @@ function statusLabel(status: TransportStatus): string {
   }
 }
 
-export function TransportLifecycle(): null {
-  useTransportLifecycle();
+const toggleArrangeFromKeyboard = () => {
+  void arrangementPlaybackStore.toggle();
+};
+
+export function TransportLifecycle({
+  mode,
+}: {
+  mode: ModeDefinition;
+}): null {
+  useTransportLifecycle(
+    mode.id === "arrange"
+      ? toggleArrangeFromKeyboard
+      : undefined,
+  );
   return null;
 }
 
 export function TransportControls({ mode }: { mode: ModeDefinition }) {
   const snapshot = useTransportSnapshot();
+  const arrangementPlayback = useArrangementPlaybackSnapshot();
+  const arrangeMode = mode.id === "arrange";
+  const transportPlaying = arrangeMode
+    ? arrangementPlayback.engaged && snapshot.status === "running"
+    : snapshot.desiredPlaying;
   const meterValue = `${snapshot.meter.numerator}/${snapshot.meter.denominator}`;
 
   const changeMeter = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -69,9 +90,13 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
     >
       <button
         type="button"
-        className={snapshot.desiredPlaying ? "transport-key is-playing" : "transport-key"}
-        onClick={() => void audioTransport.toggle()}
-        aria-label={snapshot.desiredPlaying ? "Pause transport" : "Start transport"}
+        className={transportPlaying ? "transport-key is-playing" : "transport-key"}
+        onClick={() =>
+          arrangeMode
+            ? void arrangementPlaybackStore.toggle()
+            : void audioTransport.toggle()
+        }
+        aria-label={transportPlaying ? "Pause transport" : "Start transport"}
         title="Play/Pause · Space"
       >
         <span aria-hidden="true">{snapshot.desiredPlaying ? "Ⅱ" : "▶"}</span>
@@ -80,7 +105,11 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
       <button
         type="button"
         className="transport-key"
-        onClick={() => audioTransport.stop()}
+        onClick={() =>
+          arrangeMode
+            ? arrangementPlaybackStore.stop()
+            : audioTransport.stop()
+        }
         aria-label="Stop and return to loop start"
         title="Stop"
       >
@@ -119,11 +148,16 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
       <button
         type="button"
         className="transport-console__loop"
-        onClick={cycleLoopBars}
-        aria-label={`Loop length ${snapshot.loopBars} bars. Activate to cycle loop length.`}
+        onClick={arrangeMode ? undefined : cycleLoopBars}
+        disabled={arrangeMode}
+        aria-label={
+          arrangeMode
+            ? "Arrangement playback does not use transport loop bars."
+            : `Loop length ${snapshot.loopBars} bars. Activate to cycle loop length.`
+        }
       >
-        <span>LOOP</span>
-        <b>{snapshot.loopBars}B</b>
+        <span>{arrangeMode ? "ARR" : "LOOP"}</span>
+        <b>{arrangeMode ? "FULL" : snapshot.loopBars + "B"}</b>
       </button>
 
       <output
@@ -131,7 +165,14 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
         aria-label={"Transport position " + snapshot.positionLabel}
       >
         <span>BAR:BEAT:TICK</span>
-        <b>{snapshot.positionLabel}</b>
+        <b>
+          {arrangeMode && arrangementPlayback.engaged
+            ? "A:" +
+              String(
+                Math.floor(arrangementPlayback.playheadTick / PPQ) + 1,
+              ).padStart(3, "0")
+            : snapshot.positionLabel}
+        </b>
       </output>
 
       <span
