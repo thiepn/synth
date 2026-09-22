@@ -261,7 +261,7 @@ export function CreateSurface() {
           targetKey +
           ":" +
           String(operationCounter).padStart(4, "0"),
-        style,
+        style: currentPatternStyle,
         intent: intent(),
         distance: distance / 100,
         bpm: transport.bpm,
@@ -323,6 +323,12 @@ export function CreateSurface() {
           " · " +
           (result.validation.reasons[0] ?? "quality gate failed"),
       );
+      if (mutation === null) {
+        setDensity(Math.round(glyphGeometry.metrics.density * 100));
+        setSyncopation(
+          Math.round(glyphGeometry.metrics.syncopation * 100),
+        );
+      }
       setOperationCounter((value) => value + 1);
       return;
     }
@@ -387,7 +393,7 @@ export function CreateSurface() {
           String(operationCounter).padStart(4, "0"),
         targetDensity: y / 100,
         targetSyncopation: x / 100,
-        style,
+        style: currentPatternStyle,
         intent: {
           ...intent(),
           density: y / 100,
@@ -400,6 +406,10 @@ export function CreateSurface() {
     } catch (error) {
       setMutationError(
         error instanceof Error ? error.message : String(error),
+      );
+      setDensity(Math.round(glyphGeometry.metrics.density * 100));
+      setSyncopation(
+        Math.round(glyphGeometry.metrics.syncopation * 100),
       );
       setOperationCounter((value) => value + 1);
     }
