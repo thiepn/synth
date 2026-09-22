@@ -255,12 +255,57 @@ export interface Kit {
   provenance?: GenerationProvenance;
 }
 
+export type SceneRole =
+  | "intro"
+  | "verse"
+  | "preChorus"
+  | "chorus"
+  | "breakdown"
+  | "build"
+  | "drop"
+  | "outro";
+
+export type ArrangementShapeId =
+  | "compact"
+  | "standard"
+  | "extended";
+
 export interface Scene {
   id: EntityId;
   name: string;
+  role?: SceneRole;
+  familyId?: EntityId;
+  /** Ordered Pattern cycle rather than an unordered bag. */
   patternIds: EntityId[];
+  fillPatternId?: EntityId;
+  transitionPatternId?: EntityId;
   kitId?: EntityId;
   energy: Normalized;
+}
+
+export interface SectionBlueprint {
+  id: EntityId;
+  label: string;
+  role: SceneRole;
+  sceneId: EntityId;
+  patternSequence: EntityId[];
+  cycleCount: number;
+  startTick: Tick;
+  lengthTicks: Tick;
+  energyStart: Normalized;
+  energyEnd: Normalized;
+  fillPatternId?: EntityId;
+  transitionPatternId?: EntityId;
+}
+
+export interface ArrangementBlueprint {
+  id: EntityId;
+  name: string;
+  familyId: EntityId;
+  shape: ArrangementShapeId;
+  scenes: Scene[];
+  sections: SectionBlueprint[];
+  provenance?: GenerationProvenance;
 }
 
 export interface ArrangementSection {
@@ -328,6 +373,7 @@ export interface SynthProject {
   sounds: Sound[];
   patterns: Pattern[];
   beatFamilies?: BeatFamily[];
+  arrangementBlueprints?: ArrangementBlueprint[];
   scenes: Scene[];
   arrangement: ArrangementSection[];
   assets: AssetReference[];
