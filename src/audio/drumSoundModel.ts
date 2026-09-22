@@ -376,8 +376,31 @@ export class DrumSoundStore {
             kit: {
               ...this.activeKit.kit,
               slots: this.activeKit.kit.slots.map((slot) => ({ ...slot })),
+              provenance: this.activeKit.kit.provenance
+                ? {
+                    ...this.activeKit.kit.provenance,
+                    style: { ...this.activeKit.kit.provenance.style },
+                    intent: { ...this.activeKit.kit.provenance.intent },
+                  }
+                : undefined,
             },
-            sounds: this.activeKit.sounds.map((sound) => ({ ...sound })),
+            sounds: this.activeKit.sounds.map((sound) => ({
+              ...sound,
+              spec:
+                sound.spec.kind === "synth"
+                  ? {
+                      ...sound.spec,
+                      params: { ...sound.spec.params },
+                    }
+                  : sound.spec,
+              provenance: sound.provenance
+                ? {
+                    ...sound.provenance,
+                    style: { ...sound.provenance.style },
+                    intent: { ...sound.provenance.intent },
+                  }
+                : undefined,
+            })),
             direction: this.activeKit.direction,
             seed: this.activeKit.seed,
             dna: { ...this.activeKit.dna },
