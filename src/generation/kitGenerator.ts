@@ -4,6 +4,7 @@ import {
   type GenerationProvenance,
   type IntentVector,
   type Kit,
+  type KitDNA,
   type Sound,
   type StyleVector,
 } from "../domain/contracts";
@@ -49,17 +50,6 @@ export const KIT_DIRECTIONS: readonly KitDirection[] = [
   { id: "industrial", label: "INDUSTRIAL", code: "IND" },
   { id: "experimental", label: "EXPERIMENTAL", code: "EXP" },
 ];
-
-export interface KitDNA {
-  brightness: number;
-  weight: number;
-  tightness: number;
-  roughness: number;
-  synthetic: number;
-  depth: number;
-  air: number;
-  variance: number;
-}
 
 export interface KitGenerationRequest {
   seed: string;
