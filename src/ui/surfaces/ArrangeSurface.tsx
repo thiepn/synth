@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useState,
 } from "react";
 import { PPQ, type SceneRole } from "../../domain/contracts";
 import {
@@ -47,6 +48,8 @@ export function ArrangeSurface() {
   const family = useBeatFamilySnapshot();
   const arrangement = useArrangementSnapshot();
   const playback = useArrangementPlaybackSnapshot();
+  const [draggingSectionId, setDraggingSectionId] =
+    useState<string | null>(null);
 
   useEffect(() => {
     const blueprint = foundation.blueprint;
@@ -266,7 +269,37 @@ export function ArrangeSurface() {
                     selected ? "is-selected" : "",
                     active ? "is-playing" : "",
                     "role-" + section.role,
+                    draggingSectionId === section.id
+                      ? "is-dragging"
+                      : "",
                   ].join(" ")}
+                  draggable
+                  onDragStart={(event) => {
+                    setDraggingSectionId(section.id);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData(
+                      "text/plain",
+                      section.id,
+                    );
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const sourceId =
+                      event.dataTransfer.getData("text/plain") ||
+                      draggingSectionId;
+                    if (sourceId) {
+                      arrangementStore.moveSectionTo(
+                        sourceId,
+                        section.id,
+                      );
+                    }
+                    setDraggingSectionId(null);
+                  }}
+                  onDragEnd={() => setDraggingSectionId(null)}
                   style={{
                     flexBasis: width + "%",
                     flexGrow: section.lengthTicks,
