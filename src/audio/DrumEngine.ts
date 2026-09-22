@@ -17,7 +17,10 @@ import {
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
-import { getPatternHitsForAbsoluteStep } from "../sequencer/patternPlayback";
+import {
+  getPatternHitsForAbsoluteStep,
+  type PatternPlaybackHit,
+} from "../sequencer/patternPlayback";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
 import {
   eventPassesProbability,
@@ -359,8 +362,9 @@ export class DrumEngine {
           : null;
 
       let stepIndex: number;
-      let hits;
+      let hits: PatternPlaybackHit[];
       let swing: number;
+      let arrangementEnergy = 1;
 
       if (arrangementPlayback.engaged) {
         if (!arrangementResolved) return;
@@ -375,6 +379,7 @@ export class DrumEngine {
           arrangementResolved.occurrenceIndex * 1024,
         );
         swing = arrangementResolved.pattern.groove?.swing ?? 0;
+        arrangementEnergy = arrangementResolved.energy;
       } else {
         stepIndex = Math.floor(
           pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
@@ -405,8 +410,13 @@ export class DrumEngine {
           ratchets > 1 ? (stepSeconds * 0.82) / ratchets : 0;
 
         for (let index = 0; index < ratchets; index += 1) {
+          const energyScale =
+            arrangementPlayback.engaged
+              ? 0.68 + arrangementEnergy * 0.42
+              : 1;
           const ratchetVelocity =
-            hit.velocity * Math.max(0.58, 1 - index * 0.09);
+            Math.min(1, hit.velocity * energyScale) *
+            Math.max(0.58, 1 - index * 0.09);
           const ratchetTime = baseTime + index * ratchetSpacing;
 
           this.scheduleVoice(
