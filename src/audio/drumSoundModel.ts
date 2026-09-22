@@ -1,15 +1,14 @@
-import type {
-  DrumMaterialSpec,
-  Kit,
-  Sound,
-  SynthSoundSpec,
+import {
+  DRUM_SYNTH_ENGINE_VERSION,
+  type DrumMaterialSpec,
+  type Kit,
+  type Sound,
+  type SynthSoundSpec,
 } from "../domain/contracts";
 import {
   DRUM_PADS,
   type DrumVoiceId,
 } from "../music/foundationPattern";
-
-export const DRUM_SYNTH_ENGINE_VERSION = 2;
 
 export type DrumMaterialParam =
   | "impact"
