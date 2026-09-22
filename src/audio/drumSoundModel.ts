@@ -3,11 +3,15 @@ import {
   type DrumMaterialSpec,
   type Kit,
   type KitDNA,
+  type HybridSoundSpec,
+  type SampleSoundSpec,
   type Sound,
+  type SoundSpec,
   type SynthSoundSpec,
 } from "../domain/contracts";
 import {
   DRUM_PADS,
+  SEQUENCER_LANES,
   type DrumVoiceId,
 } from "../music/foundationPattern";
 
@@ -20,6 +24,14 @@ export type DrumMaterialParam =
   | "decay"
   | "pitch"
   | "character";
+
+export type DrumSourceMode = "synth" | "sample" | "hybrid";
+
+export interface DrumVoiceSourceState {
+  mode: DrumSourceMode;
+  sample?: SampleSoundSpec;
+  synthGainDb: number;
+}
 
 export interface ActiveGeneratedKit {
   kit: Kit;
@@ -38,6 +50,7 @@ export interface SoundMorphEndpoint {
 
 export interface DrumSoundSnapshot {
   specs: Record<DrumVoiceId, DrumMaterialSpec>;
+  sourceStates: Record<DrumVoiceId, DrumVoiceSourceState>;
   activeKit?: ActiveGeneratedKit;
   morphA?: SoundMorphEndpoint;
   morphB?: SoundMorphEndpoint;
@@ -179,6 +192,65 @@ function cloneSpec(spec: DrumMaterialSpec): DrumMaterialSpec {
   return { ...spec };
 }
 
+function cloneSampleSpec(spec: SampleSoundSpec): SampleSoundSpec {
+  return { ...spec };
+}
+
+function cloneSoundSpec(spec: SoundSpec): SoundSpec {
+  if (spec.kind === "synth") {
+    return {
+      ...spec,
+      params: { ...spec.params },
+    };
+  }
+
+  if (spec.kind === "sample") {
+    return cloneSampleSpec(spec);
+  }
+
+  return {
+    ...spec,
+    sample: cloneSampleSpec(spec.sample),
+    layers: spec.layers.map((layer) => ({
+      ...layer,
+      params: { ...layer.params },
+    })),
+  };
+}
+
+function defaultSourceStates(): Record<DrumVoiceId, DrumVoiceSourceState> {
+  return Object.fromEntries(
+    DRUM_PADS.map((pad) => [
+      pad.voice,
+      {
+        mode: "synth" as const,
+        synthGainDb: -3,
+      },
+    ]),
+  ) as Record<DrumVoiceId, DrumVoiceSourceState>;
+}
+
+function cloneSourceState(
+  state: DrumVoiceSourceState,
+): DrumVoiceSourceState {
+  return {
+    mode: state.mode,
+    sample: state.sample ? cloneSampleSpec(state.sample) : undefined,
+    synthGainDb: state.synthGainDb,
+  };
+}
+
+function cloneSourceStates(
+  states: Record<DrumVoiceId, DrumVoiceSourceState>,
+): Record<DrumVoiceId, DrumVoiceSourceState> {
+  return Object.fromEntries(
+    DRUM_PADS.map((pad) => [
+      pad.voice,
+      cloneSourceState(states[pad.voice]),
+    ]),
+  ) as Record<DrumVoiceId, DrumVoiceSourceState>;
+}
+
 function cloneSpecs(
   specs: Record<DrumVoiceId, DrumMaterialSpec>,
 ): Record<DrumVoiceId, DrumMaterialSpec> {
@@ -209,13 +281,7 @@ function cloneActiveKit(
     },
     sounds: activeKit.sounds.map((sound) => ({
       ...sound,
-      spec:
-        sound.spec.kind === "synth"
-          ? {
-              ...sound.spec,
-              params: { ...sound.spec.params },
-            }
-          : sound.spec,
+      spec: cloneSoundSpec(sound.spec),
       provenance: sound.provenance
         ? {
             ...sound.provenance,
@@ -245,6 +311,7 @@ function cloneMorphEndpoint(
 export class DrumSoundStore {
   private listeners = new Set<StoreListener>();
   private specs = cloneSpecs(DRUM_DEFAULT_SPECS);
+  private sourceStates = defaultSourceStates();
   private activeKit: ActiveGeneratedKit | undefined;
   private morphA: SoundMorphEndpoint | undefined;
   private morphB: SoundMorphEndpoint | undefined;
@@ -262,6 +329,214 @@ export class DrumSoundStore {
     return cloneSpec(this.specs[voice]);
   }
 
+  getSourceState(voice: DrumVoiceId): DrumVoiceSourceState {
+    return cloneSourceState(this.sourceStates[voice]);
+  }
+
+  assignSample(
+    voice: DrumVoiceId,
+    assetId: string,
+    durationSeconds?: number,
+  ): void {
+    const end =
+      durationSeconds && durationSeconds > 0
+        ? durationSeconds
+        : undefined;
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...this.sourceStates[voice],
+        mode: "sample",
+        sample: {
+          kind: "sample",
+          assetId,
+          trimStartSeconds: 0,
+          trimEndSeconds: end,
+          gainDb: 0,
+          pitchSemitones: 0,
+          reversed: false,
+        },
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  setSourceMode(
+    voice: DrumVoiceId,
+    mode: DrumSourceMode,
+  ): boolean {
+    const current = this.sourceStates[voice];
+    if (mode !== "synth" && !current.sample) return false;
+    if (current.mode === mode) return true;
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...current,
+        mode,
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+    return true;
+  }
+
+  setSampleTrim(
+    voice: DrumVoiceId,
+    startSeconds: number,
+    endSeconds?: number,
+  ): void {
+    const current = this.sourceStates[voice];
+    if (!current.sample) return;
+
+    const start = Math.max(0, Number.isFinite(startSeconds) ? startSeconds : 0);
+    const rawEnd =
+      endSeconds === undefined || !Number.isFinite(endSeconds)
+        ? undefined
+        : Math.max(start + 0.001, endSeconds);
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...current,
+        sample: {
+          ...current.sample,
+          trimStartSeconds: start,
+          trimEndSeconds: rawEnd,
+        },
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  setSampleGainDb(voice: DrumVoiceId, gainDb: number): void {
+    const current = this.sourceStates[voice];
+    if (!current.sample) return;
+    const safe = Math.max(-36, Math.min(12, gainDb));
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...current,
+        sample: { ...current.sample, gainDb: safe },
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  setSamplePitchSemitones(
+    voice: DrumVoiceId,
+    pitchSemitones: number,
+  ): void {
+    const current = this.sourceStates[voice];
+    if (!current.sample) return;
+    const safe = Math.max(-24, Math.min(24, pitchSemitones));
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...current,
+        sample: {
+          ...current.sample,
+          pitchSemitones: safe,
+        },
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  setSampleReversed(voice: DrumVoiceId, reversed: boolean): void {
+    const current = this.sourceStates[voice];
+    if (!current.sample) return;
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...current,
+        sample: {
+          ...current.sample,
+          reversed,
+        },
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  setHybridSynthGainDb(
+    voice: DrumVoiceId,
+    gainDb: number,
+  ): void {
+    const current = this.sourceStates[voice];
+    const safe = Math.max(-24, Math.min(6, gainDb));
+    if (Math.abs(current.synthGainDb - safe) < 0.0001) return;
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...current,
+        synthGainDb: safe,
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  clearVoiceSample(voice: DrumVoiceId): void {
+    const current = this.sourceStates[voice];
+    if (!current.sample && current.mode === "synth") return;
+
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        mode: "synth",
+        synthGainDb: current.synthGainDb,
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
+  detachSampleAsset(assetId: string): void {
+    let changed = false;
+    const next = cloneSourceStates(this.sourceStates);
+
+    for (const pad of DRUM_PADS) {
+      const state = next[pad.voice];
+      if (state.sample?.assetId !== assetId) continue;
+      next[pad.voice] = {
+        mode: "synth",
+        synthGainDb: state.synthGainDb,
+      };
+      changed = true;
+    }
+
+    if (!changed) return;
+    this.sourceStates = next;
+    for (const pad of DRUM_PADS) {
+      this.syncActiveKitSoundSpec(pad.voice, true);
+    }
+    this.publish();
+  }
+
+  resolvePlaybackSound(
+    kitSlotId: string,
+    fallbackVoice: DrumVoiceId,
+  ): { voice: DrumVoiceId; spec: SoundSpec } {
+    const voice = this.resolveVoiceForSlot(
+      kitSlotId,
+      fallbackVoice,
+    );
+    return {
+      voice,
+      spec: this.buildEffectiveSoundSpec(voice),
+    };
+  }
+
   resolveVoiceForSlot(
     kitSlotId: string,
     fallbackVoice: DrumVoiceId,
@@ -277,11 +552,19 @@ export class DrumSoundStore {
     const sound = activeKit.sounds.find(
       (entry) => entry.id === slot.soundId,
     );
-    if (!sound || sound.spec.kind !== "synth") {
+    if (!sound) {
       return fallbackVoice;
     }
 
-    const sourceVoice = sound.spec.params.sourceVoice;
+    const synthSpec =
+      sound.spec.kind === "synth"
+        ? sound.spec
+        : sound.spec.kind === "hybrid"
+          ? sound.spec.layers[0]
+          : undefined;
+    if (!synthSpec) return fallbackVoice;
+
+    const sourceVoice = synthSpec.params.sourceVoice;
     if (
       typeof sourceVoice !== "string" ||
       !DRUM_PADS.some((pad) => pad.voice === sourceVoice)
@@ -298,6 +581,7 @@ export class DrumSoundStore {
         this.activeKit?.kit.name ??
         ("CUSTOM / REV " + String(this.revision).padStart(3, "0")),
       specs: cloneSpecs(this.specs),
+      sourceStates: cloneSourceStates(this.sourceStates),
       activeKit: cloneActiveKit(this.activeKit),
     };
 
@@ -341,11 +625,10 @@ export class DrumSoundStore {
     }
 
     this.specs = next;
-    if (markModified && this.activeKit) {
-      this.activeKit = {
-        ...this.activeKit,
-        modified: true,
-      };
+    if (this.activeKit) {
+      for (const pad of DRUM_PADS) {
+        this.syncActiveKitSoundSpec(pad.voice, markModified);
+      }
     }
     this.publish();
   }
@@ -365,12 +648,7 @@ export class DrumSoundStore {
         [param]: next,
       },
     };
-    if (this.activeKit) {
-      this.activeKit = {
-        ...this.activeKit,
-        modified: true,
-      };
-    }
+    this.syncActiveKitSoundSpec(voice, true);
     this.publish();
   }
 
@@ -391,12 +669,7 @@ export class DrumSoundStore {
         character: clamp01(spec.character),
       },
     };
-    if (this.activeKit) {
-      this.activeKit = {
-        ...this.activeKit,
-        modified: true,
-      };
-    }
+    this.syncActiveKitSoundSpec(voice, true);
     this.publish();
   }
 
@@ -442,13 +715,7 @@ export class DrumSoundStore {
       },
       sounds: input.sounds.map((sound) => ({
         ...sound,
-        spec:
-          sound.spec.kind === "synth"
-            ? {
-                ...sound.spec,
-                params: { ...sound.spec.params },
-              }
-            : sound.spec,
+        spec: cloneSoundSpec(sound.spec),
         provenance: sound.provenance
           ? {
               ...sound.provenance,
@@ -462,6 +729,10 @@ export class DrumSoundStore {
       dna: { ...input.dna },
       modified: false,
     };
+
+    for (const pad of DRUM_PADS) {
+      this.syncActiveKitSoundSpec(pad.voice, false);
+    }
     this.publish();
   }
 
@@ -470,17 +741,13 @@ export class DrumSoundStore {
       ...this.specs,
       [voice]: cloneSpec(DRUM_DEFAULT_SPECS[voice]),
     };
-    if (this.activeKit) {
-      this.activeKit = {
-        ...this.activeKit,
-        modified: true,
-      };
-    }
+    this.syncActiveKitSoundSpec(voice, true);
     this.publish();
   }
 
   resetAll(): void {
     this.specs = cloneSpecs(DRUM_DEFAULT_SPECS);
+    this.sourceStates = defaultSourceStates();
     this.activeKit = undefined;
     this.morphA = undefined;
     this.morphB = undefined;
@@ -509,6 +776,63 @@ export class DrumSoundStore {
         pitch: spec.pitch,
         character: spec.character,
       },
+    };
+  }
+
+  private buildEffectiveSoundSpec(
+    voice: DrumVoiceId,
+  ): SoundSpec {
+    const state = this.sourceStates[voice];
+    const synth = this.toSynthSoundSpec(voice);
+
+    if (!state.sample || state.mode === "synth") {
+      return synth;
+    }
+
+    if (state.mode === "sample") {
+      return cloneSampleSpec(state.sample);
+    }
+
+    const hybrid: HybridSoundSpec = {
+      kind: "hybrid",
+      sample: cloneSampleSpec(state.sample),
+      layers: [synth],
+      synthGainDb: state.synthGainDb,
+    };
+    return hybrid;
+  }
+
+  private syncActiveKitSoundSpec(
+    voice: DrumVoiceId,
+    markModified: boolean,
+  ): void {
+    if (!this.activeKit) return;
+
+    const lane = SEQUENCER_LANES.find(
+      (entry) => entry.voice === voice,
+    );
+    if (!lane) return;
+
+    const slot = this.activeKit.kit.slots.find(
+      (entry) => entry.id === lane.kitSlotId,
+    );
+    if (!slot) return;
+
+    this.activeKit = {
+      ...this.activeKit,
+      sounds: this.activeKit.sounds.map((sound) =>
+        sound.id === slot.soundId
+          ? {
+              ...sound,
+              spec: cloneSoundSpec(
+                this.buildEffectiveSoundSpec(voice),
+              ),
+            }
+          : sound,
+      ),
+      modified: markModified
+        ? true
+        : this.activeKit.modified,
     };
   }
 
