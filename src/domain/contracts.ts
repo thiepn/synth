@@ -142,6 +142,29 @@ export type SynthVoiceKind =
   | "percussion"
   | "custom";
 
+export type DrumVoiceKind =
+  | "kick"
+  | "snare"
+  | "clap"
+  | "closedHat"
+  | "openHat"
+  | "tom"
+  | "percussion"
+  | "crash";
+
+export interface DrumMaterialSpec {
+  voice: DrumVoiceKind;
+  engineVersion: number;
+  impact: Normalized;
+  body: Normalized;
+  noise: Normalized;
+  air: Normalized;
+  tone: Normalized;
+  decay: Normalized;
+  pitch: Normalized;
+  character: Normalized;
+}
+
 export interface SynthSoundSpec {
   kind: "synth";
   voice: SynthVoiceKind;
