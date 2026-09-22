@@ -648,6 +648,14 @@ export function morphPatterns(
         dimensions.rhythm < 0.5
           ? laneA.kitSlotId
           : laneB.kitSlotId,
+      muted:
+        dimensions.rhythm < 0.5
+          ? laneA.muted
+          : laneB.muted,
+      solo:
+        dimensions.rhythm < 0.5
+          ? laneA.solo
+          : laneB.solo,
       loopLengthTicks: discreteChoice(
         laneA.loopLengthTicks,
         laneB.loopLengthTicks,
