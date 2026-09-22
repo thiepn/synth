@@ -123,6 +123,7 @@ export class DrumEngine {
   private noiseBuffer: AudioBuffer | null = null;
   private activeVoices: ActiveVoice[] = [];
   private auditionVoiceIds = new Set<number>();
+  private sequencerEditTimer: number | null = null;
   private soundEditTimer: number | null = null;
   private nextVoiceId = 1;
   private currentTransportEpoch = -1;
@@ -146,7 +147,12 @@ export class DrumEngine {
     });
 
     sequencerStore.subscribe(() => {
-      audioTransport.invalidateScheduledEvents();
+      if (this.sequencerEditTimer !== null) return;
+
+      this.sequencerEditTimer = globalThis.setTimeout(() => {
+        this.sequencerEditTimer = null;
+        audioTransport.invalidateScheduledEvents();
+      }, 16);
     });
 
     drumSoundStore.subscribe(() => {
