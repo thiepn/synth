@@ -1,16 +1,16 @@
-import type {
-  DrumMaterialSpec,
-  GenerationProvenance,
-  IntentVector,
-  Kit,
-  Sound,
-  StyleVector,
+import {
+  DRUM_SYNTH_ENGINE_VERSION,
+  type DrumMaterialSpec,
+  type GenerationProvenance,
+  type IntentVector,
+  type Kit,
+  type Sound,
+  type StyleVector,
 } from "../domain/contracts";
 import {
   DRUM_PADS,
   type DrumVoiceId,
 } from "../music/foundationPattern";
-import { DRUM_SYNTH_ENGINE_VERSION } from "../audio/drumSoundModel";
 import { SeededRandom, deriveSeed, shortSeed } from "./prng";
 
 export const KIT_GENERATOR_ID = "kit-generator";
