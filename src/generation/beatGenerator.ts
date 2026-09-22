@@ -12,35 +12,39 @@ import {
   SEQUENCER_LANES,
 } from "../music/foundationPattern";
 import { SeededRandom, deriveSeed, shortSeed } from "./prng";
+import { applyGroove } from "../groove/grooveEngine";
+import {
+  STYLE_DNA_PROFILES,
+  STYLE_DNA_VERSION,
+  getStyleDNA,
+  type RhythmArchetype,
+  type StyleDNAId,
+  type StyleDNAProfile,
+} from "../style/styleDNA";
 
 export const BEAT_GENERATOR_ID = "beat-generator";
 export const BEAT_GENERATOR_VERSION = 1;
 
-export type BeatStyleId =
-  | "rock"
-  | "funk"
-  | "hipHop"
-  | "house"
-  | "trap"
-  | "breakbeat"
-  | "electronic";
+export type BeatStyleId = StyleDNAId;
 
 export interface BeatStyleDefinition {
   id: BeatStyleId;
   label: string;
   code: string;
   baseSwing: number;
+  family: StyleDNAProfile["family"];
+  archetype: RhythmArchetype;
 }
 
-export const BEAT_STYLES: readonly BeatStyleDefinition[] = [
-  { id: "rock", label: "ROCK", code: "RCK", baseSwing: 0 },
-  { id: "funk", label: "FUNK", code: "FNK", baseSwing: 0.08 },
-  { id: "hipHop", label: "HIP-HOP", code: "HHP", baseSwing: 0.06 },
-  { id: "house", label: "HOUSE", code: "HSE", baseSwing: 0 },
-  { id: "trap", label: "TRAP", code: "TRP", baseSwing: 0.02 },
-  { id: "breakbeat", label: "BREAKS", code: "BRK", baseSwing: 0.04 },
-  { id: "electronic", label: "ELECTRO", code: "ELC", baseSwing: 0 },
-];
+export const BEAT_STYLES: readonly BeatStyleDefinition[] =
+  STYLE_DNA_PROFILES.map((profile) => ({
+    id: profile.id,
+    label: profile.label,
+    code: profile.code,
+    baseSwing: profile.baseSwing,
+    family: profile.family,
+    archetype: profile.archetype,
+  }));
 
 export interface BeatGenerationIntent {
   energy: number;
@@ -772,13 +776,13 @@ function generateElectronic(
   }
 }
 
-function generateStyle(
-  style: BeatStyleId,
+function generateArchetype(
+  archetype: RhythmArchetype,
   random: SeededRandom,
   grid: Grid,
   intent: BeatGenerationIntent,
 ): void {
-  switch (style) {
+  switch (archetype) {
     case "rock":
       generateRock(random, grid, intent);
       break;
@@ -803,12 +807,266 @@ function generateStyle(
   }
 }
 
+function clearStep(values: number[], step: number): void {
+  if (step < 0 || step >= values.length) return;
+  values[step] = 0;
+}
+
+function applyStyleDNA(
+  random: SeededRandom,
+  grid: Grid,
+  intent: BeatGenerationIntent,
+  dna: StyleDNAProfile,
+): void {
+  const steps = lane(grid, LANE.kick).length;
+  const rhythm = dna.rhythm;
+
+  if (rhythm.halfTime >= 0.6 && steps >= 8) {
+    const snare = lane(grid, LANE.snare);
+    const clap = lane(grid, LANE.clap);
+    for (let step = 0; step < steps; step += 1) {
+      if (step % 16 === 4 || step % 16 === 12) {
+        clearStep(snare, step);
+        clearStep(clap, step);
+      }
+      if (step % 16 === 8) {
+        const target = rhythm.clapBlend >= 0.5 ? LANE.clap : LANE.snare;
+        setHit(
+          grid,
+          target,
+          step,
+          varyVelocity(random, 0.88, intent, 0.06),
+        );
+      }
+    }
+  }
+
+  if (rhythm.fourOnFloor > 0) {
+    for (const step of quarterSteps(steps)) {
+      const probability =
+        rhythm.fourOnFloor >= 0.85
+          ? 1
+          : rhythm.fourOnFloor * (0.62 + intent.energy * 0.3);
+      maybeHit(
+        random,
+        grid,
+        LANE.kick,
+        step,
+        probability,
+        varyVelocity(random, 0.86, intent, 0.05),
+      );
+    }
+  }
+
+  const syncCandidates = Array.from(
+    { length: steps },
+    (_, step) => step,
+  ).filter((step) => step % 4 !== 0);
+  for (const step of syncCandidates) {
+    maybeHit(
+      random,
+      grid,
+      LANE.kick,
+      step,
+      rhythm.kickSyncopation *
+        (0.06 + intent.syncopation * 0.2 + intent.complexity * 0.08),
+      varyVelocity(random, 0.66, intent, 0.12),
+    );
+  }
+
+  for (const step of backbeatSteps(steps)) {
+    if (rhythm.halfTime >= 0.6) continue;
+    maybeHit(
+      random,
+      grid,
+      LANE.snare,
+      step,
+      rhythm.backbeatStrength * 0.45,
+      varyVelocity(random, 0.82, intent, 0.07),
+    );
+    maybeHit(
+      random,
+      grid,
+      LANE.clap,
+      step,
+      rhythm.clapBlend * 0.7,
+      varyVelocity(random, 0.58, intent, 0.08),
+    );
+  }
+
+  for (const step of oddSixteenths(steps)) {
+    maybeHit(
+      random,
+      grid,
+      LANE.closedHat,
+      step,
+      rhythm.hatSixteenth *
+        (0.18 + intent.density * 0.42 + intent.complexity * 0.2),
+      varyVelocity(random, 0.28, intent, 0.07),
+    );
+  }
+
+  for (const step of offbeatEighthSteps(steps)) {
+    maybeHit(
+      random,
+      grid,
+      LANE.openHat,
+      step,
+      rhythm.openHat * (0.2 + intent.energy * 0.34),
+      varyVelocity(random, 0.48, intent, 0.07),
+    );
+  }
+
+  for (let step = 1; step < steps; step += 2) {
+    maybeHit(
+      random,
+      grid,
+      LANE.percussion,
+      step,
+      rhythm.percussion *
+        (0.08 + intent.syncopation * 0.18 + intent.complexity * 0.12),
+      varyVelocity(random, 0.36, intent, 0.1),
+    );
+  }
+
+  const phraseStart = Math.max(0, steps - Math.min(4, steps));
+  for (let step = phraseStart; step < steps; step += 1) {
+    maybeHit(
+      random,
+      grid,
+      LANE.tom,
+      step,
+      rhythm.toms *
+        (0.05 + intent.complexity * 0.18 + intent.energy * 0.08),
+      varyVelocity(random, 0.48 + (step - phraseStart) * 0.06, intent, 0.08),
+    );
+  }
+
+  maybeHit(
+    random,
+    grid,
+    LANE.crash,
+    0,
+    rhythm.crash * (0.22 + intent.energy * 0.55),
+    varyVelocity(random, 0.68, intent, 0.05),
+  );
+
+  const ghostSteps = Array.from(
+    { length: steps },
+    (_, step) => step,
+  ).filter((step) => step % 4 === 1 || step % 4 === 3);
+  for (const step of ghostSteps) {
+    maybeHit(
+      random,
+      grid,
+      LANE.snare,
+      step,
+      rhythm.ghostNotes *
+        (0.06 + intent.complexity * 0.15),
+      random.range(0.14, 0.28),
+    );
+  }
+}
+
+function applyAdvancedStyleVocabulary(
+  pattern: Pattern,
+  dna: StyleDNAProfile,
+  seed: string,
+  intent: BeatGenerationIntent,
+): Pattern {
+  const next: Pattern = {
+    ...pattern,
+    lanes: pattern.lanes.map((laneValue) => ({
+      ...laneValue,
+      events: laneValue.events.map((event) => ({ ...event })),
+    })),
+  };
+  const random = new SeededRandom(
+    deriveSeed(seed, "style-advanced"),
+  );
+
+  for (const laneValue of next.lanes) {
+    for (const event of laneValue.events) {
+      const step = Math.round(
+        event.tick / FOUNDATION_STEP_TICKS,
+      );
+      const latePhrase =
+        step >= Math.max(
+          0,
+          next.lengthTicks / FOUNDATION_STEP_TICKS - 4,
+        );
+
+      if (
+        laneValue.role === "closedHat" &&
+        dna.rhythm.ratchets > 0 &&
+        random.chance(
+          dna.rhythm.ratchets *
+            (0.04 + intent.complexity * 0.12),
+        )
+      ) {
+        event.ratchetCount =
+          dna.subdivision === "rolling"
+            ? random.int(2, 4)
+            : random.int(2, 3);
+      }
+
+      if (
+        latePhrase &&
+        (laneValue.role === "snare" ||
+          laneValue.role === "tom" ||
+          laneValue.role === "percussion") &&
+        dna.fill.ratchetBias > 0 &&
+        random.chance(
+          dna.fill.ratchetBias *
+            (0.05 + intent.complexity * 0.13),
+        )
+      ) {
+        event.ratchetCount = Math.max(
+          event.ratchetCount ?? 1,
+          random.int(2, 3),
+        );
+      }
+
+      if (
+        (laneValue.role === "snare" ||
+          laneValue.role === "tom") &&
+        dna.rhythm.flams > 0 &&
+        random.chance(
+          dna.rhythm.flams *
+            (0.03 + intent.complexity * 0.08),
+        )
+      ) {
+        event.flamOffsetUs = random.int(12_000, 28_000);
+      }
+
+      event.generatorTags = [
+        ...(event.generatorTags ?? []),
+        "style-dna:" + dna.id,
+        "style-dna:v" + STYLE_DNA_VERSION,
+      ];
+    }
+  }
+
+  return next;
+}
+
+function generateStyle(
+  style: BeatStyleId,
+  random: SeededRandom,
+  grid: Grid,
+  intent: BeatGenerationIntent,
+): void {
+  const dna = getStyleDNA(style);
+  generateArchetype(dna.archetype, random, grid, intent);
+  applyStyleDNA(random, grid, intent, dna);
+}
+
 function effectiveSwing(
   style: BeatStyleId,
   requestedSwing: number,
 ): number {
-  const definition = BEAT_STYLES.find((entry) => entry.id === style);
-  return clamp01((definition?.baseSwing ?? 0) + requestedSwing * 0.7);
+  const dna = getStyleDNA(style);
+  return clamp01(dna.baseSwing + requestedSwing * 0.7);
 }
 
 function styleVector(style: BeatStyleId): StyleVector {
@@ -834,6 +1092,7 @@ function buildPattern(
   grid: Grid,
 ): Pattern {
   const style = BEAT_STYLES.find((entry) => entry.id === request.style);
+  const dna = getStyleDNA(request.style);
   const swing = effectiveSwing(request.style, request.intent.swing);
   const seedCode = shortSeed(effectiveSeed);
 
@@ -895,18 +1154,17 @@ function buildPattern(
     lanes,
     groove: {
       swing,
-      humanization: 0,
-      personality:
-        request.style === "funk" || request.style === "hipHop"
-          ? "deep"
-          : request.style === "house"
-            ? "tight"
-            : "human",
+      humanization: dna.groove.humanization,
+      personality: dna.groove.personality,
+      ghostNoteAmount: dna.groove.ghostNotes,
+      engineVersion: STYLE_DNA_VERSION,
     },
     provenance: {
       seed: effectiveSeed,
       generatorId: BEAT_GENERATOR_ID,
       generatorVersion: BEAT_GENERATOR_VERSION,
+      styleDnaId: request.style,
+      styleDnaVersion: STYLE_DNA_VERSION,
       style: styleVector(request.style),
       intent: intentVector(request.intent),
     },
@@ -1087,11 +1345,26 @@ export function generateBeat(
     generateStyle(request.style, random, grid, request.intent);
     extendSixteenStepMotif(grid, request.stepCount, random);
 
-    const pattern = buildPattern(
+    const rawPattern = buildPattern(
       request,
       effectiveSeed,
       grid,
     );
+    const dna = getStyleDNA(request.style);
+    const vocabularyPattern = applyAdvancedStyleVocabulary(
+      rawPattern,
+      dna,
+      effectiveSeed,
+      request.intent,
+    );
+    const pattern = applyGroove({
+      source: vocabularyPattern,
+      seed: deriveSeed(effectiveSeed, "style-groove"),
+      personality: dna.groove.personality,
+      humanization: dna.groove.humanization,
+      ghostNoteAmount: dna.groove.ghostNotes,
+      swing: vocabularyPattern.groove?.swing ?? 0,
+    }).pattern;
     const validation = validateGeneratedBeat(pattern, request.style);
     const result: BeatGenerationResult = {
       pattern,
