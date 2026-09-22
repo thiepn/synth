@@ -29,9 +29,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 18 — ARRANGE Mode, Energy Sculpture & Arrangement Playback:** complete
 - **Phase 19 — Sample Import & Hybrid Voice Engine:** complete
 - **Phase 20 — Style DNA & Genre Expansion:** complete
-- **Next: Phase 21 — Beat Morph & Remix Engine**
+- **Phase 21 — Beat Morph & Remix Engine:** complete
+- **Next: Phase 22 — Chaos Engine & Controlled Randomness**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
 ## Run locally
 
@@ -474,6 +475,33 @@ See [Phase 19 implementation notes](docs/phase-19/PHASE_19.md).
 - no ambient randomness introduced
 
 See [Phase 20 implementation notes](docs/phase-20/PHASE_20.md).
+
+### Phase 21 — Beat Morph & Remix Engine
+
+- non-destructive A/B Pattern workspace
+- Capture A / Capture B from any compatible current Pattern
+- deterministic Remix → B using the selected Style DNA target
+- Remix Strength from related derivation toward structural rebuild
+- independent Rhythm / Dynamics / Timing / Groove / Style DNA dimensions
+- Morph All macro with custom-vector detection
+- probability-based structural fade between A-only and B-only events
+- shared-event velocity / timing / probability interpolation
+- deterministic ratchet / flam / loop metadata switching
+- audible Style DNA cross-morph through event-probability bias
+- Pattern-level Groove interpolation
+- A-side Rhythm / Dynamics / Timing / Sound lock constraints
+- exact endpoint behavior when unconstrained by locks
+- A/B/Morph Rhythm Glyphs and distance feedback
+- non-destructive A / B / Morph audition
+- endpoint swap with inverted dimensions
+- explicit COMMIT MORPH and COMMIT REMIX
+- new beatMorph / remix Evolution-history operations
+- Morph provenance records B endpoint and all five dimension amounts
+- committed results remain ordinary editable Patterns
+- preview/slider movement does not pollute Sequencer Undo or Evolution history
+- session-local uncommitted workspace boundary documented
+
+See [Phase 21 implementation notes](docs/phase-21/PHASE_21.md).
 
 ## Phase 0 architecture
 
