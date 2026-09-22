@@ -233,6 +233,7 @@ export function SoundSurface() {
     setLastKitResult(null);
     setLastMutation(null);
     setMorphPreview(null);
+    setMorphAmount(0);
     setKitError(null);
     setMutationError(null);
     setMorphError(null);
