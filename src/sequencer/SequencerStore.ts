@@ -16,6 +16,12 @@ import {
   normalizedFlamOffsetUs,
   normalizedRatchetCount,
 } from "./playbackRules";
+import {
+  applyLaneAction as applyLaneActionEvents,
+  decideBrushStep,
+  type LaneActionId,
+  type PatternBrushId,
+} from "./patternPainting";
 
 export const SEQUENCER_LENGTH_OPTIONS = [4, 8, 16, 32, 64] as const;
 export type SequencerLengthSteps =
@@ -158,6 +164,7 @@ export class SequencerStore {
   private revision = 0;
   private lastCoalesceKey: string | null = null;
   private lastCoalesceAt = 0;
+  private activeGestureKey: string | null = null;
   private listeners = new Set<StoreListener>();
   private snapshot: SequencerSnapshot = this.buildSnapshot();
 
@@ -449,6 +456,170 @@ export class SequencerStore {
           ? undefined
           : safe * FOUNDATION_STEP_TICKS;
     });
+  }
+
+  beginPaintGesture(gestureId: string): void {
+    this.activeGestureKey = "gesture:" + gestureId;
+  }
+
+  paintBrushStep(
+    gestureId: string,
+    brush: PatternBrushId,
+    hoveredLaneId: string,
+    stepIndex: number,
+    density: number,
+    seed: string,
+  ): void {
+    if (!this.isValidStep(stepIndex)) return;
+
+    const decision = decideBrushStep({
+      brush,
+      hoveredLaneId,
+      stepIndex,
+      density,
+      seed,
+    });
+    const targetLane = this.pattern.lanes.find(
+      (lane) => lane.id === decision.targetLaneId,
+    );
+    if (!targetLane) return;
+
+    const laneLength = this.getLaneLengthSteps(decision.targetLaneId);
+    if (stepIndex >= laneLength) return;
+
+    const gestureKey = "gesture:" + gestureId;
+
+    this.commit(
+      (draft) => {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === decision.targetLaneId,
+        );
+        if (!lane) return;
+
+        const existing = eventAtStep(lane, stepIndex);
+
+        if (decision.remove) {
+          if (!existing) return;
+          lane.events = lane.events.filter(
+            (event) => event.id !== existing.id,
+          );
+          return;
+        }
+
+        if (!decision.event) return;
+
+        const next: StepEvent = {
+          ...(existing ? cloneEvent(existing) : createStepEvent(
+            decision.targetLaneId,
+            stepIndex,
+            decision.event.velocity,
+          )),
+          ...decision.event,
+          id:
+            existing?.id ??
+            "evt-paint-" +
+              decision.targetLaneId +
+              "-" +
+              stepIndex,
+          tick: stepIndex * FOUNDATION_STEP_TICKS,
+          grooveBase: undefined,
+        };
+        next.generatorTags = [
+          ...(next.generatorTags ?? []).filter(
+            (tag) => !tag.startsWith("groove-engine"),
+          ),
+          "paint-gesture",
+        ];
+
+        if (existing) {
+          lane.events = lane.events.map((event) =>
+            event.id === existing.id ? next : event,
+          );
+        } else {
+          lane.events.push(next);
+          lane.events.sort((a, b) => a.tick - b.tick);
+        }
+      },
+      gestureKey,
+    );
+  }
+
+  endPaintGesture(gestureId: string): void {
+    const gestureKey = "gesture:" + gestureId;
+    if (this.activeGestureKey !== gestureKey) return;
+    this.activeGestureKey = null;
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
+  }
+
+  applyLaneGestureAction(
+    laneId: string,
+    action: LaneActionId,
+    density: number,
+    amount: number,
+    seed: string,
+  ): boolean {
+    const sourceLane = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!sourceLane) return false;
+
+    if (
+      action !== "humanize" &&
+      sourceLane.lock.rhythm
+    ) {
+      return false;
+    }
+
+    if (
+      action === "humanize" &&
+      sourceLane.lock.dynamics &&
+      sourceLane.lock.timing
+    ) {
+      return false;
+    }
+
+    const definition = laneDefinitionById(laneId);
+    if (!definition) return false;
+    const laneLength = this.getLaneLengthSteps(laneId);
+    const activeEvents = sourceLane.events.filter(
+      (event) =>
+        event.tick < laneLength * FOUNDATION_STEP_TICKS,
+    );
+
+    const nextActive = applyLaneActionEvents({
+      action,
+      laneId,
+      role: sourceLane.role,
+      events: activeEvents,
+      laneLengthSteps: laneLength,
+      density,
+      amount,
+      seed,
+      dynamicsLocked: sourceLane.lock.dynamics,
+      timingLocked: sourceLane.lock.timing,
+    });
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const dormant = lane.events
+        .filter(
+          (event) =>
+            event.tick >= laneLength * FOUNDATION_STEP_TICKS,
+        )
+        .map(cloneEvent);
+
+      lane.events = [
+        ...nextActive.map(cloneEvent),
+        ...dormant,
+      ].sort((a, b) => a.tick - b.tick);
+    });
+
+    return true;
   }
 
   cycleStepVelocity(laneId: string, stepIndex: number): void {
@@ -774,7 +945,10 @@ export class SequencerStore {
     const shouldCoalesce =
       coalesceKey !== null &&
       this.lastCoalesceKey === coalesceKey &&
-      now - this.lastCoalesceAt < 900;
+      (
+        this.activeGestureKey === coalesceKey ||
+        now - this.lastCoalesceAt < 900
+      );
 
     if (!shouldCoalesce) {
       this.undoStack.push(before);
