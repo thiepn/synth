@@ -27,9 +27,14 @@ import {
   deriveSeed,
   shortSeed,
 } from "./prng";
+import {
+  STYLE_DNA_VERSION,
+  getStyleDNA,
+  type StyleDNAProfile,
+} from "../style/styleDNA";
 
 export const BEAT_FAMILY_GENERATOR_ID = "beat-family";
-export const BEAT_FAMILY_GENERATOR_VERSION = 1;
+export const BEAT_FAMILY_GENERATOR_VERSION = 2;
 
 export interface BeatFamilyGenerationRequest {
   source: Pattern;
@@ -175,6 +180,10 @@ function decorate(
     generatorId: BEAT_FAMILY_GENERATOR_ID,
     generatorVersion: BEAT_FAMILY_GENERATOR_VERSION,
     sourceEntityId: source.id,
+    styleDnaId: request.style,
+    styleDnaVersion: STYLE_DNA_VERSION,
+    styleDnaId: style,
+    styleDnaVersion: STYLE_DNA_VERSION,
     mutationId: "family:" + role,
     familyId,
     familyRole: role,
@@ -296,14 +305,30 @@ function patternSteps(pattern: Pattern): number {
   );
 }
 
-function makeBuild(source: Pattern, seed: string): Pattern {
+function makeBuild(
+  source: Pattern,
+  seed: string,
+  dna: StyleDNAProfile,
+): Pattern {
   const next = clonePattern(source);
   const steps = patternSteps(next);
   const start = Math.max(0, steps - Math.min(8, steps));
+  const random = new SeededRandom(deriveSeed(seed, "build-style"));
 
   for (let step = start; step < steps; step += 1) {
-    if (step % 2 === 1) {
-      addHit(next, "lane-closed-hat", step, 0.48 + ((step - start) / Math.max(1, steps - start)) * 0.22, seed);
+    if (
+      step % 2 === 1 &&
+      random.chance(0.28 + dna.fill.density * 0.62)
+    ) {
+      addHit(
+        next,
+        "lane-closed-hat",
+        step,
+        0.42 +
+          ((step - start) / Math.max(1, steps - start)) *
+            (0.16 + dna.rhythm.hatSixteenth * 0.16),
+        seed,
+      );
     }
   }
 
@@ -314,7 +339,10 @@ function makeBuild(source: Pattern, seed: string): Pattern {
       step,
       0.42 + ((step - (steps - 4)) / 4) * 0.34,
       seed,
-      step === steps - 1 ? { ratchetCount: 2 } : {},
+      step === steps - 1 &&
+      random.chance(0.18 + dna.fill.ratchetBias * 0.62)
+        ? { ratchetCount: dna.fill.ratchetBias > 0.65 ? 3 : 2 }
+        : {},
     );
   }
 
@@ -344,17 +372,32 @@ function makeBreakdown(source: Pattern, seed: string): Pattern {
   return next;
 }
 
-function makeDrop(source: Pattern, seed: string): Pattern {
+function makeDrop(
+  source: Pattern,
+  seed: string,
+  dna: StyleDNAProfile,
+): Pattern {
   const next = clonePattern(source);
   const steps = patternSteps(next);
 
   scaleLane(next, "lane-kick", 1.16);
   scaleLane(next, "lane-snare", 1.14);
   scaleLane(next, "lane-clap", 1.12);
-  addHit(next, "lane-crash", 0, 0.9, seed);
+  if (dna.rhythm.crash > 0.12) {
+    addHit(
+      next,
+      "lane-crash",
+      0,
+      0.72 + dna.rhythm.crash * 0.22,
+      seed,
+    );
+  }
 
+  const random = new SeededRandom(deriveSeed(seed, "drop-style"));
   for (let step = 2; step < steps; step += 4) {
-    addHit(next, "lane-open-hat", step, 0.58, seed);
+    if (random.chance(0.22 + dna.rhythm.openHat * 0.68)) {
+      addHit(next, "lane-open-hat", step, 0.48 + dna.rhythm.openHat * 0.2, seed);
+    }
   }
 
   return next;
@@ -364,6 +407,7 @@ function makeFill(
   source: Pattern,
   seed: string,
   variant: 1 | 2,
+  dna: StyleDNAProfile,
 ): Pattern {
   const next = clonePattern(source);
   const steps = patternSteps(next);
@@ -372,10 +416,20 @@ function makeFill(
 
   for (let step = start; step < steps; step += 1) {
     const progress = (step - start) / Math.max(1, span - 1);
+    const random = new SeededRandom(
+      deriveSeed(seed, "fill-target:" + step),
+    );
+    const tom = dna.fill.tomBias;
+    const snare = dna.fill.snareBias;
+    const perc = dna.fill.percussionBias;
+    const total = Math.max(0.001, tom + snare + perc);
+    const roll = random.range(0, total);
     const target =
-      variant === 1
-        ? (step % 2 === 0 ? "lane-tom" : "lane-percussion")
-        : (step % 3 === 0 ? "lane-snare" : step % 3 === 1 ? "lane-tom" : "lane-percussion");
+      roll < tom
+        ? "lane-tom"
+        : roll < tom + snare
+          ? "lane-snare"
+          : "lane-percussion";
 
     addHit(
       next,
@@ -384,10 +438,17 @@ function makeFill(
       0.42 + progress * 0.42,
       seed,
       step === steps - 1
-        ? variant === 1
-          ? { flamOffsetUs: 18_000 }
-          : { ratchetCount: 3 }
-        : variant === 2 && step >= steps - 3
+        ? random.chance(dna.fill.flamBias)
+          ? { flamOffsetUs: random.int(14_000, 28_000) }
+          : random.chance(0.25 + dna.fill.ratchetBias * 0.7)
+            ? {
+                ratchetCount:
+                  dna.fill.ratchetBias > 0.68 ? 3 : 2,
+              }
+            : {}
+        : variant === 2 &&
+            step >= steps - 3 &&
+            random.chance(dna.fill.ratchetBias * 0.62)
           ? { ratchetCount: 2 }
           : {},
     );
@@ -396,8 +457,17 @@ function makeFill(
   return next;
 }
 
-function makeTransition(source: Pattern, seed: string): Pattern {
-  const next = makeFill(source, deriveSeed(seed, "fill"), 1);
+function makeTransition(
+  source: Pattern,
+  seed: string,
+  dna: StyleDNAProfile,
+): Pattern {
+  const next = makeFill(
+    source,
+    deriveSeed(seed, "fill"),
+    1,
+    dna,
+  );
   const steps = patternSteps(next);
   const boundary = Math.max(0, steps - Math.min(4, steps));
 
@@ -421,6 +491,47 @@ function criticalValidationScore(validation: BeatValidation): number {
     ].includes(reason),
   );
   return critical ? Math.min(validation.score, 45) : validation.score;
+}
+
+function familyRoleEnergy(
+  role: BeatFamilyRole,
+  dna: StyleDNAProfile,
+): number {
+  switch (role) {
+    case "core":
+      return dna.arrangement.verse;
+    case "aVariation":
+      return clamp01(
+        dna.arrangement.verse * 0.82 +
+          dna.arrangement.preChorus * 0.18,
+      );
+    case "bVariation":
+      return clamp01(
+        dna.arrangement.verse * 0.55 +
+          dna.arrangement.chorus * 0.45,
+      );
+    case "build":
+      return dna.arrangement.build;
+    case "breakdown":
+      return dna.arrangement.breakdown;
+    case "drop":
+      return dna.arrangement.drop;
+    case "fill1":
+      return clamp01(
+        dna.arrangement.verse * 0.45 +
+          dna.arrangement.build * 0.55,
+      );
+    case "fill2":
+      return clamp01(
+        dna.arrangement.build * 0.45 +
+          dna.arrangement.drop * 0.55,
+      );
+    case "transition":
+      return clamp01(
+        dna.arrangement.preChorus * 0.55 +
+          dna.arrangement.build * 0.45,
+      );
+  }
 }
 
 function patternDistance(a: Pattern, b: Pattern): number {
@@ -465,6 +576,7 @@ export function generateBeatFamily(
   );
   const familyId = "family-" + shortSeed(effectiveSeed);
   const source = clonePattern(request.source);
+  const styleDna = getStyleDNA(request.style);
 
   let aPattern = source;
   let bPattern = source;
@@ -501,12 +613,37 @@ export function generateBeatFamily(
     core: source,
     aVariation: aPattern,
     bVariation: bPattern,
-    build: makeBuild(source, deriveSeed(effectiveSeed, "build")),
-    breakdown: makeBreakdown(source, deriveSeed(effectiveSeed, "breakdown")),
-    drop: makeDrop(source, deriveSeed(effectiveSeed, "drop")),
-    fill1: makeFill(source, deriveSeed(effectiveSeed, "fill1"), 1),
-    fill2: makeFill(source, deriveSeed(effectiveSeed, "fill2"), 2),
-    transition: makeTransition(source, deriveSeed(effectiveSeed, "transition")),
+    build: makeBuild(
+      source,
+      deriveSeed(effectiveSeed, "build"),
+      styleDna,
+    ),
+    breakdown: makeBreakdown(
+      source,
+      deriveSeed(effectiveSeed, "breakdown"),
+    ),
+    drop: makeDrop(
+      source,
+      deriveSeed(effectiveSeed, "drop"),
+      styleDna,
+    ),
+    fill1: makeFill(
+      source,
+      deriveSeed(effectiveSeed, "fill1"),
+      1,
+      styleDna,
+    ),
+    fill2: makeFill(
+      source,
+      deriveSeed(effectiveSeed, "fill2"),
+      2,
+      styleDna,
+    ),
+    transition: makeTransition(
+      source,
+      deriveSeed(effectiveSeed, "transition"),
+      styleDna,
+    ),
   };
 
   const patterns: BeatFamilyPattern[] = ROLES.map((entry, index) => {
@@ -531,7 +668,7 @@ export function generateBeatFamily(
       role: entry.role,
       label: entry.label,
       kind: entry.kind,
-      energy: entry.energy,
+      energy: familyRoleEnergy(entry.role, styleDna),
       pattern,
       validation,
     };
