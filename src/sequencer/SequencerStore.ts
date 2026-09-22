@@ -546,6 +546,8 @@ export class SequencerStore {
         ...lane,
         muted: current?.muted ?? false,
         solo: current?.solo ?? false,
+        loopLengthTicks:
+          current?.loopLengthTicks ?? lane.loopLengthTicks,
         lock: current ? { ...current.lock } : { ...lane.lock },
         regionLocks: current?.regionLocks?.map((lock) => ({ ...lock })),
       };
