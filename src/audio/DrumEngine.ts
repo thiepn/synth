@@ -206,11 +206,13 @@ export class DrumEngine {
         1,
         Math.round(pattern.lengthTicks / FOUNDATION_STEP_TICKS),
       );
+      const soloActive = pattern.lanes.some((lane) => lane.solo);
 
       for (let absoluteStep = 0; absoluteStep < patternSteps; absoluteStep += 1) {
         for (const lane of pattern.lanes) {
           const definition = laneDefinitionById(lane.id);
           if (!definition || lane.muted) continue;
+          if (soloActive && !lane.solo) continue;
 
           const laneSteps = Math.max(
             1,
