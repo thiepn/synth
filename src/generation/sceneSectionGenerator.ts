@@ -16,9 +16,16 @@ import {
   deriveSeed,
   shortSeed,
 } from "./prng";
+import {
+  STYLE_DNA_VERSION,
+  getStyleDNA,
+  isStyleDNAId,
+  styleIdFromVector,
+  type StyleDNAProfile,
+} from "../style/styleDNA";
 
 export const SCENE_SECTION_GENERATOR_ID = "scene-section-generator";
-export const SCENE_SECTION_GENERATOR_VERSION = 1;
+export const SCENE_SECTION_GENERATOR_VERSION = 2;
 
 export interface SceneSectionGenerationRequest {
   family: BeatFamily;
@@ -146,7 +153,27 @@ function roleCandidates(role: SceneRole): readonly BeatFamilyRole[] {
   }
 }
 
-function sceneEnergy(role: SceneRole): number {
+function familyStyleDNA(
+  family: BeatFamily,
+): StyleDNAProfile | undefined {
+  const explicit = family.provenance?.styleDnaId;
+  if (explicit && isStyleDNAId(explicit)) {
+    return getStyleDNA(explicit);
+  }
+
+  const inferred = styleIdFromVector(
+    family.provenance?.style,
+  );
+  return inferred ? getStyleDNA(inferred) : undefined;
+}
+
+function sceneEnergy(
+  role: SceneRole,
+  family: BeatFamily,
+): number {
+  const dna = familyStyleDNA(family);
+  if (dna) return dna.arrangement[role];
+
   switch (role) {
     case "intro": return 0.28;
     case "verse": return 0.5;
@@ -208,6 +235,12 @@ function provenance(
     sourceEntityId: family.id,
     mutationId: "arrange-foundation:" + shape,
     familyId: family.id,
+    styleDnaId: family.provenance?.styleDnaId,
+    styleDnaVersion:
+      family.provenance?.styleDnaVersion ??
+      (family.provenance?.styleDnaId
+        ? STYLE_DNA_VERSION
+        : undefined),
     style: styleVector(family),
     intent: baseIntent
       ? { ...baseIntent }
@@ -263,7 +296,7 @@ function buildScenes(
         role === "outro"
           ? transition
           : undefined,
-      energy: sceneEnergy(role),
+      energy: sceneEnergy(role, family),
       provenance: provenance(
         family,
         sceneSeed,
@@ -281,6 +314,7 @@ function buildSection(
   scenesByRole: Map<SceneRole, Scene>,
   patternById: Map<string, Pattern>,
   effectiveSeed: string,
+  styleDna?: StyleDNAProfile,
 ): SectionBlueprint {
   const random = new SeededRandom(
     deriveSeed(
@@ -330,8 +364,20 @@ function buildSection(
     cycleCount: sequence.length,
     startTick,
     lengthTicks,
-    energyStart: clamp01(template.energyStart),
-    energyEnd: clamp01(template.energyEnd),
+    energyStart: (() => {
+      if (!styleDna) return clamp01(template.energyStart);
+      const target = styleDna.arrangement[template.role];
+      const delta =
+        (template.energyEnd - template.energyStart) * 0.72;
+      return clamp01(target - delta / 2);
+    })(),
+    energyEnd: (() => {
+      if (!styleDna) return clamp01(template.energyEnd);
+      const target = styleDna.arrangement[template.role];
+      const delta =
+        (template.energyEnd - template.energyStart) * 0.72;
+      return clamp01(target + delta / 2);
+    })(),
     fillPatternId,
     transitionPatternId,
   };
@@ -446,6 +492,7 @@ export function generateSceneSectionBlueprint(
       ":v" +
       SCENE_SECTION_GENERATOR_VERSION,
   );
+  const styleDna = familyStyleDNA(request.family);
   const patterns = request.patterns.map((entry) => ({
     ...entry,
     pattern: entry.pattern,
@@ -477,6 +524,7 @@ export function generateSceneSectionBlueprint(
         scenesByRole,
         patternById,
         effectiveSeed,
+        styleDna,
       );
       cursor += section.lengthTicks;
       return section;
