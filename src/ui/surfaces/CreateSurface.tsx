@@ -14,6 +14,7 @@ import {
 } from "../../generation/beatVariation";
 import { shortSeed } from "../../generation/prng";
 import { generationHistoryStore } from "../../history/GenerationHistoryStore";
+import { useGenerationHistorySnapshot } from "../../history/useGenerationHistory";
 import {
   MUSICAL_MUTATIONS,
   mutateGrooveField,
@@ -82,6 +83,7 @@ function provenanceStyle(
 export function CreateSurface() {
   const transport = useTransportSnapshot();
   const sequencer = useSequencerSnapshot();
+  const history = useGenerationHistorySnapshot();
 
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [energy, setEnergy] = useState(67);
@@ -106,6 +108,20 @@ export function CreateSurface() {
   const [operationError, setOperationError] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    const node = generationHistoryStore.getNode(history.activeNodeId);
+    const provenance = node?.pattern.provenance;
+    if (!provenance) return;
+
+    const restoredStyle = provenanceStyle(provenance.style);
+    if (restoredStyle) setStyle(restoredStyle);
+
+    setEnergy(Math.round(provenance.intent.energy * 100));
+    setDensity(Math.round(provenance.intent.density * 100));
+    setComplexity(Math.round(provenance.intent.complexity * 100));
+    setSyncopation(Math.round(provenance.intent.syncopation * 100));
+  }, [history.activeNodeId]);
 
   const storedGrooveKey = [
     sequencer.pattern.groove?.personality ?? "",
