@@ -624,12 +624,15 @@ export function mutateKit(
   );
 
   const targetDna = inferKitDNA(specs);
-  const direction = request.targetVoice
-    ? normalizeDirection(request.source.direction)
-    : validationDirection(
-        request.source,
-        request.mutation,
-      );
+  const sourceDirection = normalizeDirection(request.source.direction);
+  const targetDirection = validationDirection(
+    request.source,
+    request.mutation,
+  );
+  const direction =
+    request.targetVoice || distance < 0.5
+      ? sourceDirection
+      : targetDirection;
   const validation = validateGeneratedKit(specs, direction);
   const mutationId = request.targetVoice
     ? "voice:" + request.targetVoice + ":" + request.mutation
@@ -760,9 +763,9 @@ export function morphKitSpecs(
     direction,
     distance: amount,
     changedVoices: changedVoices(
-      request.lockedSourceSpecs ?? request.a.specs,
+      request.a.specs,
       specs,
-    ),
+    ).filter((voice) => !locked.has(voice)),
     validation,
   };
 }
