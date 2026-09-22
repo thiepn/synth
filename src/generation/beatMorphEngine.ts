@@ -682,6 +682,11 @@ export function morphPatterns(
     };
   });
 
+  const grooveAmount =
+    a.lanes.some((lane) => lane.lock.timing)
+      ? 0
+      : dimensions.groove;
+
   const styleVector = blendStyleVector(
     a.provenance?.style,
     b.provenance?.style,
@@ -726,7 +731,7 @@ export function morphPatterns(
     groove: blendGroove(
       a.groove,
       b.groove,
-      dimensions.groove,
+      grooveAmount,
       request.seed,
     ),
     provenance: {
