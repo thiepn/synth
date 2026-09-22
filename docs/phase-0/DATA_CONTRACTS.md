@@ -290,3 +290,31 @@ Family members carry:
 - member kind: core / variation / section / fill / transition
 
 Generated family Patterns store familyId and familyRole in generation provenance. BeatFamily provides the stable bridge from Pattern generation into future Scene/Arrangement systems.
+
+
+## 19. Scenes & Arrangement Blueprints
+
+A Scene is a reusable semantic section state derived from one BeatFamily.
+
+Generated Scenes may carry:
+
+- Scene role
+- source family ID
+- ordered eligible Pattern IDs
+- fill Pattern route
+- transition Pattern route
+- normalized energy
+- generation provenance
+
+A SectionBlueprint is one concrete arrangement occurrence. It stores:
+
+- semantic role / label
+- Scene reference
+- ordered Pattern sequence
+- cycle count
+- cumulative start tick
+- exact length ticks
+- energy start/end
+- optional fill/transition Pattern routes
+
+An ArrangementBlueprint groups generated Scenes and SectionBlueprints under one arrangement shape (Compact / Standard / Extended). It is planning data for the later editable ARRANGE timeline, not rendered audio or browser-clock state.
