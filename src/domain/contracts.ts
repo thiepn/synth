@@ -347,6 +347,8 @@ export type HistoryOperation =
   | "reroll"
   | "mutation"
   | "variation"
+  | "beatMorph"
+  | "remix"
   | "manualEdit"
   | "generateKit"
   | "generateTransition"
