@@ -124,10 +124,14 @@ function eventMusicalSignature(event: StepEvent): string {
 }
 
 function laneMusicalSignature(lane: PatternLane): string {
+  const audibleEvents = lane.loopLengthTicks
+    ? lane.events.filter((event) => event.tick < lane.loopLengthTicks!)
+    : lane.events;
+
   return [
     lane.role,
     lane.loopLengthTicks ?? "pattern",
-    lane.events
+    audibleEvents
       .map(eventMusicalSignature)
       .sort()
       .join(","),
