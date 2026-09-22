@@ -28,9 +28,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 17 — Scene & Section Generator / Arrange Foundation:** complete
 - **Phase 18 — ARRANGE Mode, Energy Sculpture & Arrangement Playback:** complete
 - **Phase 19 — Sample Import & Hybrid Voice Engine:** complete
-- **Next: Phase 20 — Style DNA & Genre Expansion**
+- **Phase 20 — Style DNA & Genre Expansion:** complete
+- **Next: Phase 21 — Beat Morph & Remix Engine**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, semantic Beat Family generation, deterministic Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
 ## Run locally
 
@@ -274,7 +275,7 @@ See [Phase 11 implementation notes](docs/phase-11/PHASE_11.md).
 - manual voice edits mark generated kits modified
 - RESET ALL clears generated-kit identity
 - SOUND exposes shared Kit DNA and generation quality
-- HYBRID is explicitly synth-only until the later sample/hybrid engine
+- coherent Kit generation establishes shared multi-voice material identity; Phase 19 later adds true sample+synth HYBRID sources
 - generated Kit/Sound snapshots are deep-cloned
 
 See [Phase 12 implementation notes](docs/phase-12/PHASE_12.md).
@@ -448,6 +449,31 @@ See [Phase 18 implementation notes](docs/phase-18/PHASE_18.md).
 - imported raw bytes and decode cache are explicitly session-local until the later persistence phase
 
 See [Phase 19 implementation notes](docs/phase-19/PHASE_19.md).
+
+### Phase 20 — Style DNA & Genre Expansion
+
+- versioned Style DNA registry with provenance ID/version
+- 25 public genre profiles across 5 musical families
+- 7 mature rhythm archetypes retained as internal generator primitives
+- genre-specific kick / backbeat / half-time / subdivision grammar
+- open/closed-hat, percussion, tom, crash and ghost-note tendencies
+- deterministic ratchet/flam vocabulary
+- Style-DNA-driven Groove Engine pocket, humanization, ghosts and base swing
+- DNA-aware Beat validation replacing hard-coded House/Funk/Trap exceptions
+- Reroll and Musical Mutation preserve Style DNA lineage
+- Style sound DNA biases coherent Kit generation
+- explicit GENERATE STYLE KIT action with sound-lock support
+- normal SOUND Kit generation inherits the current Pattern Style DNA
+- Phase 19 sample/hybrid assignments survive Style Kit generation
+- Beat Family Build/Drop/Fill behavior follows genre fill vocabulary
+- Beat Family energy follows genre arrangement DNA
+- Scene and Section energy targets follow the same Style DNA
+- full Style DNA fingerprint machine in CREATE
+- old seven-style public bank removed
+- BPM ranges remain descriptive; transport BPM stays user-authoritative
+- no ambient randomness introduced
+
+See [Phase 20 implementation notes](docs/phase-20/PHASE_20.md).
 
 ## Phase 0 architecture
 
