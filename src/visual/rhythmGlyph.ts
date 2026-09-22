@@ -192,7 +192,9 @@ function collectFeatures(pattern: Pattern, stepCount: number): StepFeatures[] {
     );
 
     for (const event of lane.events) {
-      const baseStep = stepIndexForEvent(event, laneSteps);
+      const rawStep = Math.round(event.tick / FOUNDATION_STEP_TICKS);
+      if (rawStep < 0 || rawStep >= laneSteps) continue;
+      const baseStep = rawStep;
       for (
         let step = baseStep;
         step < stepCount;
