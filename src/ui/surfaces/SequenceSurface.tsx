@@ -179,6 +179,7 @@ export function SequenceSurface() {
     window.addEventListener("pointercancel", finishGesture);
 
     return () => {
+      finishGesture();
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", finishGesture);
       window.removeEventListener("pointercancel", finishGesture);
