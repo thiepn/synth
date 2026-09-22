@@ -41,6 +41,7 @@ import { DrumEnginePanel } from "../drums/DrumEngineUI";
 import { GrooveEnginePanel } from "../groove/GrooveEngineUI";
 import { EvolutionTreePanel } from "../history/EvolutionTree";
 import { BeatFamilyPanel } from "../family/BeatFamilyPanel";
+import { ArrangeFoundationPanel } from "../arrange/ArrangeFoundationPanel";
 import {
   BeatReactor,
   GrooveField,
@@ -830,6 +831,8 @@ export function CreateSurface() {
         onGenerate={generateCurrentFamily}
         generationError={familyError}
       />
+
+      <ArrangeFoundationPanel />
 
       <EvolutionTreePanel />
 
