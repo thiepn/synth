@@ -14,6 +14,7 @@ import "./arrange.css";
 import "./sound.css";
 import "./sample.css";
 import "./style-dna.css";
+import "./beat-morph.css";
 
 const root = document.getElementById("root");
 
