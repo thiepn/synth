@@ -25,9 +25,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 14 — Advanced Sequencer V2:** complete
 - **Phase 15 — Pattern Painting & Advanced Sequencer Gestures:** complete
 - **Phase 16 — Beat Families, Fills & Transitions:** complete
-- **Next: Phase 17 — Scene & Section Generator / Arrange Foundation**
+- **Phase 17 — Scene & Section Generator / Arrange Foundation:** complete
+- **Next: Phase 18 — ARRANGE Mode, Energy Sculpture & Arrangement Playback**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, and semantic Beat Family generation for section-ready variations/fills/transitions. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, and Beat Family ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, semantic Beat Family generation, and deterministic Scene/Section arrangement foundations. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, and arrangement-foundation ownership.
 
 ## Run locally
 
@@ -368,6 +369,30 @@ See [Phase 15 implementation notes](docs/phase-15/PHASE_15.md).
 - full ARRANGE UI intentionally remains deferred
 
 See [Phase 16 implementation notes](docs/phase-16/PHASE_16.md).
+
+### Phase 17 — Scene & Section Generator / Arrange Foundation
+
+- first-class SceneRole / ArrangementShapeId / SectionBlueprint / ArrangementBlueprint domain contracts
+- Compact / Standard / Extended arrangement shapes
+- reusable Intro / Verse / Pre-Chorus / Chorus / Breakdown / Build / Drop / Outro Scenes
+- deterministic family-member selection per section/cycle
+- concrete ordered Pattern sequences
+- exact cumulative start/length ticks
+- section cycle counts
+- fill placement and transition routing
+- Scene and blueprint generation provenance
+- section energy start/end targets
+- Scene energy hierarchy
+- validation for contiguous timing, Scene references, family Pattern references, fill/transition references, and required roles
+- immutable session ArrangementFoundationStore
+- automatic invalidation when the source BeatFamily changes
+- ARRANGE / FOUNDATION inspection UI in CREATE
+- Scene roster and selected-section inspector
+- descending energy ramps render correctly
+- non-destructive generation: no Pattern replacement, Undo pollution, history nodes, or arrangement playback
+- full 04 / ARRANGE activation remains Phase 18
+
+See [Phase 17 implementation notes](docs/phase-17/PHASE_17.md).
 
 ## Phase 0 architecture
 
