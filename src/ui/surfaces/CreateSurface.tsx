@@ -629,9 +629,9 @@ export function CreateSurface() {
           x={syncopation}
           y={density}
           labels={{
-            nw: "DENSE",
+            nw: "DENSE / STRAIGHT",
             ne: "DENSE / SYNC",
-            sw: "STRAIGHT",
+            sw: "SPARSE / STRAIGHT",
             se: "SPARSE / SYNC",
           }}
           onChange={(x, y) => {
@@ -700,8 +700,8 @@ export function CreateSurface() {
           <span>INSTRUMENT / STRIPS</span>
           <span>
             {transport.status === "running"
-              ? "LIVE DERIVED PATTERN"
-              : "LOCK / REROLL ACTIVE"}
+              ? "LIVE MUTABLE PATTERN"
+              : "MUTATION / LOCK ACTIVE"}
           </span>
         </div>
         {FOUNDATION_LANES.map((strip) => (
