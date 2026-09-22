@@ -16,6 +16,10 @@ import {
   type BeatValidation,
 } from "./beatGenerator";
 import { SeededRandom, deriveSeed, shortSeed } from "./prng";
+import {
+  STYLE_DNA_VERSION,
+  getStyleDNA,
+} from "../style/styleDNA";
 
 export const BEAT_VARIATION_ID = "beat-reroll";
 export const BEAT_VARIATION_VERSION = 1;
@@ -46,7 +50,7 @@ const MAX_VARIATION_ATTEMPTS = 10;
 const CRITICAL_REASONS = new Set([
   "missing kick foundation",
   "missing backbeat",
-  "house pulse lost four-on-floor foundation",
+  "style pulse lost four-on-floor foundation",
 ]);
 
 function clamp01(value: number): number {
@@ -512,11 +516,7 @@ export function rerollBeat(
 
     mergedWithFallback.id = "pattern-var-" + seedCode;
     mergedWithFallback.name =
-      (request.style === "hipHop"
-        ? "HIP-HOP"
-        : request.style === "breakbeat"
-          ? "BREAKS"
-          : request.style.toUpperCase()) +
+      getStyleDNA(request.style).label +
       " / " +
       seedCode;
     mergedWithFallback.groove = targetLaneIds
@@ -546,6 +546,8 @@ export function rerollBeat(
       generatorId: BEAT_VARIATION_ID,
       generatorVersion: BEAT_VARIATION_VERSION,
       sourceEntityId: source.id,
+      styleDnaId: request.style,
+      styleDnaVersion: STYLE_DNA_VERSION,
       mutationId:
         targetLaneIds && targetLaneIds.size === 1
           ? "reroll:" + [...targetLaneIds][0]
