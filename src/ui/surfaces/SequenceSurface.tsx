@@ -1,5 +1,6 @@
 import {
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useMemo,
   useRef,
@@ -260,7 +261,7 @@ export function SequenceSurface() {
   };
 
   const startPaintGesture = (
-    event: React.PointerEvent<HTMLButtonElement>,
+    event: ReactPointerEvent<HTMLButtonElement>,
     laneId: string,
     stepIndex: number,
   ) => {
