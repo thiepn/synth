@@ -17,9 +17,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 6 — Beat Reactor: Lock / Reroll / Similarity:** complete
 - **Phase 7 — Rhythm Glyph System:** complete
 - **Phase 8 — Groove & Humanization Engine:** complete
-- **Next: Phase 9 — Groove Field & Musical Mutation**
+- **Phase 9 — Groove Field & Musical Mutation:** complete
+- **Next: Phase 10 — Generation History & Evolution Tree**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, and deterministic groove/humanization. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, and groove transformation.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, and semantic musical mutation. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, and mutation logic.
 
 ## Run locally
 
@@ -185,6 +186,25 @@ See [Phase 7 implementation notes](docs/phase-7/PHASE_7.md).
 - SEQUENCE exposes active personality and Humanization
 
 See [Phase 8 implementation notes](docs/phase-8/PHASE_8.md).
+
+### Phase 9 — Groove Field & Musical Mutation
+
+- functional HARDER / SPACE / FUNKIER / PUSH / DRAG / DIRTY / BREAK / WEIRD / THIN mutation deck
+- Reactor distance reused as semantic mutation strength
+- commands alter coordinated rhythm, dynamics, intent, and/or groove dimensions
+- deterministic mutation engine with no ambient randomness
+- baseline-first transformation prevents cumulative humanization artifacts
+- current groove personality/pocket is reapplied after structural mutation
+- Groove Field is a real density/syncopation transformation surface
+- one field mutation is committed per pointer gesture
+- rhythm locks protect structural material
+- Groove-generated ghosts inside locked lanes remain protected
+- command-aware quality validation including intentional House BREAK behavior
+- mutations preserve hot-playback scheduling safety and editor undo
+- mutation provenance stores source Pattern, mutation ID, target intent, and strength
+- accepted mutation state updates CREATE controls to match the resulting Pattern
+
+See [Phase 9 implementation notes](docs/phase-9/PHASE_9.md).
 
 ## Phase 0 architecture
 
