@@ -26,9 +26,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 15 — Pattern Painting & Advanced Sequencer Gestures:** complete
 - **Phase 16 — Beat Families, Fills & Transitions:** complete
 - **Phase 17 — Scene & Section Generator / Arrange Foundation:** complete
-- **Next: Phase 18 — ARRANGE Mode, Energy Sculpture & Arrangement Playback**
+- **Phase 18 — ARRANGE Mode, Energy Sculpture & Arrangement Playback:** complete
+- **Next: Phase 19 — Sample Import & Hybrid Voice Engine**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, semantic Beat Family generation, and deterministic Scene/Section arrangement foundations. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, and arrangement-foundation ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, semantic Beat Family generation, deterministic Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
 ## Run locally
 
@@ -393,6 +394,35 @@ See [Phase 16 implementation notes](docs/phase-16/PHASE_16.md).
 - full 04 / ARRANGE activation remains Phase 18
 
 See [Phase 17 implementation notes](docs/phase-17/PHASE_17.md).
+
+### Phase 18 — ARRANGE Mode, Energy Sculpture & Arrangement Playback
+
+- active 04 / ARRANGE top-level mode
+- editable ArrangementStore loaded from Phase 17 foundation data
+- proportional Section timeline
+- left/right move plus desktop drag reorder
+- Section duplication and removal
+- 1–16 cycle editing
+- Fill OFF / LAST placement
+- Transition OFF / REPLACE / APPEND placement
+- exact occurrence/timeline recalculation after edits
+- effective audible Pattern sequence shown in the UI
+- editable Energy Start / End per Section
+- Energy Sculpture graph with live arrangement playhead
+- Energy Sculpture audibly scales arrangement hit dynamics
+- Play All and true section-scoped Play Section
+- arrangement-end and section-end auto-stop
+- Pause / Resume / Stop
+- shared Pattern resolver preserves polymeter / probability / ratchets / flams / microtiming
+- active Kit/Sound routing preserved
+- global utility transport and Spacebar route through ARRANGE while the mode is active
+- entering/leaving ARRANGE isolates playback modes
+- dedicated ARRANGE Undo/Redo with coalesced Energy edits
+- UI-only Section selection does not invalidate Web Audio
+- live musical arrangement edits safely invalidate future scheduling
+- session-local persistence/history boundary documented explicitly
+
+See [Phase 18 implementation notes](docs/phase-18/PHASE_18.md).
 
 ## Phase 0 architecture
 
