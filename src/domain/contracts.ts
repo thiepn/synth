@@ -214,6 +214,8 @@ export interface AssetReference {
 }
 
 export type HistoryOperation =
+  | "root"
+  | "branch"
   | "generateBeat"
   | "reroll"
   | "mutation"
