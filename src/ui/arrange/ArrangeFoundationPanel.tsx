@@ -319,10 +319,20 @@ export function ArrangeFoundationPanel() {
                       <span
                         style={{
                           left:
-                            Math.round(section.energyStart * 100) + "%",
+                            Math.round(
+                              Math.min(
+                                section.energyStart,
+                                section.energyEnd,
+                              ) * 100,
+                            ) + "%",
                           right:
                             100 -
-                            Math.round(section.energyEnd * 100) +
+                            Math.round(
+                              Math.max(
+                                section.energyStart,
+                                section.energyEnd,
+                              ) * 100,
+                            ) +
                             "%",
                         }}
                       />
