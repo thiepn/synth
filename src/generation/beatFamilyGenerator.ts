@@ -180,8 +180,6 @@ function decorate(
     generatorId: BEAT_FAMILY_GENERATOR_ID,
     generatorVersion: BEAT_FAMILY_GENERATOR_VERSION,
     sourceEntityId: source.id,
-    styleDnaId: request.style,
-    styleDnaVersion: STYLE_DNA_VERSION,
     styleDnaId: style,
     styleDnaVersion: STYLE_DNA_VERSION,
     mutationId: "family:" + role,
@@ -723,6 +721,8 @@ export function generateBeatFamily(
     sourceEntityId: source.id,
     familyId,
     familyRole: "core",
+    styleDnaId: request.style,
+    styleDnaVersion: STYLE_DNA_VERSION,
     style: styleVector(request.style),
     intent: intentVector(
       request.intent,
