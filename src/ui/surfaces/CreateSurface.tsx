@@ -229,14 +229,19 @@ export function CreateSurface() {
       sequencerStore.applyGeneratedPattern(prepared.pattern);
     }
 
+    const appliedPattern = sequencerStore.getSnapshot().pattern;
+
     generationHistoryStore.commitPrepared(
-      prepared,
+      {
+        parentNodeId: prepared.parentNodeId,
+        pattern: appliedPattern,
+      },
       operation,
       operationLabel,
       title,
     );
 
-    return prepared.pattern;
+    return appliedPattern;
   };
 
   const recordFailure = (message: string) => {
