@@ -440,27 +440,41 @@ export function generateBeatFamily(
   const familyId = "family-" + shortSeed(effectiveSeed);
   const source = clonePattern(request.source);
 
-  const a = rerollBeat({
-    source,
-    seed: deriveSeed(effectiveSeed, "a"),
-    style: request.style,
-    intent: request.intent,
-    distance: 0.18,
-    bpm: request.bpm,
-  });
-  const b = rerollBeat({
-    source,
-    seed: deriveSeed(effectiveSeed, "b"),
-    style: request.style,
-    intent: request.intent,
-    distance: 0.34,
-    bpm: request.bpm,
-  });
+  let aPattern = source;
+  let bPattern = source;
+
+  try {
+    const a = rerollBeat({
+      source,
+      seed: deriveSeed(effectiveSeed, "a"),
+      style: request.style,
+      intent: request.intent,
+      distance: 0.18,
+      bpm: request.bpm,
+    });
+    if (a.accepted) aPattern = a.pattern;
+  } catch {
+    aPattern = source;
+  }
+
+  try {
+    const b = rerollBeat({
+      source,
+      seed: deriveSeed(effectiveSeed, "b"),
+      style: request.style,
+      intent: request.intent,
+      distance: 0.34,
+      bpm: request.bpm,
+    });
+    if (b.accepted) bPattern = b.pattern;
+  } catch {
+    bPattern = source;
+  }
 
   const raw: Record<BeatFamilyRole, Pattern> = {
     core: source,
-    aVariation: a.accepted ? a.pattern : source,
-    bVariation: b.accepted ? b.pattern : source,
+    aVariation: aPattern,
+    bVariation: bPattern,
     build: makeBuild(source, deriveSeed(effectiveSeed, "build")),
     breakdown: makeBreakdown(source, deriveSeed(effectiveSeed, "breakdown")),
     drop: makeDrop(source, deriveSeed(effectiveSeed, "drop")),
