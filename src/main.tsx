@@ -10,6 +10,7 @@ import "./groove.css";
 import "./history.css";
 import "./family.css";
 import "./arrange-foundation.css";
+import "./arrange.css";
 import "./sound.css";
 
 const root = document.getElementById("root");
