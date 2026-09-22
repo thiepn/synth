@@ -290,20 +290,26 @@ export function CreateSurface() {
     }
 
     try {
-      const grooved = applyGroove({
-        ...grooveRequest(result.pattern, "groove:" + result.effectiveSeed),
-        swing: result.pattern.groove?.swing ?? swing / 100,
-      });
       const committedPattern = commitCreativePattern(
-        grooved.pattern,
+        result.pattern,
         "generateBeat",
         "GENERATE",
-        grooved.pattern.name,
+        result.pattern.name,
       );
-      setLastGrooveResult({
-        ...grooved,
-        pattern: committedPattern,
-      });
+      const generatedGroove = result.pattern.groove;
+      if (generatedGroove) {
+        setPersonality(generatedGroove.personality);
+        setHumanization(
+          Math.round(generatedGroove.humanization * 100),
+        );
+        setGhostNotes(
+          Math.round(
+            (generatedGroove.ghostNoteAmount ?? 0) * 100,
+          ),
+        );
+        setSwing(Math.round(generatedGroove.swing * 100));
+      }
+      setLastGrooveResult(null);
       setLastOperation({ kind: "generate", result });
       setActiveMutation(null);
       setMutationError(null);
