@@ -8,10 +8,14 @@ import {
   DRUM_SYNTH_ENGINE_VERSION,
   type DrumMaterialSpec,
   type Pattern,
+  type SampleSoundSpec,
+  type SoundSpec,
+  type SynthSoundSpec,
 } from "../domain/contracts";
 import {
   DRUM_PADS,
   FOUNDATION_STEP_TICKS,
+  SEQUENCER_LANES,
   laneDefinitionById,
   type DrumVoiceId,
 } from "../music/foundationPattern";
@@ -28,6 +32,7 @@ import {
   normalizedRatchetCount,
 } from "../sequencer/playbackRules";
 import { drumSoundStore } from "./drumSoundModel";
+import { sampleAssetStore } from "./SampleAssetStore";
 
 export interface DrumMacros {
   punch: number;
@@ -90,6 +95,11 @@ function clamp01(value: number): number {
 function velocityGain(velocity: number): number {
   const safe = clamp01(velocity);
   return 0.22 + safe * 0.78;
+}
+
+function dbToGain(db: number): number {
+  if (!Number.isFinite(db)) return 1;
+  return Math.pow(10, db / 20);
 }
 
 function createDriveCurve(amount: number): Float32Array<ArrayBuffer> {
@@ -168,6 +178,15 @@ export class DrumEngine {
         audioTransport.invalidateScheduledEvents();
       }, 32);
     });
+
+    sampleAssetStore.subscribe(() => {
+      if (this.soundEditTimer !== null) return;
+
+      this.soundEditTimer = globalThis.setTimeout(() => {
+        this.soundEditTimer = null;
+        audioTransport.invalidateScheduledEvents();
+      }, 32);
+    });
   }
 
   readonly subscribe = (listener: StoreListener): (() => void) => {
@@ -184,7 +203,17 @@ export class DrumEngine {
     try {
       const context = await audioTransport.unlockAudio();
       this.ensureGraph(context);
-      this.scheduleVoice(
+      const lane = SEQUENCER_LANES.find(
+        (entry) => entry.voice === voice,
+      );
+      const kitSlotId = lane?.kitSlotId ?? "slot-" + voice;
+      const playback = drumSoundStore.resolvePlaybackSound(
+        kitSlotId,
+        voice,
+      );
+      await this.prepareSoundSpec(context, playback.spec);
+      this.scheduleConfiguredVoice(
+        kitSlotId,
         voice,
         context.currentTime + DIRECT_TRIGGER_OFFSET_SECONDS,
         velocity,
@@ -277,16 +306,18 @@ export class DrumEngine {
               event.velocity * Math.max(0.58, 1 - index * 0.09);
             const ratchetTime = at + index * ratchetSpacing;
 
-            this.scheduleVoice(
-              auditionVoice,
+            this.scheduleConfiguredVoice(
+              lane.kitSlotId,
+              definition.voice,
               ratchetTime,
               ratchetVelocity,
               null,
             );
 
             if (index === 0 && flamOffsetUs > 0) {
-              this.scheduleVoice(
-                auditionVoice,
+              this.scheduleConfiguredVoice(
+                lane.kitSlotId,
+                definition.voice,
                 ratchetTime + flamOffsetUs / 1_000_000,
                 ratchetVelocity * 0.72,
                 null,
@@ -419,16 +450,18 @@ export class DrumEngine {
             Math.max(0.58, 1 - index * 0.09);
           const ratchetTime = baseTime + index * ratchetSpacing;
 
-          this.scheduleVoice(
-            resolvedVoice,
+          this.scheduleConfiguredVoice(
+            hit.kitSlotId,
+            hit.voice,
             ratchetTime,
             ratchetVelocity,
             pulse.epoch,
           );
 
           if (index === 0 && hit.flamOffsetUs > 0) {
-            this.scheduleVoice(
-              resolvedVoice,
+            this.scheduleConfiguredVoice(
+              hit.kitSlotId,
+              hit.voice,
               ratchetTime + hit.flamOffsetUs / 1_000_000,
               ratchetVelocity * 0.72,
               pulse.epoch,
@@ -586,6 +619,221 @@ export class DrumEngine {
     }
 
     return buffer;
+  }
+
+  async prepareSampleAsset(assetId: string): Promise<void> {
+    const context = await audioTransport.unlockAudio();
+    this.ensureGraph(context);
+    await sampleAssetStore.ensureDecoded(context, assetId);
+  }
+
+  async prepareVoiceSource(voice: DrumVoiceId): Promise<void> {
+    const context = await audioTransport.unlockAudio();
+    this.ensureGraph(context);
+    const lane = SEQUENCER_LANES.find(
+      (entry) => entry.voice === voice,
+    );
+    const playback = drumSoundStore.resolvePlaybackSound(
+      lane?.kitSlotId ?? "slot-" + voice,
+      voice,
+    );
+    await this.prepareSoundSpec(context, playback.spec);
+  }
+
+  private async prepareSoundSpec(
+    context: AudioContext,
+    spec: SoundSpec,
+  ): Promise<void> {
+    if (spec.kind === "sample") {
+      await sampleAssetStore.ensureDecoded(
+        context,
+        spec.assetId,
+      );
+      return;
+    }
+
+    if (spec.kind === "hybrid") {
+      await sampleAssetStore.ensureDecoded(
+        context,
+        spec.sample.assetId,
+      );
+    }
+  }
+
+  private synthVoiceFromSpec(
+    spec: SynthSoundSpec,
+    fallback: DrumVoiceId,
+  ): DrumVoiceId {
+    const sourceVoice = spec.params.sourceVoice;
+    if (
+      typeof sourceVoice === "string" &&
+      DRUM_PADS.some((pad) => pad.voice === sourceVoice)
+    ) {
+      return sourceVoice as DrumVoiceId;
+    }
+    return fallback;
+  }
+
+  private scheduleConfiguredVoice(
+    kitSlotId: string,
+    fallbackVoice: DrumVoiceId,
+    audioTime: number,
+    velocity: number,
+    epoch: number | null,
+  ): void {
+    const graph = this.graph;
+    if (!graph) return;
+
+    const playback = drumSoundStore.resolvePlaybackSound(
+      kitSlotId,
+      fallbackVoice,
+    );
+
+    if (playback.spec.kind === "synth") {
+      this.scheduleVoice(
+        this.synthVoiceFromSpec(
+          playback.spec,
+          playback.voice,
+        ),
+        audioTime,
+        velocity,
+        epoch,
+      );
+      return;
+    }
+
+    if (playback.spec.kind === "sample") {
+      this.scheduleSampleVoice(
+        playback.voice,
+        playback.spec,
+        audioTime,
+        velocity,
+        epoch,
+      );
+      return;
+    }
+
+    const synthScale = dbToGain(
+      playback.spec.synthGainDb,
+    );
+    for (const layer of playback.spec.layers) {
+      this.scheduleVoice(
+        this.synthVoiceFromSpec(layer, playback.voice),
+        audioTime,
+        clamp01(velocity * synthScale),
+        epoch,
+      );
+    }
+
+    this.scheduleSampleVoice(
+      playback.voice,
+      playback.spec.sample,
+      audioTime,
+      velocity,
+      epoch,
+    );
+  }
+
+  private scheduleSampleVoice(
+    voice: DrumVoiceId,
+    spec: SampleSoundSpec,
+    audioTime: number,
+    velocity: number,
+    epoch: number | null,
+  ): void {
+    const graph = this.graph;
+    if (!graph) return;
+
+    const context = graph.context;
+    const now = context.currentTime;
+    const at = Math.max(audioTime, now + 0.001);
+    const buffer = sampleAssetStore.getPlaybackBuffer(
+      context,
+      spec.assetId,
+      spec.reversed,
+    );
+
+    if (!buffer) {
+      void sampleAssetStore
+        .ensureDecoded(context, spec.assetId)
+        .catch(() => undefined);
+      return;
+    }
+
+    this.pruneVoices(now);
+    this.enforcePolyphony(now);
+
+    if (voice === "closedHat") {
+      this.chokeOpenHats(at);
+    }
+
+    const start = Math.max(
+      0,
+      Math.min(
+        Math.max(0, buffer.duration - 0.001),
+        spec.trimStartSeconds,
+      ),
+    );
+    const requestedEnd =
+      spec.trimEndSeconds ?? buffer.duration;
+    const end = Math.max(
+      start + 0.001,
+      Math.min(buffer.duration, requestedEnd),
+    );
+    const sourceDuration = Math.max(
+      0.001,
+      end - start,
+    );
+    const playbackRate = Math.pow(
+      2,
+      Math.max(-24, Math.min(24, spec.pitchSemitones)) / 12,
+    );
+    const audibleDuration = sourceDuration / playbackRate;
+    const stopAt = at + audibleDuration;
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(playbackRate, at);
+
+    const sampleGain = context.createGain();
+    const kill = context.createGain();
+    const peak = Math.max(
+      MIN_GAIN,
+      clamp01(velocity) * dbToGain(spec.gainDb),
+    );
+
+    sampleGain.gain.setValueAtTime(MIN_GAIN, at);
+    sampleGain.gain.linearRampToValueAtTime(
+      peak,
+      at + Math.min(0.0015, audibleDuration * 0.12),
+    );
+
+    if (audibleDuration > 0.012) {
+      sampleGain.gain.setValueAtTime(
+        peak,
+        Math.max(at + 0.002, stopAt - 0.006),
+      );
+      sampleGain.gain.exponentialRampToValueAtTime(
+        MIN_GAIN,
+        stopAt,
+      );
+    }
+
+    source.connect(sampleGain);
+    sampleGain.connect(kill);
+    kill.connect(graph.input);
+
+    source.start(at, start, sourceDuration);
+    source.stop(stopAt + 0.012);
+
+    this.registerVoice(
+      voice,
+      at,
+      stopAt + 0.012,
+      epoch,
+      [source],
+      kill,
+    );
   }
 
   private scheduleVoice(
