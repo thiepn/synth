@@ -421,6 +421,58 @@ export class SequencerStore {
     this.applyGeneratedPattern(nextPattern);
   }
 
+  restorePatternSnapshot(nextPattern: Pattern): void {
+    const allowedLengths = new Set(
+      SEQUENCER_LENGTH_OPTIONS.map(
+        (steps) => steps * FOUNDATION_STEP_TICKS,
+      ),
+    );
+
+    if (nextPattern.ppq !== this.pattern.ppq) {
+      throw new Error("History Pattern PPQ does not match the sequencer.");
+    }
+
+    if (!allowedLengths.has(nextPattern.lengthTicks)) {
+      throw new Error("History Pattern length is not supported by V1.");
+    }
+
+    const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
+    const missingLane = SEQUENCER_LANES.find(
+      (definition) => !nextLaneIds.has(definition.id),
+    );
+    if (missingLane) {
+      throw new Error("History Pattern is missing lane " + missingLane.id);
+    }
+
+    const monitoringById = new Map(
+      this.pattern.lanes.map((lane) => [
+        lane.id,
+        {
+          muted: lane.muted ?? false,
+          solo: lane.solo ?? false,
+        },
+      ]),
+    );
+    const restored = clonePattern(nextPattern);
+
+    restored.lanes = restored.lanes.map((lane) => {
+      const monitoring = monitoringById.get(lane.id);
+      return {
+        ...lane,
+        muted: monitoring?.muted ?? lane.muted ?? false,
+        solo: monitoring?.solo ?? lane.solo ?? false,
+      };
+    });
+
+    this.pushUndo();
+    this.pattern = restored;
+    this.redoStack = [];
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
+    this.revision += 1;
+    this.publish();
+  }
+
   setLengthSteps(nextLength: SequencerLengthSteps): void {
     if (!SEQUENCER_LENGTH_OPTIONS.includes(nextLength)) return;
 
