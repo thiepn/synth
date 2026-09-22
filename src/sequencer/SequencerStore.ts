@@ -182,6 +182,32 @@ export class SequencerStore {
     });
   }
 
+  isLaneSoundLocked(laneId: string): boolean {
+    return Boolean(
+      this.pattern.lanes.find((lane) => lane.id === laneId)?.lock.sound,
+    );
+  }
+
+  getSoundLockedLaneIds(): string[] {
+    return this.pattern.lanes
+      .filter((lane) => lane.lock.sound)
+      .map((lane) => lane.id);
+  }
+
+  toggleLaneSoundLock(laneId: string): void {
+    const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
+    if (!lane) return;
+
+    this.commit((draft) => {
+      const draftLane = draft.lanes.find((entry) => entry.id === laneId);
+      if (!draftLane) return;
+      draftLane.lock = {
+        ...draftLane.lock,
+        sound: !draftLane.lock.sound,
+      };
+    });
+  }
+
   getLaneValues(laneId: string): number[] {
     const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
     const length = lengthStepsFromPattern(this.pattern);
