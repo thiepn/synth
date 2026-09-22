@@ -148,9 +148,12 @@ export interface KitMutationResult {
   mutationId: string;
   direction: KitDirectionId;
   distance: number;
+  attempts: number;
   changedVoices: DrumVoiceId[];
   validation: KitCoherenceValidation;
 }
+
+const MAX_MUTATION_ATTEMPTS = 8;
 
 const MATERIAL_KEYS = [
   "impact",
@@ -574,23 +577,7 @@ export function mutateKit(
   request: KitMutationRequest,
 ): KitMutationResult {
   const distance = similarityDistance(request.similarity);
-  const effectiveSeed = deriveSeed(
-    request.seed,
-    request.mutation +
-      ":" +
-      request.similarity +
-      ":v" +
-      KIT_MUTATION_VERSION,
-  );
   const locked = new Set(request.lockedVoices ?? []);
-  const specs = cloneSpecs(request.source.specs);
-  mutateDna(
-    request.source.dna ?? inferKitDNA(request.source.specs),
-    request.mutation,
-    distance,
-    new SeededRandom(deriveSeed(effectiveSeed, "dna")),
-  );
-
   const targets = request.targetVoice
     ? [request.targetVoice]
     : DRUM_PADS.map((pad) => pad.voice);
@@ -604,26 +591,6 @@ export function mutateKit(
     );
   }
 
-  for (const voice of mutableTargets) {
-
-    specs[voice] = mutateSpec(
-      request.source.specs[voice],
-      voice,
-      request.mutation,
-      distance,
-      new SeededRandom(
-        deriveSeed(effectiveSeed, "voice:" + voice),
-      ),
-    );
-  }
-
-  assertLockedVoicesPreserved(
-    request.source.specs,
-    specs,
-    locked,
-  );
-
-  const targetDna = inferKitDNA(specs);
   const sourceDirection = normalizeDirection(request.source.direction);
   const targetDirection = validationDirection(
     request.source,
@@ -633,32 +600,89 @@ export function mutateKit(
     request.targetVoice || distance < 0.5
       ? sourceDirection
       : targetDirection;
-  const validation = validateGeneratedKit(specs, direction);
-  const mutationId = request.targetVoice
-    ? "voice:" + request.targetVoice + ":" + request.mutation
-    : "kit:" + request.mutation;
-  const artifacts = buildArtifacts(
-    specs,
-    targetDna,
-    effectiveSeed,
-    direction,
-    mutationId,
-    distance,
-    request.source.kit,
-  );
 
-  return {
-    ...artifacts,
-    specs,
-    dna: targetDna,
-    effectiveSeed,
-    displaySeed: shortSeed(effectiveSeed),
-    mutationId,
-    direction,
-    distance,
-    changedVoices: changedVoices(request.source.specs, specs),
-    validation,
-  };
+  let best: KitMutationResult | null = null;
+
+  for (let attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt += 1) {
+    const effectiveSeed = deriveSeed(
+      request.seed,
+      request.mutation +
+        ":" +
+        request.similarity +
+        ":attempt:" +
+        attempt +
+        ":v" +
+        KIT_MUTATION_VERSION,
+    );
+    const specs = cloneSpecs(request.source.specs);
+
+    for (const voice of mutableTargets) {
+      specs[voice] = mutateSpec(
+        request.source.specs[voice],
+        voice,
+        request.mutation,
+        distance,
+        new SeededRandom(
+          deriveSeed(effectiveSeed, "voice:" + voice),
+        ),
+      );
+    }
+
+    assertLockedVoicesPreserved(
+      request.source.specs,
+      specs,
+      locked,
+    );
+
+    const targetDna = inferKitDNA(specs);
+    const validation = validateGeneratedKit(
+      specs,
+      direction,
+      request.targetVoice
+        ? { requireDirectionFit: false }
+        : undefined,
+    );
+    const mutationId = request.targetVoice
+      ? "voice:" + request.targetVoice + ":" + request.mutation
+      : "kit:" + request.mutation;
+    const artifacts = buildArtifacts(
+      specs,
+      targetDna,
+      effectiveSeed,
+      direction,
+      mutationId,
+      distance,
+      request.source.kit,
+    );
+
+    const result: KitMutationResult = {
+      ...artifacts,
+      specs,
+      dna: targetDna,
+      effectiveSeed,
+      displaySeed: shortSeed(effectiveSeed),
+      mutationId,
+      direction,
+      distance,
+      attempts: attempt + 1,
+      changedVoices: changedVoices(request.source.specs, specs),
+      validation,
+    };
+
+    if (!best || validation.score > best.validation.score) {
+      best = result;
+    }
+
+    if (validation.valid) {
+      return result;
+    }
+  }
+
+  if (!best) {
+    throw new Error("Kit mutation failed to produce a candidate.");
+  }
+
+  return best;
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -737,7 +761,11 @@ export function morphKitSpecs(
     amount < 0.5
       ? normalizeDirection(request.a.direction)
       : normalizeDirection(request.b.direction);
-  const validation = validateGeneratedKit(specs, direction);
+  const validation = validateGeneratedKit(
+    specs,
+    direction,
+    { requireDirectionFit: false },
+  );
   const mutationId =
     "morph:" +
     (request.a.kit?.id ?? "A") +
@@ -762,6 +790,7 @@ export function morphKitSpecs(
     mutationId,
     direction,
     distance: amount,
+    attempts: 1,
     changedVoices: changedVoices(
       request.a.specs,
       specs,
@@ -773,6 +802,7 @@ export function morphKitSpecs(
 export const KIT_MUTATION_META = Object.freeze({
   generatorId: KIT_MUTATION_ID,
   generatorVersion: KIT_MUTATION_VERSION,
+  maxMutationAttempts: MAX_MUTATION_ATTEMPTS,
   similarities: KIT_SIMILARITIES.map((entry) => entry.id),
   mutations: KIT_MUTATIONS.map((entry) => entry.id),
 });
