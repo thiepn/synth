@@ -312,7 +312,9 @@ export class DrumEngine {
       this.currentTransportEpoch = snapshot.schedulerEpoch;
     }
 
-    if (snapshot.status !== "running") {
+    if (snapshot.status === "running") {
+      this.cancelAuditionVoices(context.currentTime);
+    } else {
       this.cancelTransportVoices(context.currentTime, true);
     }
   }
