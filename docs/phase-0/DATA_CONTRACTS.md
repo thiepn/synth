@@ -213,19 +213,24 @@ A style generator interprets these values contextually.
 
 ## 15. History lineage
 
-A generated/mutated node stores:
+A generated/mutated node stores conceptually:
 
+- stable history-node ID
 - parent node ID
 - operation
 - operation parameters
-- seed
+- seed / provenance
 - affected/result artifact references
-- timestamp
 - optional favorite/name
+- an immutable creative snapshot or durable reference to one
 
-Artifact references are typed and may point to patterns, kits, sounds, scenes, or arrangement results. The lineage model therefore supports sound and arrangement evolution rather than assuming all history is pattern-only.
+For the current Pattern-focused Evolution Tree, each node stores an immutable Pattern snapshot plus its deterministic Rhythm Glyph signature.
 
-Branching is first-class. Undo history and creative lineage may share infrastructure but are not assumed to be identical user concepts.
+Artifact references remain typed and may later point to kits, sounds, scenes, or arrangement results. The lineage model therefore supports future sound and arrangement evolution rather than assuming all history is pattern-only.
+
+Pattern provenance may also store `sourceHistoryNodeId` so the generated artifact itself knows the creative history node it descended from.
+
+Branching is first-class. Undo history and creative lineage are separate concepts: Undo reverses editor state, while Evolution history preserves alternatives for restoration and further branching.
 
 ## 16. Serialization
 
