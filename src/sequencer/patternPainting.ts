@@ -3,6 +3,7 @@ import type {
   StepEvent,
 } from "../domain/contracts";
 import {
+  FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
 } from "../music/foundationPattern";
 import {
@@ -366,7 +367,7 @@ function laneActionEvent(
       laneId.replace("lane-", "") +
       "-" +
       step,
-    tick: step * 240,
+    tick: step * FOUNDATION_STEP_TICKS,
     velocity,
     probability: 1,
     timingOffsetUs: 0,
@@ -433,8 +434,8 @@ function variedSteps(
   const density = clamp01(request.density);
   const byStep = new Map(
     request.events
-      .filter((event) => event.tick / 240 < length)
-      .map((event) => [Math.round(event.tick / 240), cloneEvent(event)]),
+      .filter((event) => event.tick / FOUNDATION_STEP_TICKS < length)
+      .map((event) => [Math.round(event.tick / FOUNDATION_STEP_TICKS), cloneEvent(event)]),
   );
 
   const result: StepEvent[] = [];
@@ -501,7 +502,7 @@ function simplifiedSteps(
   const active = request.events
     .filter(
       (event) =>
-        event.tick / 240 < request.laneLengthSteps,
+        event.tick / FOUNDATION_STEP_TICKS < request.laneLengthSteps,
     )
     .map(cloneEvent);
 
@@ -538,7 +539,7 @@ function humanizedSteps(
 
   return request.events.map((source) => {
     const event = cloneEvent(source);
-    const step = Math.round(event.tick / 240);
+    const step = Math.round(event.tick / FOUNDATION_STEP_TICKS);
     const random = new SeededRandom(
       deriveSeed(
         request.seed,
