@@ -306,6 +306,7 @@ export interface SynthProject {
 
 export interface RhythmExchangeLane {
   role: InstrumentRole;
+  loopLengthTicks?: Tick;
   events: Array<
     Pick<
       StepEvent,
