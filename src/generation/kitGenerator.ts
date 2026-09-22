@@ -55,6 +55,7 @@ export interface KitGenerationRequest {
   seed: string;
   direction: KitDirectionId;
   intensity: number;
+  lockedSpecs?: Partial<Record<DrumVoiceId, DrumMaterialSpec>>;
 }
 
 export interface KitCoherenceMetrics {
@@ -780,12 +781,14 @@ export function generateKit(
     const specs = Object.fromEntries(
       DRUM_PADS.map((pad) => [
         pad.voice,
-        generateVoiceSpec(
-          pad.voice,
-          dna,
-          requestInput.direction,
-          effectiveSeed,
-        ),
+        requestInput.lockedSpecs?.[pad.voice]
+          ? { ...requestInput.lockedSpecs[pad.voice] }
+          : generateVoiceSpec(
+              pad.voice,
+              dna,
+              requestInput.direction,
+              effectiveSeed,
+            ),
       ]),
     ) as Record<DrumVoiceId, DrumMaterialSpec>;
 
