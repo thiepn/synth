@@ -422,6 +422,33 @@ function generatedSteps(
     );
   }
 
+  if (events.length === 0 && length > 0) {
+    let strongestStep = 0;
+    let strongestWeight = -1;
+
+    for (let step = 0; step < length; step += 1) {
+      const weight = densityWeight(request.role, step);
+      if (weight > strongestWeight) {
+        strongestWeight = weight;
+        strongestStep = step;
+      }
+    }
+
+    events.push(
+      laneActionEvent(
+        request.laneId,
+        strongestStep,
+        brushVelocity(
+          request.role,
+          strongestStep,
+          density,
+          random,
+        ),
+        request.seed,
+      ),
+    );
+  }
+
   return events;
 }
 
@@ -496,6 +523,13 @@ function variedSteps(
     );
   }
 
+  if (result.length === 0 && byStep.size > 0) {
+    const fallback = [...byStep.values()].sort(
+      (a, b) => b.velocity - a.velocity,
+    )[0];
+    if (fallback) result.push(fallback);
+  }
+
   return result.sort((a, b) => a.tick - b.tick);
 }
 
@@ -522,8 +556,8 @@ function simplifiedSteps(
 
   return active
     .sort((a, b) => {
-      const stepA = Math.round(a.tick / 240);
-      const stepB = Math.round(b.tick / 240);
+      const stepA = Math.round(a.tick / FOUNDATION_STEP_TICKS);
+      const stepB = Math.round(b.tick / FOUNDATION_STEP_TICKS);
       const scoreA =
         a.velocity * 0.52 +
         densityWeight(request.role, stepA) * 0.48;
