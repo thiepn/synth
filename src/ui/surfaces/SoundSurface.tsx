@@ -659,7 +659,9 @@ export function SoundSurface() {
                   (lastMutation
                     ? "Q" +
                       lastMutation.validation.score +
-                      " / Δ" +
+                      " / " +
+                      lastMutation.attempts +
+                      " TRY / Δ" +
                       lastMutation.changedVoices.length +
                       " VOICES / " +
                       lastMutation.displaySeed
