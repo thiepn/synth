@@ -8,6 +8,7 @@ import "./sequencer.css";
 import "./generator.css";
 import "./groove.css";
 import "./history.css";
+import "./sound.css";
 
 const root = document.getElementById("root");
 
