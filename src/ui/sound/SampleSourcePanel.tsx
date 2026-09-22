@@ -32,7 +32,17 @@ function formatSeconds(value: number | undefined): string {
   return value === undefined ? "--" : value.toFixed(3) + "s";
 }
 
-function Waveform({ asset }: { asset?: SampleAssetState }) {
+function Waveform({
+  asset,
+  trimStart,
+  trimEnd,
+  duration,
+}: {
+  asset?: SampleAssetState;
+  trimStart?: number;
+  trimEnd?: number;
+  duration?: number;
+}) {
   const waveform = asset?.waveform ?? [];
 
   if (waveform.length === 0) {
@@ -78,6 +88,24 @@ function Waveform({ asset }: { asset?: SampleAssetState }) {
           />
         );
       })}
+      {duration && trimStart !== undefined ? (
+        <line
+          className="sample-waveform__trim"
+          x1={(trimStart / duration) * 192}
+          x2={(trimStart / duration) * 192}
+          y1="2"
+          y2="68"
+        />
+      ) : null}
+      {duration && trimEnd !== undefined ? (
+        <line
+          className="sample-waveform__trim"
+          x1={(trimEnd / duration) * 192}
+          x2={(trimEnd / duration) * 192}
+          y1="2"
+          y2="68"
+        />
+      ) : null}
     </svg>
   );
 }
@@ -281,7 +309,12 @@ export function SampleSourcePanel({
             ))}
           </div>
 
-          <Waveform asset={activeAsset} />
+          <Waveform
+            asset={activeAsset}
+            trimStart={sample ? trimStart : undefined}
+            trimEnd={sample ? trimEnd : undefined}
+            duration={sample ? duration : undefined}
+          />
 
           <div className="sample-source-editor__identity">
             <span>
