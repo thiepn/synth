@@ -225,6 +225,7 @@ function provenance(
 }
 
 function buildScenes(
+  family: BeatFamily,
   patterns: readonly BeatFamilyPattern[],
   seed: string,
   shape: ArrangementShapeId,
@@ -276,7 +277,6 @@ function buildSection(
   template: SectionTemplate,
   index: number,
   startTick: number,
-  family: BeatFamily,
   patterns: readonly BeatFamilyPattern[],
   scenesByRole: Map<SceneRole, Scene>,
   patternById: Map<string, Pattern>,
