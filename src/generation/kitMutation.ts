@@ -584,7 +584,7 @@ export function mutateKit(
   );
   const locked = new Set(request.lockedVoices ?? []);
   const specs = cloneSpecs(request.source.specs);
-  const targetDna = mutateDna(
+  mutateDna(
     request.source.dna ?? inferKitDNA(request.source.specs),
     request.mutation,
     distance,
@@ -594,9 +594,17 @@ export function mutateKit(
   const targets = request.targetVoice
     ? [request.targetVoice]
     : DRUM_PADS.map((pad) => pad.voice);
+  const mutableTargets = targets.filter((voice) => !locked.has(voice));
 
-  for (const voice of targets) {
-    if (locked.has(voice)) continue;
+  if (mutableTargets.length === 0) {
+    throw new Error(
+      request.targetVoice
+        ? "Selected sound is locked."
+        : "All sounds are locked.",
+    );
+  }
+
+  for (const voice of mutableTargets) {
 
     specs[voice] = mutateSpec(
       request.source.specs[voice],
@@ -615,17 +623,13 @@ export function mutateKit(
     locked,
   );
 
-  if (
-    request.targetVoice &&
-    locked.has(request.targetVoice)
-  ) {
-    throw new Error("Selected sound is locked.");
-  }
-
-  const direction = validationDirection(
-    request.source,
-    request.mutation,
-  );
+  const targetDna = inferKitDNA(specs);
+  const direction = request.targetVoice
+    ? normalizeDirection(request.source.direction)
+    : validationDirection(
+        request.source,
+        request.mutation,
+      );
   const validation = validateGeneratedKit(specs, direction);
   const mutationId = request.targetVoice
     ? "voice:" + request.targetVoice + ":" + request.mutation
