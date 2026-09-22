@@ -96,6 +96,10 @@ A kit slot has:
 
 A kit is an ordered collection of slots. A project can contain multiple kits and has one active kit.
 
+Generated drum kits reuse the exact semantic kit-slot IDs already referenced by Pattern lanes. Runtime playback resolves `Pattern Lane → Kit Slot → Sound → source voice`, with semantic fallback when no generated Kit is active.
+
+Generated Kit identity may also include shared Kit DNA with normalized Brightness, Weight, Tightness, Roughness, Synthetic, Depth, Air, and Variance dimensions.
+
 ## 7. Lane
 
 A lane has:
@@ -137,6 +141,8 @@ Supported conceptual sources:
 Drum Synthesis V2 uses a serializable material specification that maps into `SynthSoundSpec.params`. Current normalized drum-material dimensions are Impact, Body, Noise, Air, Tone, Decay, Pitch, and Character; Character is interpreted by voice type.
 
 The runtime Drum Engine consumes those specifications and constructs transient AudioNodes only when a hit is scheduled.
+
+Kit generation creates real versioned `Kit` and `Sound` domain objects. Each generated Sound stores a V2 `SynthSoundSpec` plus generation provenance; the Kit links semantic slots to those Sound IDs.
 
 A hybrid may reference a sample asset plus synthesis layers.
 
