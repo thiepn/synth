@@ -23,7 +23,7 @@ import {
 } from "../style/styleDNA";
 
 export const BEAT_GENERATOR_ID = "beat-generator";
-export const BEAT_GENERATOR_VERSION = 1;
+export const BEAT_GENERATOR_VERSION = 2;
 
 export type BeatStyleId = StyleDNAId;
 
@@ -1175,8 +1175,31 @@ function countLane(pattern: Pattern, laneId: string): number {
   return pattern.lanes.find((entry) => entry.id === laneId)?.events.length ?? 0;
 }
 
-function countBackbeats(pattern: Pattern): number {
-  const backbeats = new Set(backbeatSteps(pattern.lengthTicks / FOUNDATION_STEP_TICKS));
+function expectedBackbeatSteps(
+  style: BeatStyleId,
+  stepCount: number,
+): number[] {
+  const dna = getStyleDNA(style);
+
+  if (dna.rhythm.halfTime >= 0.6 && stepCount >= 8) {
+    return Array.from(
+      { length: stepCount },
+      (_, index) => index,
+    ).filter((step) => step % 16 === 8);
+  }
+
+  return backbeatSteps(stepCount);
+}
+
+function countBackbeats(
+  pattern: Pattern,
+  style: BeatStyleId,
+): number {
+  const stepCount =
+    pattern.lengthTicks / FOUNDATION_STEP_TICKS;
+  const backbeats = new Set(
+    expectedBackbeatSteps(style, stepCount),
+  );
   let count = 0;
 
   for (const laneId of [LANE.snare, LANE.clap]) {
@@ -1219,7 +1242,8 @@ export function validateGeneratedBeat(
   const percussionHits =
     countLane(pattern, LANE.percussion) +
     countLane(pattern, LANE.tom);
-  const backbeatHits = countBackbeats(pattern);
+  const dna = getStyleDNA(style);
+  const backbeatHits = countBackbeats(pattern, style);
   const syncopatedKickHits = countSyncopatedKicks(pattern);
   const totalHits = pattern.lanes.reduce(
     (sum, laneValue) => sum + laneValue.events.length,
@@ -1253,23 +1277,37 @@ export function validateGeneratedBeat(
     score -= 50;
   }
 
-  if (backbeatHits === 0 && style !== "house") {
+  const backbeatRequired = dna.rhythm.backbeatStrength >= 0.5;
+  if (backbeatHits === 0 && backbeatRequired) {
     reasons.push("missing backbeat");
     score -= 35;
   }
 
-  const minimumHats = Math.max(1, Math.floor(stepCount / 4));
+  const minimumHats = Math.max(
+    1,
+    Math.floor(
+      stepCount *
+        (0.12 + dna.rhythm.hatSixteenth * 0.14),
+    ),
+  );
   if (hatHits < minimumHats) {
     reasons.push("insufficient subdivision motion");
     score -= 18;
   }
 
-  if (totalHits < Math.max(3, Math.floor(stepCount * 0.55))) {
+  const minimumHitFactor =
+    0.3 +
+    dna.rhythm.hatSixteenth * 0.12 +
+    dna.rhythm.percussion * 0.08;
+  if (
+    totalHits <
+    Math.max(3, Math.floor(stepCount * minimumHitFactor))
+  ) {
     reasons.push("generation too empty");
     score -= 20;
   }
 
-  if (totalHits > stepCount * 3.2) {
+  if (totalHits > stepCount * (3.1 + dna.rhythm.percussion * 0.45)) {
     reasons.push("generation too dense");
     score -= 20;
   }
@@ -1279,22 +1317,28 @@ export function validateGeneratedBeat(
     score -= 15;
   }
 
-  if (style === "house" && kickHits < quarterSteps(stepCount).length) {
-    reasons.push("house pulse lost four-on-floor foundation");
+  if (
+    dna.rhythm.fourOnFloor >= 0.85 &&
+    kickHits < quarterSteps(stepCount).length
+  ) {
+    reasons.push("style pulse lost four-on-floor foundation");
     score -= 40;
   }
 
-  if (style === "trap" && hatHits < Math.max(2, stepCount / 2)) {
-    reasons.push("trap subdivision layer too sparse");
+  if (
+    dna.subdivision === "rolling" &&
+    hatHits < Math.max(2, stepCount / 2)
+  ) {
+    reasons.push("rolling subdivision layer too sparse");
     score -= 25;
   }
 
   if (
-    style === "funk" &&
+    dna.rhythm.kickSyncopation >= 0.72 &&
     stepCount >= 8 &&
     syncopatedKickHits === 0
   ) {
-    reasons.push("funk groove lacks syncopated kick movement");
+    reasons.push("style grammar lacks syncopated kick movement");
     score -= 18;
   }
 
@@ -1308,8 +1352,8 @@ export function validateGeneratedBeat(
   return {
     valid: score >= 72 && !reasons.some((reason) =>
       reason === "missing kick foundation" ||
-      reason === "missing backbeat" ||
-      reason === "house pulse lost four-on-floor foundation"
+      (backbeatRequired && reason === "missing backbeat") ||
+      reason === "style pulse lost four-on-floor foundation"
     ),
     score,
     reasons,
