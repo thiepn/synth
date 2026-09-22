@@ -22,9 +22,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 11 — Drum Synthesis Engine V2:** complete
 - **Phase 12 — Kit Generator:** complete
 - **Phase 13 — Sound Morphing & Kit Mutation:** complete
-- **Next: Phase 14 — Advanced Sequencer V2**
+- **Phase 14 — Advanced Sequencer V2:** complete
+- **Next: Phase 15 — Pattern Painting & Advanced Sequencer Gestures**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, and lock-aware sound evolution/morphing. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, and sound-evolution logic.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, and deterministic probability/ratchet/flam playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, and advanced sequencer playback evaluation.
 
 ## Run locally
 
@@ -294,6 +295,28 @@ See [Phase 12 implementation notes](docs/phase-12/PHASE_12.md).
 - direct manual material edits intentionally remain explicit lock overrides
 
 See [Phase 13 implementation notes](docs/phase-13/PHASE_13.md).
+
+### Phase 14 — Advanced Sequencer V2
+
+- 4 / 8 / 16 / 32 / 64-step Patterns
+- Generate/Reroll compatibility at 32/64 steps
+- independent per-lane loop lengths as the polymeter foundation
+- dormant events preserved outside shortened lane loops
+- deterministic per-lane-cycle probability
+- ×1 / ×2 / ×3 / ×4 ratchets
+- tempo-safe 0–40 ms flams
+- signed ±50 ms per-step microtiming
+- advanced Step Editor for probability / timing / ratchet / flam
+- local lane playheads follow independent loop lengths
+- Matrix shows probability / ratchet / flam / dormant-loop state
+- Create strips render effective repeated lane loops
+- historical Pattern audition honors polymeter/probability/ratchets/flams
+- Rhythm Glyph identity/geometry reflects lane loops and advanced event metadata
+- creative history identity includes loop/ratchet/flam changes
+- Rhythm Exchange preserves lane loops, probability, ratchets, and flams
+- mobile sticky lane hardware remains touch-usable
+
+See [Phase 14 implementation notes](docs/phase-14/PHASE_14.md).
 
 ## Phase 0 architecture
 
