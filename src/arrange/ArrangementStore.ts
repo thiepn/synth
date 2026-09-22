@@ -288,7 +288,7 @@ export class ArrangementStore {
     if (
       section.fillPatternId &&
       section.fillPlacement !== "off" &&
-      next.length > 1
+      next.length > 0
     ) {
       next[next.length - 1] = section.fillPatternId;
     }
@@ -398,7 +398,7 @@ export class ArrangementStore {
     if (
       section.fillPatternId &&
       section.fillPlacement !== "off" &&
-      next.length > 1
+      next.length > 0
     ) {
       next[next.length - 1] = section.fillPatternId;
     }
