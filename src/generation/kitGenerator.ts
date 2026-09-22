@@ -610,6 +610,40 @@ function average(
   );
 }
 
+function inferResultDna(
+  specs: Record<DrumVoiceId, DrumMaterialSpec>,
+): KitDNA {
+  const tone = average(specs, "tone");
+  const air = average(specs, "air");
+  const body = average(specs, "body");
+  const impact = average(specs, "impact");
+  const noise = average(specs, "noise");
+  const character = average(specs, "character");
+  const decay = average(specs, "decay");
+  const pitchValues = DRUM_PADS.map(
+    (pad) => specs[pad.voice].pitch,
+  );
+  const characterValues = DRUM_PADS.map(
+    (pad) => specs[pad.voice].character,
+  );
+
+  return {
+    brightness: clamp01(tone * 0.64 + air * 0.36),
+    weight: clamp01(body * 0.62 + impact * 0.38),
+    tightness: clamp01(1 - decay * 0.76 + impact * 0.24),
+    roughness: clamp01(noise * 0.56 + character * 0.44),
+    synthetic: clamp01(character * 0.7 + average(specs, "pitch") * 0.3),
+    depth: clamp01(body * 0.52 + decay * 0.48),
+    air: clamp01(air),
+    variance: clamp01(
+      (Math.max(...pitchValues) - Math.min(...pitchValues)) * 0.42 +
+        (Math.max(...characterValues) -
+          Math.min(...characterValues)) *
+          0.58,
+    ),
+  };
+}
+
 function directionFit(
   specs: Record<DrumVoiceId, DrumMaterialSpec>,
   direction: KitDirectionId,
@@ -804,18 +838,23 @@ export function generateKit(
       specs,
       requestInput.direction,
     );
+    const actualDna =
+      requestInput.lockedSpecs &&
+      Object.keys(requestInput.lockedSpecs).length > 0
+        ? inferResultDna(specs)
+        : dna;
     const domain = buildDomainKit(
       requestInput.direction,
       effectiveSeed,
       specs,
-      dna,
+      actualDna,
       intensity,
     );
 
     const result: GeneratedKitResult = {
       ...domain,
       specs,
-      dna,
+      dna: actualDna,
       effectiveSeed,
       displaySeed: shortSeed(effectiveSeed),
       direction: requestInput.direction,
