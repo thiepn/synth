@@ -192,6 +192,7 @@ export function SoundSurface() {
   const [morphError, setMorphError] = useState<string | null>(null);
 
   const spec = snapshot.specs[selectedVoice];
+  const selectedSource = snapshot.sourceStates[selectedVoice];
   const activeKit = snapshot.activeKit;
   const dna = activeKit?.dna;
   const activeDirection = activeKit?.direction ?? direction;
@@ -806,7 +807,9 @@ export function SoundSurface() {
         <div className="sound-voice-bank">
           <div className="machine-section-label">
             <span>A / VOICE</span>
-            <span>SYNTH V{DRUM_SYNTH_ENGINE_VERSION}</span>
+            <span>
+              {selectedSource.mode.toUpperCase()} / V{DRUM_SYNTH_ENGINE_VERSION}
+            </span>
           </div>
 
           <div className="sound-voice-bank__grid">
