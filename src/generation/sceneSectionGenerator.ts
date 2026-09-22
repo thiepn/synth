@@ -225,9 +225,9 @@ function provenance(
 }
 
 function buildScenes(
-  family: BeatFamily,
   patterns: readonly BeatFamilyPattern[],
   seed: string,
+  shape: ArrangementShapeId,
 ): Scene[] {
   const transition = patternEntry(patterns, "transition").pattern.id;
   const fill1 = patternEntry(patterns, "fill1").pattern.id;
@@ -266,7 +266,7 @@ function buildScenes(
       provenance: provenance(
         family,
         sceneSeed,
-        "standard",
+        shape,
       ),
     };
   });
@@ -435,6 +435,7 @@ export function generateSceneSectionBlueprint(
     request.family,
     patterns,
     effectiveSeed,
+    request.shape,
   );
   const scenesByRole = new Map(
     scenes.map((scene) => [scene.role!, scene]),
@@ -447,7 +448,6 @@ export function generateSceneSectionBlueprint(
         template,
         index,
         cursor,
-        request.family,
         patterns,
         scenesByRole,
         patternById,
