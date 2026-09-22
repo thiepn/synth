@@ -1,5 +1,4 @@
 import type {
-  GrooveProfile,
   IntentVector,
   Pattern,
   PatternLane,
@@ -747,6 +746,7 @@ function countChanges(
 function newCriticalFailure(
   source: BeatValidation,
   next: BeatValidation,
+  allowed: ReadonlySet<string> = new Set(),
 ): boolean {
   const before = new Set(
     source.reasons.filter((reason) => CRITICAL_REASONS.has(reason)),
@@ -754,7 +754,9 @@ function newCriticalFailure(
 
   return next.reasons.some(
     (reason) =>
-      CRITICAL_REASONS.has(reason) && !before.has(reason),
+      CRITICAL_REASONS.has(reason) &&
+      !allowed.has(reason) &&
+      !before.has(reason),
   );
 }
 
@@ -826,9 +828,18 @@ function finalizeMutation(
     72,
     Math.max(48, sourceValidation.score - 22),
   );
+  const allowedCritical = new Set<string>();
+  if (mutationId === "mutation:break") {
+    allowedCritical.add("house pulse lost four-on-floor foundation");
+  }
+
   const accepted =
     validation.score >= minimumScore &&
-    !newCriticalFailure(sourceValidation, validation);
+    !newCriticalFailure(
+      sourceValidation,
+      validation,
+      allowedCritical,
+    );
 
   const changes = countChanges(source, grooved.pattern);
 
