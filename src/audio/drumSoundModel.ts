@@ -30,9 +30,17 @@ export interface ActiveGeneratedKit {
   modified: boolean;
 }
 
+export interface SoundMorphEndpoint {
+  label: string;
+  specs: Record<DrumVoiceId, DrumMaterialSpec>;
+  activeKit?: ActiveGeneratedKit;
+}
+
 export interface DrumSoundSnapshot {
   specs: Record<DrumVoiceId, DrumMaterialSpec>;
   activeKit?: ActiveGeneratedKit;
+  morphA?: SoundMorphEndpoint;
+  morphB?: SoundMorphEndpoint;
   revision: number;
 }
 
@@ -182,10 +190,64 @@ function cloneSpecs(
   ) as Record<DrumVoiceId, DrumMaterialSpec>;
 }
 
+function cloneActiveKit(
+  activeKit: ActiveGeneratedKit | undefined,
+): ActiveGeneratedKit | undefined {
+  if (!activeKit) return undefined;
+
+  return {
+    kit: {
+      ...activeKit.kit,
+      slots: activeKit.kit.slots.map((slot) => ({ ...slot })),
+      provenance: activeKit.kit.provenance
+        ? {
+            ...activeKit.kit.provenance,
+            style: { ...activeKit.kit.provenance.style },
+            intent: { ...activeKit.kit.provenance.intent },
+          }
+        : undefined,
+    },
+    sounds: activeKit.sounds.map((sound) => ({
+      ...sound,
+      spec:
+        sound.spec.kind === "synth"
+          ? {
+              ...sound.spec,
+              params: { ...sound.spec.params },
+            }
+          : sound.spec,
+      provenance: sound.provenance
+        ? {
+            ...sound.provenance,
+            style: { ...sound.provenance.style },
+            intent: { ...sound.provenance.intent },
+          }
+        : undefined,
+    })),
+    direction: activeKit.direction,
+    seed: activeKit.seed,
+    dna: { ...activeKit.dna },
+    modified: activeKit.modified,
+  };
+}
+
+function cloneMorphEndpoint(
+  endpoint: SoundMorphEndpoint | undefined,
+): SoundMorphEndpoint | undefined {
+  if (!endpoint) return undefined;
+  return {
+    label: endpoint.label,
+    specs: cloneSpecs(endpoint.specs),
+    activeKit: cloneActiveKit(endpoint.activeKit),
+  };
+}
+
 export class DrumSoundStore {
   private listeners = new Set<StoreListener>();
   private specs = cloneSpecs(DRUM_DEFAULT_SPECS);
   private activeKit: ActiveGeneratedKit | undefined;
+  private morphA: SoundMorphEndpoint | undefined;
+  private morphB: SoundMorphEndpoint | undefined;
   private revision = 0;
   private snapshot: DrumSoundSnapshot = this.buildSnapshot();
 
@@ -228,6 +290,64 @@ export class DrumSoundStore {
     }
 
     return sourceVoice as DrumVoiceId;
+  }
+
+  captureMorphEndpoint(slot: "A" | "B"): void {
+    const endpoint: SoundMorphEndpoint = {
+      label:
+        this.activeKit?.kit.name ??
+        ("CUSTOM / REV " + String(this.revision).padStart(3, "0")),
+      specs: cloneSpecs(this.specs),
+      activeKit: cloneActiveKit(this.activeKit),
+    };
+
+    if (slot === "A") {
+      this.morphA = endpoint;
+    } else {
+      this.morphB = endpoint;
+    }
+
+    this.publish();
+  }
+
+  clearMorphEndpoints(): void {
+    if (!this.morphA && !this.morphB) return;
+    this.morphA = undefined;
+    this.morphB = undefined;
+    this.publish();
+  }
+
+  applySpecSet(
+    specs: Record<DrumVoiceId, DrumMaterialSpec>,
+    markModified = true,
+  ): void {
+    const next = {} as Record<DrumVoiceId, DrumMaterialSpec>;
+
+    for (const pad of DRUM_PADS) {
+      const spec = specs[pad.voice];
+      next[pad.voice] = {
+        ...spec,
+        voice: pad.voice,
+        engineVersion: DRUM_SYNTH_ENGINE_VERSION,
+        impact: clamp01(spec.impact),
+        body: clamp01(spec.body),
+        noise: clamp01(spec.noise),
+        air: clamp01(spec.air),
+        tone: clamp01(spec.tone),
+        decay: clamp01(spec.decay),
+        pitch: clamp01(spec.pitch),
+        character: clamp01(spec.character),
+      };
+    }
+
+    this.specs = next;
+    if (markModified && this.activeKit) {
+      this.activeKit = {
+        ...this.activeKit,
+        modified: true,
+      };
+    }
+    this.publish();
   }
 
   setParam(
@@ -402,42 +522,9 @@ export class DrumSoundStore {
   private buildSnapshot(): DrumSoundSnapshot {
     return {
       specs: cloneSpecs(this.specs),
-      activeKit: this.activeKit
-        ? {
-            kit: {
-              ...this.activeKit.kit,
-              slots: this.activeKit.kit.slots.map((slot) => ({ ...slot })),
-              provenance: this.activeKit.kit.provenance
-                ? {
-                    ...this.activeKit.kit.provenance,
-                    style: { ...this.activeKit.kit.provenance.style },
-                    intent: { ...this.activeKit.kit.provenance.intent },
-                  }
-                : undefined,
-            },
-            sounds: this.activeKit.sounds.map((sound) => ({
-              ...sound,
-              spec:
-                sound.spec.kind === "synth"
-                  ? {
-                      ...sound.spec,
-                      params: { ...sound.spec.params },
-                    }
-                  : sound.spec,
-              provenance: sound.provenance
-                ? {
-                    ...sound.provenance,
-                    style: { ...sound.provenance.style },
-                    intent: { ...sound.provenance.intent },
-                  }
-                : undefined,
-            })),
-            direction: this.activeKit.direction,
-            seed: this.activeKit.seed,
-            dna: { ...this.activeKit.dna },
-            modified: this.activeKit.modified,
-          }
-        : undefined,
+      activeKit: cloneActiveKit(this.activeKit),
+      morphA: cloneMorphEndpoint(this.morphA),
+      morphB: cloneMorphEndpoint(this.morphB),
       revision: this.revision,
     };
   }
