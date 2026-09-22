@@ -23,9 +23,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 12 — Kit Generator:** complete
 - **Phase 13 — Sound Morphing & Kit Mutation:** complete
 - **Phase 14 — Advanced Sequencer V2:** complete
-- **Next: Phase 15 — Pattern Painting & Advanced Sequencer Gestures**
+- **Phase 15 — Pattern Painting & Advanced Sequencer Gestures:** complete
+- **Next: Phase 16 — Beat Families, Fills & Transitions**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, and deterministic probability/ratchet/flam playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, and advanced sequencer playback evaluation.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, and fast gesture-based Pattern shaping. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, and Pattern Painting logic.
 
 ## Run locally
 
@@ -317,6 +318,29 @@ See [Phase 13 implementation notes](docs/phase-13/PHASE_13.md).
 - mobile sticky lane hardware remains touch-usable
 
 See [Phase 14 implementation notes](docs/phase-14/PHASE_14.md).
+
+### Phase 15 — Pattern Painting & Advanced Sequencer Gestures
+
+- explicit SELECT / SCROLL vs PAINT modes
+- Draw / Density / Kick / Hat / Perc / Fill / Ghost / Silence brushes
+- deterministic brush decisions with no ambient randomness
+- live pointer/touch drag painting
+- one complete drag stroke = one Undo action
+- repeated-cell protection inside a stroke
+- Brush Density control
+- semantic brush routing to Kick / Hat / Perc / Tom+Perc fill lanes
+- brush edits respect active polymetric lane boundaries and preserve dormant material
+- lane Generate / Variate / Simplify / Humanize actions
+- lane Generate cannot return an accidentally empty phrase
+- lane Variate preserves fallback material when needed
+- lane automation lock semantics aligned with rhythm/timing/dynamics locks
+- lane Humanize remains inside ±50 ms timing limits
+- Fill brush can author Advanced Sequencer ratchets/flams
+- scheduler invalidation coalesced to 16 ms during rapid Pattern edits
+- SELECT mode preserves mobile horizontal scrolling; PAINT mode reserves touch movement for painting
+- all gesture results remain canonical Pattern state observed by CREATE / Glyph / history
+
+See [Phase 15 implementation notes](docs/phase-15/PHASE_15.md).
 
 ## Phase 0 architecture
 
