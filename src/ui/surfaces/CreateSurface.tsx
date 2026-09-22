@@ -14,6 +14,9 @@ import {
 } from "../../generation/beatVariation";
 import { generateBeatFamily } from "../../generation/beatFamilyGenerator";
 import { beatFamilyStore } from "../../family/BeatFamilyStore";
+import { generateKit } from "../../generation/kitGenerator";
+import { drumSoundStore } from "../../audio/drumSoundModel";
+import { getStyleDNA } from "../../style/styleDNA";
 import { shortSeed } from "../../generation/prng";
 import { generationHistoryStore } from "../../history/GenerationHistoryStore";
 import { useGenerationHistorySnapshot } from "../../history/useGenerationHistory";
@@ -34,6 +37,7 @@ import { deriveRhythmGlyph } from "../../visual/rhythmGlyph";
 import {
   FOUNDATION_LANES,
   SEQUENCER_LANES,
+  type DrumVoiceId,
 } from "../../music/foundationPattern";
 import { sequencerStore } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
@@ -42,6 +46,7 @@ import { GrooveEnginePanel } from "../groove/GrooveEngineUI";
 import { EvolutionTreePanel } from "../history/EvolutionTree";
 import { BeatFamilyPanel } from "../family/BeatFamilyPanel";
 import { ArrangeFoundationPanel } from "../arrange/ArrangeFoundationPanel";
+import { StyleDNAPanel } from "../style/StyleDNAPanel";
 import {
   BeatReactor,
   GrooveField,
@@ -111,6 +116,8 @@ export function CreateSurface() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [familyCounter, setFamilyCounter] = useState(0);
   const [familyError, setFamilyError] = useState<string | null>(null);
+  const [styleKitCounter, setStyleKitCounter] = useState(0);
+  const [styleKitStatus, setStyleKitStatus] = useState("READY / STYLE MATERIAL");
   const [operationError, setOperationError] = useState<string | null>(
     null,
   );
@@ -465,6 +472,82 @@ export function CreateSurface() {
     }
   };
 
+  const generateCurrentStyleKit = () => {
+    const dna = getStyleDNA(style);
+    const lockedSpecs: Partial<
+      Record<DrumVoiceId, ReturnType<typeof drumSoundStore.getSpec>>
+    > = {};
+    let lockedCount = 0;
+
+    for (const definition of SEQUENCER_LANES) {
+      const lane = sequencer.pattern.lanes.find(
+        (entry) => entry.id === definition.id,
+      );
+      if (!lane?.lock.sound) continue;
+      lockedSpecs[definition.voice] =
+        drumSoundStore.getSpec(definition.voice);
+      lockedCount += 1;
+    }
+
+    if (lockedCount >= SEQUENCER_LANES.length) {
+      setStyleKitStatus("ALL SOUNDS LOCKED");
+      return;
+    }
+
+    try {
+      const result = generateKit({
+        seed:
+          "style-kit:" +
+          style +
+          ":" +
+          String(styleKitCounter).padStart(4, "0"),
+        direction: dna.sound.kitDirection,
+        intensity: Math.max(
+          0.34,
+          Math.min(0.9, (density + complexity) / 200),
+        ),
+        styleId: style,
+        lockedSpecs,
+      });
+
+      setStyleKitCounter((value) => value + 1);
+
+      if (!result.validation.valid) {
+        setStyleKitStatus(
+          "REJECTED / Q" +
+            result.validation.score +
+            " / " +
+            (result.validation.reasons[0] ?? "COHERENCE"),
+        );
+        return;
+      }
+
+      drumSoundStore.applyGeneratedKit({
+        specs: result.specs,
+        kit: result.kit,
+        sounds: result.sounds,
+        direction: result.direction,
+        seed: result.effectiveSeed,
+        dna: result.dna,
+      });
+
+      setStyleKitStatus(
+        "Q" +
+          result.validation.score +
+          " / " +
+          result.displaySeed +
+          " / " +
+          dna.sound.kitDirection.toUpperCase(),
+      );
+    } catch (error) {
+      setStyleKitCounter((value) => value + 1);
+      setStyleKitStatus(
+        "ERROR / " +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    }
+  };
+
   const generateCurrentFamily = () => {
     try {
       const result = generateBeatFamily({
@@ -567,6 +650,16 @@ export function CreateSurface() {
 
       <TransportPulseSpine />
 
+      <StyleDNAPanel
+        style={style}
+        kitStatus={styleKitStatus}
+        onStyleChange={(next) => {
+          setStyle(next);
+          setStyleKitStatus("READY / STYLE MATERIAL");
+        }}
+        onGenerateStyleKit={generateCurrentStyleKit}
+      />
+
       <div className="create-machine">
         <div className="create-machine__intent">
           <div className="machine-section-label">
@@ -574,23 +667,17 @@ export function CreateSurface() {
             <span>RULE ENGINE / V1</span>
           </div>
 
-          <div className="style-bank" aria-label="Beat style">
-            {BEAT_STYLES.map((entry) => (
-              <button
-                type="button"
-                key={entry.id}
-                className={
-                  style === entry.id
-                    ? "style-bank__key is-active"
-                    : "style-bank__key"
-                }
-                onClick={() => setStyle(entry.id)}
-                aria-pressed={style === entry.id}
-              >
-                <span>{entry.code}</span>
-                <strong>{entry.label}</strong>
-              </button>
-            ))}
+          <div className="create-style-readout">
+            <span>STYLE DNA</span>
+            <strong>
+              {BEAT_STYLES.find((entry) => entry.id === style)?.label ??
+                style.toUpperCase()}
+            </strong>
+            <small>
+              {getStyleDNA(style).archetype.toUpperCase()} /{" "}
+              {getStyleDNA(style).subdivision.toUpperCase()} /{" "}
+              {getStyleDNA(style).groove.personality.toUpperCase()}
+            </small>
           </div>
 
           <SignalRail
