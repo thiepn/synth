@@ -334,3 +334,15 @@ The editable Arrangement compiles Sections into concrete ordered Pattern occurre
 Energy Start/End are arrangement-level macro dynamics. They are interpolated over a Section and currently scale event velocity during arrangement playback without mutating source Pattern events.
 
 Arrangement editor Undo/Redo is separate from Pattern Undo and from the Pattern-focused Evolution Tree. Persistent multi-artifact history may later record Arrangement artifacts using the existing arrangement HistoryArtifactKind.
+
+## 21. Sample Assets & Hybrid Voices
+
+Audio sample assets are content-addressed local resources. AssetReference may store SHA-256 contentHash plus decoded metadata such as duration, sample rate and channel count, while raw bytes and AudioBuffer objects remain outside serialized domain state.
+
+SampleSoundSpec references an asset by stable assetId and stores non-destructive trim, gain, pitch and reverse parameters.
+
+HybridSoundSpec combines one SampleSoundSpec with one or more SynthSoundSpec layers and an explicit synthGainDb.
+
+Runtime source selection remains independent from Pattern lanes: Pattern Lane → Kit Slot → SoundSpec → Synth/Sample/Hybrid playback.
+
+Current sample bytes/cache persistence is session-local. Future persistence should store raw bytes under the deterministic asset ID rather than embedding AudioBuffer/runtime objects in project JSON.
