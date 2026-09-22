@@ -113,6 +113,12 @@ export function SequenceSurface() {
     selection.stepIndex,
   );
   const selectedVelocity = selectedEvent?.velocity;
+  const selectedProbability = selectedEvent?.probability ?? 1;
+  const selectedRatchet = Math.max(1, selectedEvent?.ratchetCount ?? 1);
+  const selectedFlamMs = Math.round((selectedEvent?.flamOffsetUs ?? 0) / 1000);
+  const selectedManualTimingMs = Math.round(
+    (selectedEvent?.timingOffsetUs ?? 0) / 1000,
+  );
   const selectedOn = selectedEvent !== undefined;
   const selectedTimingUs =
     (selectedEvent?.timingOffsetUs ?? 0) +
@@ -303,7 +309,7 @@ export function SequenceSurface() {
         >
           <div className="rhythm-matrix__corner">
             <span>LANE</span>
-            <span>M / S / L</span>
+            <span>M / S / L / LEN</span>
           </div>
 
           <div className="rhythm-matrix__step-header">
@@ -330,6 +336,14 @@ export function SequenceSurface() {
             const muted = Boolean(lane.muted);
             const solo = Boolean(lane.solo);
             const locked = Boolean(lane.lock.rhythm);
+            const laneLength = sequencerStore.getLaneLengthSteps(definition.id);
+            const laneActiveStep =
+              transport.status === "running"
+                ? Math.floor(
+                    transport.position.absoluteTick /
+                      TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+                  ) % laneLength
+                : undefined;
             const suppressed =
               sequencer.soloLaneCount > 0 && !solo;
 
@@ -356,6 +370,7 @@ export function SequenceSurface() {
                   >
                     <span>{definition.code}</span>
                     <strong>{definition.name}</strong>
+                    <small>LEN {laneLength}</small>
                   </button>
 
                   <div className="rhythm-matrix__lane-switches">
@@ -389,6 +404,32 @@ export function SequenceSurface() {
                     >
                       L
                     </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        sequencerStore.setLaneLengthSteps(
+                          definition.id,
+                          laneLength - 1,
+                        )
+                      }
+                      disabled={laneLength <= 1}
+                      aria-label={"Shorten " + definition.name + " lane loop"}
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        sequencerStore.setLaneLengthSteps(
+                          definition.id,
+                          laneLength + 1,
+                        )
+                      }
+                      disabled={laneLength >= sequencer.lengthSteps}
+                      aria-label={"Lengthen " + definition.name + " lane loop"}
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
 
@@ -401,6 +442,10 @@ export function SequenceSurface() {
                     );
                     const velocity = event?.velocity;
                     const isOn = event !== undefined;
+                    const probability = event?.probability ?? 1;
+                    const ratchet = Math.max(1, event?.ratchetCount ?? 1);
+                    const flam = event?.flamOffsetUs ?? 0;
+                    const beyondLoop = index >= laneLength;
                     const timingUs =
                       (event?.timingOffsetUs ?? 0) +
                       swingOffsetUsForStep(
@@ -421,13 +466,16 @@ export function SequenceSurface() {
                           "sequence-step",
                           isOn ? "is-on" : "",
                           isSelected ? "is-selected" : "",
-                          activeStep === index ? "is-current" : "",
+                          laneActiveStep === index ? "is-current" : "",
                           major ? "is-major" : "",
+                          beyondLoop ? "is-beyond-loop" : "",
+                          probability < 1 ? "is-probabilistic" : "",
                           event?.accent === "ghost" ? "is-ghost" : "",
                         ].join(" ")}
                         style={{
                           "--step-velocity": velocity ?? 0,
                           "--step-offset": timingPx + "px",
+                          "--step-probability": probability,
                         } as CSSProperties}
                         onClick={(event) =>
                           handleStep(
@@ -453,6 +501,15 @@ export function SequenceSurface() {
                       >
                         <span className="sequence-step__rail" aria-hidden="true" />
                         <span className="sequence-step__hit" aria-hidden="true" />
+                        {isOn && (ratchet > 1 || flam > 0 || probability < 1) ? (
+                          <span className="sequence-step__meta" aria-hidden="true">
+                            {ratchet > 1
+                              ? "×" + ratchet
+                              : flam > 0
+                                ? "F"
+                                : Math.round(probability * 100)}
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -510,14 +567,92 @@ export function SequenceSurface() {
             }
           />
         </div>
+
+        <div className="step-editor__advanced">
+          <label>
+            <span>PROB</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={Math.round(selectedProbability * 100)}
+              onChange={(event) =>
+                sequencerStore.setStepProbability(
+                  selection.laneId,
+                  selection.stepIndex,
+                  Number(event.currentTarget.value) / 100,
+                )
+              }
+            />
+            <b>{Math.round(selectedProbability * 100)}%</b>
+          </label>
+
+          <label>
+            <span>TIME</span>
+            <input
+              type="range"
+              min="-50"
+              max="50"
+              value={selectedManualTimingMs}
+              onChange={(event) =>
+                sequencerStore.setStepTimingOffsetUs(
+                  selection.laneId,
+                  selection.stepIndex,
+                  Number(event.currentTarget.value) * 1000,
+                )
+              }
+            />
+            <b>{selectedManualTimingMs >= 0 ? "+" : ""}{selectedManualTimingMs}ms</b>
+          </label>
+
+          <div className="step-editor__ratchets">
+            <span>RATCHET</span>
+            {[1, 2, 3, 4].map((count) => (
+              <button
+                type="button"
+                key={count}
+                className={selectedRatchet === count ? "is-active" : ""}
+                onClick={() =>
+                  sequencerStore.setStepRatchetCount(
+                    selection.laneId,
+                    selection.stepIndex,
+                    count,
+                  )
+                }
+              >
+                ×{count}
+              </button>
+            ))}
+          </div>
+
+          <label>
+            <span>FLAM</span>
+            <input
+              type="range"
+              min="0"
+              max="60"
+              step="5"
+              value={selectedFlamMs}
+              onChange={(event) =>
+                sequencerStore.setStepFlamOffsetUs(
+                  selection.laneId,
+                  selection.stepIndex,
+                  Number(event.currentTarget.value) * 1000,
+                )
+              }
+            />
+            <b>{selectedFlamMs}ms</b>
+          </label>
+        </div>
       </div>
 
       <p className="sequence-hint">
         Empty step: click to add. Active step: first click selects, click the
         selected step again to remove. Shift-click cycles velocity. DUP ×2
-        repeats the current phrase into the next half; at 16 steps it copies
-        steps 1–8 over 9–16. Cmd/Ctrl-Z handles history. Mute and solo affect
-        playback immediately; L protects a lane from Beat Reactor rerolls.
+        doubles the current phrase up to 64 steps. Probability is deterministic
+        per lane cycle; ratchets and flams stay inside the transport grid. Lane
+        −/+ controls establish independent loop lengths for polymetric playback.
+        Cmd/Ctrl-Z handles history.
       </p>
     </section>
   );
