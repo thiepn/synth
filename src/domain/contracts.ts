@@ -230,6 +230,8 @@ export interface HybridSoundSpec {
   kind: "hybrid";
   sample: SampleSoundSpec;
   layers: SynthSoundSpec[];
+  /** Gain applied to the synthesized layer group before the shared drum bus. */
+  synthGainDb: number;
 }
 
 export type SoundSpec = SynthSoundSpec | SampleSoundSpec | HybridSoundSpec;
@@ -329,6 +331,11 @@ export interface AssetReference {
   mimeType: string;
   name: string;
   byteLength?: number;
+  /** SHA-256 of the original local bytes when known. */
+  contentHash?: string;
+  durationSeconds?: number;
+  sampleRate?: number;
+  channels?: number;
 }
 
 export type HistoryOperation =
