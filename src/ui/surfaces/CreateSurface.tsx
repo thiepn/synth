@@ -261,7 +261,7 @@ export function CreateSurface() {
           targetKey +
           ":" +
           String(operationCounter).padStart(4, "0"),
-        style: currentPatternStyle,
+        style,
         intent: intent(),
         distance: distance / 100,
         bpm: transport.bpm,
@@ -368,7 +368,7 @@ export function CreateSurface() {
           String(operationCounter).padStart(4, "0"),
         mutation,
         amount: Math.max(0.12, distance / 100),
-        style,
+        style: currentPatternStyle,
         intent: intent(),
         bpm: transport.bpm,
       });
