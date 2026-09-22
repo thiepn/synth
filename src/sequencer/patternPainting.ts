@@ -565,8 +565,14 @@ function humanizedSteps(
 
     if (!request.timingLocked) {
       event.timingOffsetUs = Math.round(
-        event.timingOffsetUs +
-          random.range(-10_000, 10_000) * amount,
+        Math.max(
+          -50_000,
+          Math.min(
+            50_000,
+            event.timingOffsetUs +
+              random.range(-10_000, 10_000) * amount,
+          ),
+        ),
       );
     }
 
