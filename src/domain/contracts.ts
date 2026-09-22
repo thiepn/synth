@@ -284,6 +284,9 @@ export interface Scene {
   provenance?: GenerationProvenance;
 }
 
+export type FillPlacement = "off" | "last";
+export type TransitionPlacement = "off" | "replaceLast" | "append";
+
 export interface SectionBlueprint {
   id: EntityId;
   label: string;
@@ -296,7 +299,9 @@ export interface SectionBlueprint {
   energyStart: Normalized;
   energyEnd: Normalized;
   fillPatternId?: EntityId;
+  fillPlacement?: FillPlacement;
   transitionPatternId?: EntityId;
+  transitionPlacement?: TransitionPlacement;
 }
 
 export interface ArrangementBlueprint {
