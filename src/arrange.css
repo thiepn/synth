@@ -498,3 +498,16 @@
     padding-block: 10px;
   }
 }
+
+
+.arrange-section-block.is-dragging {
+  opacity: 0.42;
+  outline: 1px dashed var(--ice);
+  outline-offset: -4px;
+}
+
+.arrange-section-block__cycles i.is-fill,
+.arrange-editor__sequence .is-fill {
+  color: var(--heat);
+  border-color: rgba(255, 116, 72, 0.3);
+}
