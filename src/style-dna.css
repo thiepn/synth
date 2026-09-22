@@ -270,3 +270,28 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+.create-style-readout {
+  min-height: 58px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 0 10px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  color: #5d6359;
+  font: 600 0.44rem/1 var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.create-style-readout strong {
+  color: var(--bone);
+  font-size: 0.62rem;
+}
+
+.create-style-readout small {
+  color: var(--phosphor);
+  font-size: 0.42rem;
+}
