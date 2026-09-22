@@ -45,6 +45,16 @@ function strongestStyle(node: EvolutionNode): string {
 function shortOperation(node: EvolutionNode): string {
   const mutation = node.pattern.provenance?.mutationId;
   if (mutation) {
+    if (mutation.startsWith("morph:")) {
+      return "MORPH";
+    }
+    if (mutation.startsWith("remix:")) {
+      return (
+        "REMIX " +
+        mutation.replace("remix:", "").toUpperCase()
+      );
+    }
+
     return mutation
       .replace("mutation:", "")
       .replace("reroll:", "")
