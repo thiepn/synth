@@ -14,6 +14,13 @@ import {
 } from "../../generation/beatVariation";
 import { shortSeed } from "../../generation/prng";
 import {
+  MUSICAL_MUTATIONS,
+  mutateGrooveField,
+  mutateMusically,
+  type MusicalMutationId,
+  type MusicalMutationResult,
+} from "../../generation/musicalMutation";
+import {
   applyGroove,
   resetGroove,
   type GrooveApplyResult,
@@ -41,17 +48,6 @@ import {
   TransportStatusLabel,
 } from "../transport/TransportUI";
 
-const mutationKeys = [
-  "HARD",
-  "SPACE",
-  "FUNK",
-  "PUSH",
-  "DIRTY",
-  "BREAK",
-  "WEIRD",
-  "THIN",
-];
-
 type ReactorOperation =
   | {
       kind: "generate";
@@ -61,6 +57,10 @@ type ReactorOperation =
       kind: "reroll";
       result: BeatVariationResult;
       target: string;
+    }
+  | {
+      kind: "mutation";
+      result: MusicalMutationResult;
     };
 
 function provenanceStyle(
@@ -98,6 +98,9 @@ export function CreateSurface() {
   const [reactorVersion, setReactorVersion] = useState(0);
   const [lastOperation, setLastOperation] =
     useState<ReactorOperation | null>(null);
+  const [activeMutation, setActiveMutation] =
+    useState<MusicalMutationId | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(
     null,
   );
@@ -305,9 +308,107 @@ export function CreateSurface() {
     }
   };
 
+  const acceptMutation = (
+    result: MusicalMutationResult,
+    mutation: MusicalMutationId | null,
+  ) => {
+    if (!result.accepted) {
+      setMutationError(
+        "Mutation rejected · Q" +
+          result.validation.score +
+          " · " +
+          (result.validation.reasons[0] ?? "quality gate failed"),
+      );
+      setOperationCounter((value) => value + 1);
+      return;
+    }
+
+    sequencerStore.applyPatternTransform(result.pattern);
+    setLastOperation({ kind: "mutation", result });
+    setActiveMutation(mutation);
+    setMutationError(null);
+    setOperationError(null);
+    setEnergy(Math.round(result.targetIntent.energy * 100));
+    setDensity(Math.round(result.targetIntent.density * 100));
+    setComplexity(Math.round(result.targetIntent.complexity * 100));
+    setSyncopation(Math.round(result.targetIntent.syncopation * 100));
+    setSwing(Math.round(result.groove.swing * 100));
+    setPersonality(result.groove.personality);
+    setHumanization(Math.round(result.groove.humanization * 100));
+    setGhostNotes(Math.round(result.groove.ghostNoteAmount * 100));
+
+    const derivedStyle = provenanceStyle(result.pattern.provenance?.style);
+    if (derivedStyle) setStyle(derivedStyle);
+
+    setReactorVersion((value) => value + 1);
+    setOperationCounter((value) => value + 1);
+  };
+
+  const applySemanticMutation = (mutation: MusicalMutationId) => {
+    try {
+      const result = mutateMusically({
+        source: sequencer.pattern,
+        seed:
+          "mutation:" +
+          sequencer.pattern.id +
+          ":" +
+          mutation +
+          ":" +
+          String(operationCounter).padStart(4, "0"),
+        mutation,
+        amount: Math.max(0.12, distance / 100),
+        style,
+        intent: intent(),
+        bpm: transport.bpm,
+      });
+
+      acceptMutation(result, mutation);
+    } catch (error) {
+      setMutationError(
+        error instanceof Error ? error.message : String(error),
+      );
+      setOperationCounter((value) => value + 1);
+    }
+  };
+
+  const applyFieldMutation = (x: number, y: number) => {
+    try {
+      const result = mutateGrooveField({
+        source: sequencer.pattern,
+        seed:
+          "field:" +
+          sequencer.pattern.id +
+          ":" +
+          String(operationCounter).padStart(4, "0"),
+        targetDensity: y / 100,
+        targetSyncopation: x / 100,
+        style,
+        intent: {
+          ...intent(),
+          density: y / 100,
+          syncopation: x / 100,
+        },
+        bpm: transport.bpm,
+      });
+
+      acceptMutation(result, null);
+    } catch (error) {
+      setMutationError(
+        error instanceof Error ? error.message : String(error),
+      );
+      setOperationCounter((value) => value + 1);
+    }
+  };
+
   const lastStatus =
-    lastOperation?.kind === "reroll"
-      ? "Δ" +
+    lastOperation?.kind === "mutation"
+      ? "MUT / Δ" +
+        String(lastOperation.result.changedStepCount).padStart(2, "0") +
+        " / " +
+        lastOperation.result.changedLaneIds.length +
+        " LANE"
+      : lastOperation?.kind === "reroll"
+        ? "Δ" +
         String(lastOperation.result.changedStepCount).padStart(2, "0") +
         " / " +
         lastOperation.result.changedLaneIds.length +
@@ -468,13 +569,15 @@ export function CreateSurface() {
             <span>
               {operationError
                 ? "REJECTED"
-                : lastOperation?.kind === "reroll"
-                  ? "REROLLED"
-                  : lastOperation?.kind === "generate"
-                    ? "GENERATED"
-                    : canReroll
-                      ? "READY / " + lockedLaneIds.length + " LOCK"
-                      : "READY"}
+                : lastOperation?.kind === "mutation"
+                  ? "MUTATED"
+                  : lastOperation?.kind === "reroll"
+                    ? "REROLLED"
+                    : lastOperation?.kind === "generate"
+                      ? "GENERATED"
+                      : canReroll
+                        ? "READY / " + lockedLaneIds.length + " LOCK"
+                        : "READY"}
             </span>
             <strong>{operationError ?? lastStatus}</strong>
           </div>
@@ -535,23 +638,43 @@ export function CreateSurface() {
             setSyncopation(x);
             setDensity(y);
           }}
+          onCommit={applyFieldMutation}
         />
 
         <div className="mutation-bank">
           <div className="machine-section-label">
-            <span>MUTATION / VERBS</span>
-            <span>PHASE 9 / INACTIVE</span>
+            <span>MUSICAL / MUTATION</span>
+            <span>STRENGTH {String(Math.round(distance)).padStart(3, "0")}</span>
           </div>
           <div className="mutation-bank__grid">
-            {mutationKeys.map((mutation) => (
-              <MachineButton key={mutation} disabled>
-                {mutation}
+            {MUSICAL_MUTATIONS.map((mutation) => (
+              <MachineButton
+                key={mutation.id}
+                active={activeMutation === mutation.id}
+                onClick={() => applySemanticMutation(mutation.id)}
+                ariaLabel={mutation.label + ". " + mutation.description}
+              >
+                {mutation.label}
               </MachineButton>
             ))}
           </div>
-          <p className="mutation-bank__note">
-            Lock and reroll are live. Semantic mutation verbs remain
-            reserved for Phase 9.
+          <p
+            className={
+              mutationError
+                ? "mutation-bank__note is-error"
+                : "mutation-bank__note"
+            }
+            aria-live="polite"
+          >
+            {mutationError ??
+              (lastOperation?.kind === "mutation"
+                ? lastOperation.result.mutationId.toUpperCase() +
+                  " · Q" +
+                  lastOperation.result.validation.score +
+                  " · Δ" +
+                  lastOperation.result.changedStepCount +
+                  " STEPS"
+                : "Drag the Groove Field or press a mutation verb. Reactor distance controls mutation strength.")}
           </p>
         </div>
       </div>
