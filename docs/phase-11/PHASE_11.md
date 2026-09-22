@@ -248,9 +248,11 @@ The interface follows Pulse Architecture and avoids a generic plug-in knob wall.
 
 ## Live editing
 
-Changing a V2 sound parameter during playback triggers transport scheduler invalidation.
+Changing a V2 sound parameter during playback triggers coalesced transport scheduler invalidation.
 
-Already-scheduled future hits are cancelled and refilled with the new material specification.
+Rapid slider updates are batched into short 32 ms invalidation windows rather than rebuilding the scheduler for every pointer movement.
+
+Already-scheduled future hits are then cancelled and refilled with the new material specification.
 
 Current ringing voices are not destructively rewritten.
 
