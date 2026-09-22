@@ -126,6 +126,7 @@ function eventMusicalSignature(event: StepEvent): string {
 function laneMusicalSignature(lane: PatternLane): string {
   return [
     lane.role,
+    lane.loopLengthTicks ?? "pattern",
     lane.events
       .map(eventMusicalSignature)
       .sort()
@@ -179,18 +180,34 @@ function collectFeatures(pattern: Pattern, stepCount: number): StepFeatures[] {
 
   for (const lane of pattern.lanes) {
     const bucket = roleBucket(lane.role);
+    const laneSteps = Math.max(
+      1,
+      Math.min(
+        stepCount,
+        Math.round(
+          (lane.loopLengthTicks ?? pattern.lengthTicks) /
+            FOUNDATION_STEP_TICKS,
+        ),
+      ),
+    );
 
     for (const event of lane.events) {
-      const step = stepIndexForEvent(event, stepCount);
-      const target = features[step];
-      const velocity = clamp01(event.velocity);
+      const baseStep = stepIndexForEvent(event, laneSteps);
+      for (
+        let step = baseStep;
+        step < stepCount;
+        step += laneSteps
+      ) {
+        const target = features[step];
+        const velocity = clamp01(event.velocity);
 
-      target[bucket] = Math.max(target[bucket], velocity);
-      target.total += velocity;
-      target.velocityTotal += velocity;
-      target.velocityCount += 1;
-      target.timingTotalUs += event.timingOffsetUs;
-      target.timingCount += 1;
+        target[bucket] = Math.max(target[bucket], velocity);
+        target.total += velocity;
+        target.velocityTotal += velocity;
+        target.velocityCount += 1;
+        target.timingTotalUs += event.timingOffsetUs;
+        target.timingCount += 1;
+      }
     }
   }
 
