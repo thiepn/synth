@@ -13,6 +13,7 @@ import "./arrange-foundation.css";
 import "./arrange.css";
 import "./sound.css";
 import "./sample.css";
+import "./style-dna.css";
 
 const root = document.getElementById("root");
 
