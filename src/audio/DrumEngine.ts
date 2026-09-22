@@ -720,8 +720,9 @@ export class DrumEngine {
       this.scheduleVoice(
         this.synthVoiceFromSpec(layer, playback.voice),
         audioTime,
-        clamp01(velocity * synthScale),
+        velocity,
         epoch,
+        synthScale,
       );
     }
 
@@ -841,6 +842,7 @@ export class DrumEngine {
     audioTime: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -853,29 +855,29 @@ export class DrumEngine {
 
     switch (voice) {
       case "kick":
-        this.scheduleKick(safeAudioTime, velocity, epoch);
+        this.scheduleKick(safeAudioTime, velocity, epoch, levelGain);
         break;
       case "snare":
-        this.scheduleSnare(safeAudioTime, velocity, epoch);
+        this.scheduleSnare(safeAudioTime, velocity, epoch, levelGain);
         break;
       case "clap":
-        this.scheduleClap(safeAudioTime, velocity, epoch);
+        this.scheduleClap(safeAudioTime, velocity, epoch, levelGain);
         break;
       case "closedHat":
         this.chokeOpenHats(safeAudioTime);
-        this.scheduleHat("closedHat", safeAudioTime, velocity, epoch);
+        this.scheduleHat("closedHat", safeAudioTime, velocity, epoch, levelGain);
         break;
       case "openHat":
-        this.scheduleHat("openHat", safeAudioTime, velocity, epoch);
+        this.scheduleHat("openHat", safeAudioTime, velocity, epoch, levelGain);
         break;
       case "tom":
-        this.scheduleTom(safeAudioTime, velocity, epoch);
+        this.scheduleTom(safeAudioTime, velocity, epoch, levelGain);
         break;
       case "percussion":
-        this.schedulePercussion(safeAudioTime, velocity, epoch);
+        this.schedulePercussion(safeAudioTime, velocity, epoch, levelGain);
         break;
       case "crash":
-        this.scheduleCrash(safeAudioTime, velocity, epoch);
+        this.scheduleCrash(safeAudioTime, velocity, epoch, levelGain);
         break;
     }
   }
@@ -906,6 +908,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -915,7 +918,7 @@ export class DrumEngine {
     const tone = this.materialTone(spec);
     const impact = this.materialImpact(spec);
     const decay = this.materialDecay(spec, 0.16, 0.68);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
     const baseHz = 37 + spec.pitch * 28;
     const pitchStart = baseHz * (2.1 + impact * 2.8);
 
@@ -1010,6 +1013,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -1019,7 +1023,7 @@ export class DrumEngine {
     const tone = this.materialTone(spec);
     const impact = this.materialImpact(spec);
     const decay = this.materialDecay(spec, 0.09, 0.42);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
     const bodyHz = 135 + spec.pitch * 115;
 
     const body = context.createOscillator();
@@ -1126,6 +1130,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -1135,7 +1140,7 @@ export class DrumEngine {
     const tone = this.materialTone(spec);
     const impact = this.materialImpact(spec);
     const decay = this.materialDecay(spec, 0.09, 0.36);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
     const spread = 0.009 + spec.character * 0.015;
 
     const noise = context.createBufferSource();
@@ -1208,6 +1213,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -1220,7 +1226,7 @@ export class DrumEngine {
     const decay = isOpen
       ? this.materialDecay(spec, 0.16, 0.78)
       : this.materialDecay(spec, 0.022, 0.095);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
 
     const kill = context.createGain();
     kill.connect(graph.input);
@@ -1295,6 +1301,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -1304,7 +1311,7 @@ export class DrumEngine {
     const impact = this.materialImpact(spec);
     const tone = this.materialTone(spec);
     const decay = this.materialDecay(spec, 0.16, 0.66);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
     const baseHz = 72 + spec.pitch * 155;
     const pitchStart =
       baseHz * (1.25 + spec.character * 1.45);
@@ -1380,6 +1387,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -1389,7 +1397,7 @@ export class DrumEngine {
     const tone = this.materialTone(spec);
     const impact = this.materialImpact(spec);
     const decay = this.materialDecay(spec, 0.055, 0.36);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
 
     const carrier = context.createOscillator();
     const modulator = context.createOscillator();
@@ -1468,6 +1476,7 @@ export class DrumEngine {
     at: number,
     velocity: number,
     epoch: number | null,
+    levelGain = 1,
   ): void {
     const graph = this.graph;
     if (!graph) return;
@@ -1477,7 +1486,7 @@ export class DrumEngine {
     const tone = this.materialTone(spec);
     const impact = this.materialImpact(spec);
     const decay = this.materialDecay(spec, 0.45, 1.9);
-    const amp = velocityGain(velocity);
+    const amp = velocityGain(velocity) * Math.max(0, levelGain);
     const kill = context.createGain();
     kill.connect(graph.input);
 
