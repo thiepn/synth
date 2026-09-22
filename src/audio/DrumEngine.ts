@@ -4,8 +4,11 @@ import {
   type ScheduledTransportPulse,
   type TransportSnapshot,
 } from "./AudioTransport";
+import type { Pattern } from "../domain/contracts";
 import {
   DRUM_PADS,
+  FOUNDATION_STEP_TICKS,
+  laneDefinitionById,
   type DrumVoiceId,
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
@@ -109,6 +112,7 @@ export class DrumEngine {
   private graph: MasterGraph | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   private activeVoices: ActiveVoice[] = [];
+  private auditionVoiceIds = new Set<number>();
   private nextVoiceId = 1;
   private currentTransportEpoch = -1;
 
@@ -157,6 +161,68 @@ export class DrumEngine {
       );
       this.lastVoice = voice;
       this.triggerSerial += 1;
+      this.status = "ready";
+      this.lastError = undefined;
+      this.publish();
+    } catch (error) {
+      this.status = "error";
+      this.lastError = this.errorMessage(error);
+      this.publish();
+    }
+  }
+
+  async auditionPattern(pattern: Pattern, bpm: number): Promise<void> {
+    try {
+      const context = await audioTransport.unlockAudio();
+      this.ensureGraph(context);
+      this.cancelAuditionVoices(context.currentTime);
+
+      const safeBpm = Math.min(300, Math.max(30, bpm));
+      const stepSeconds = 60 / safeBpm / 4;
+      const startTime = context.currentTime + 0.035;
+      let lastVoice: DrumVoiceId | undefined;
+
+      for (const lane of pattern.lanes) {
+        const definition = laneDefinitionById(lane.id);
+        if (!definition) continue;
+
+        for (const event of lane.events) {
+          const step = Math.round(event.tick / FOUNDATION_STEP_TICKS);
+          const swingOffsetUs = swingOffsetUsForStep(
+            step,
+            safeBpm,
+            pattern.groove?.swing ?? 0,
+          );
+          const at =
+            startTime +
+            step * stepSeconds +
+            (swingOffsetUs + event.timingOffsetUs) / 1_000_000;
+
+          const firstVoiceId = this.nextVoiceId;
+          this.scheduleVoice(
+            definition.voice,
+            at,
+            event.velocity,
+            null,
+          );
+
+          for (
+            let id = firstVoiceId;
+            id < this.nextVoiceId;
+            id += 1
+          ) {
+            this.auditionVoiceIds.add(id);
+          }
+
+          lastVoice = definition.voice;
+        }
+      }
+
+      if (lastVoice) {
+        this.lastVoice = lastVoice;
+        this.triggerSerial += 1;
+      }
+
       this.status = "ready";
       this.lastError = undefined;
       this.publish();
@@ -848,10 +914,22 @@ export class DrumEngine {
     active.endTime = Math.min(active.endTime, now + 0.014);
   }
 
+  private cancelAuditionVoices(now: number): void {
+    for (const voice of this.activeVoices) {
+      if (!this.auditionVoiceIds.has(voice.id)) continue;
+      this.killVoice(voice, now);
+    }
+
+    this.auditionVoiceIds.clear();
+    this.pruneVoices(now);
+  }
+
   private pruneVoices(now: number): void {
-    this.activeVoices = this.activeVoices.filter(
-      (voice) => voice.endTime > now - 0.02,
-    );
+    this.activeVoices = this.activeVoices.filter((voice) => {
+      const alive = voice.endTime > now - 0.02;
+      if (!alive) this.auditionVoiceIds.delete(voice.id);
+      return alive;
+    });
   }
 
   private enforcePolyphony(now: number): void {
