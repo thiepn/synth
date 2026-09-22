@@ -309,7 +309,7 @@ export interface RhythmExchangeLane {
   events: Array<
     Pick<
       StepEvent,
-      "tick" | "durationTicks" | "velocity" | "timingOffsetUs" | "accent"
+      "tick" | "durationTicks" | "velocity" | "probability" | "timingOffsetUs" | "accent" | "ratchetCount" | "flamOffsetUs"
     >
   >;
 }
