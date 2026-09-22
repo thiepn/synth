@@ -22,7 +22,7 @@ import {
 } from "../style/styleDNA";
 
 export const BEAT_VARIATION_ID = "beat-reroll";
-export const BEAT_VARIATION_VERSION = 1;
+export const BEAT_VARIATION_VERSION = 2;
 
 export interface BeatVariationRequest {
   source: Pattern;
