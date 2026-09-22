@@ -12,6 +12,8 @@ import {
   rerollBeat,
   type BeatVariationResult,
 } from "../../generation/beatVariation";
+import { generateBeatFamily } from "../../generation/beatFamilyGenerator";
+import { beatFamilyStore } from "../../family/BeatFamilyStore";
 import { shortSeed } from "../../generation/prng";
 import { generationHistoryStore } from "../../history/GenerationHistoryStore";
 import { useGenerationHistorySnapshot } from "../../history/useGenerationHistory";
@@ -38,6 +40,7 @@ import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { DrumEnginePanel } from "../drums/DrumEngineUI";
 import { GrooveEnginePanel } from "../groove/GrooveEngineUI";
 import { EvolutionTreePanel } from "../history/EvolutionTree";
+import { BeatFamilyPanel } from "../family/BeatFamilyPanel";
 import {
   BeatReactor,
   GrooveField,
@@ -105,6 +108,8 @@ export function CreateSurface() {
   const [activeMutation, setActiveMutation] =
     useState<MusicalMutationId | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [familyCounter, setFamilyCounter] = useState(0);
+  const [familyError, setFamilyError] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(
     null,
   );
@@ -459,6 +464,42 @@ export function CreateSurface() {
     }
   };
 
+  const generateCurrentFamily = () => {
+    try {
+      const result = generateBeatFamily({
+        source: sequencer.pattern,
+        seed:
+          "family:" +
+          sequencer.pattern.id +
+          ":" +
+          String(familyCounter).padStart(4, "0"),
+        style: currentPatternStyle,
+        intent: intent(),
+        bpm: transport.bpm,
+      });
+
+      setFamilyCounter((value) => value + 1);
+
+      if (!result.valid) {
+        setFamilyError(
+          "Family rejected · Q" +
+            result.coherenceScore +
+            " · " +
+            (result.reasons[0] ?? "member quality gate failed"),
+        );
+        return;
+      }
+
+      beatFamilyStore.apply(result);
+      setFamilyError(null);
+    } catch (error) {
+      setFamilyCounter((value) => value + 1);
+      setFamilyError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  };
+
   const applyFieldMutation = (x: number, y: number) => {
     try {
       const result = mutateGrooveField({
@@ -783,6 +824,11 @@ export function CreateSurface() {
         onSwingChange={setSwing}
         onApply={applyCurrentFeel}
         onReset={resetCurrentFeel}
+      />
+
+      <BeatFamilyPanel
+        onGenerate={generateCurrentFamily}
+        generationError={familyError}
       />
 
       <EvolutionTreePanel />
