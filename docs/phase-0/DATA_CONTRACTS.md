@@ -108,6 +108,7 @@ A lane has:
 - semantic role
 - kit-slot reference
 - events
+- optional independent loop length in ticks for polymetric playback
 - optional mute/solo state
 - generation lock state
 
@@ -121,12 +122,15 @@ An event contains:
 - tick
 - duration where meaningful
 - velocity
-- probability
-- microtiming offset
-- optional ratchet/flam metadata
+- deterministic per-lane-cycle probability
+- signed microtiming offset
+- optional ratchet count
+- optional flam offset
 - optional semantic accent
 - optional generator tags
 - optional groove baseline used to make humanization re-applicable and resettable
+
+Advanced Sequencer V2 supports Pattern lengths up to 64 sixteenth-note steps. A lane may loop at any shorter integer step length without duplicating events. Probability decisions are reproducible from Pattern/lane/event identity plus the lane cycle index.
 
 ## 9. Sound
 
@@ -257,3 +261,17 @@ Project serialization:
 - never depends on React component shape
 - references binary sample data by asset ID
 - validates all external/imported values
+
+
+## 17. Rhythm Exchange — Advanced Sequencer
+
+Rhythm Exchange preserves Advanced Sequencer event behavior:
+
+- lane loop length
+- probability
+- ratchet count
+- flam offset
+- timing offset
+- velocity/accent
+
+This prevents polymetric or probabilistic patterns from collapsing into plain on/off steps during interchange.
