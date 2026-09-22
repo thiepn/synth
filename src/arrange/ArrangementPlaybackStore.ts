@@ -14,6 +14,7 @@ export interface ArrangementPlaybackSnapshot {
   currentSectionId?: string;
   currentOccurrenceId?: string;
   currentPatternId?: string;
+  currentEnergy: number;
   revision: number;
 }
 
@@ -30,6 +31,7 @@ export class ArrangementPlaybackStore {
   private currentSectionId: string | undefined;
   private currentOccurrenceId: string | undefined;
   private currentPatternId: string | undefined;
+  private currentEnergy = 0;
   private revision = 0;
   private snapshot: ArrangementPlaybackSnapshot = this.buildSnapshot();
 
@@ -69,7 +71,7 @@ export class ArrangementPlaybackStore {
   ): Promise<void> {
     const arrangement = arrangementStore.getSnapshot();
     if (!arrangement.blueprint || arrangement.occurrences.length === 0) {
-      throw new Error("Load an arrangement before playback.");
+      return;
     }
 
     audioTransport.stop();
@@ -133,6 +135,7 @@ export class ArrangementPlaybackStore {
     this.currentSectionId = undefined;
     this.currentOccurrenceId = undefined;
     this.currentPatternId = undefined;
+    this.currentEnergy = 0;
     audioTransport.stop();
     this.publish();
   }
@@ -147,14 +150,43 @@ export class ArrangementPlaybackStore {
     ) {
       return null;
     }
-    return arrangementStore.resolveAtTick(arrangementTick);
+    const resolved =
+      arrangementStore.resolvePlaybackAtTick(arrangementTick);
+    if (!resolved) return null;
+
+    const section = arrangementStore
+      .getSnapshot()
+      .blueprint?.sections.find(
+        (entry) => entry.id === resolved.occurrence.sectionId,
+      );
+    const progress = section && section.lengthTicks > 0
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            (arrangementTick - section.startTick) /
+              section.lengthTicks,
+          ),
+        )
+      : 0;
+    const energy = section
+      ? section.energyStart +
+        (section.energyEnd - section.energyStart) * progress
+      : 1;
+
+    return {
+      ...resolved,
+      energy: Math.max(0, Math.min(1, energy)),
+    };
   }
 
   private handleTransportUpdate(): void {
     const transport = audioTransport.getSnapshot();
 
     if (!this.engaged) {
-      this.publish();
+      if (this.snapshot.transportStatus !== transport.status) {
+        this.publish();
+      }
       return;
     }
 
@@ -172,6 +204,7 @@ export class ArrangementPlaybackStore {
       this.currentSectionId = undefined;
       this.currentOccurrenceId = undefined;
       this.currentPatternId = undefined;
+      this.currentEnergy = 0;
       this.publish();
       return;
     }
@@ -196,6 +229,7 @@ export class ArrangementPlaybackStore {
       this.currentSectionId = undefined;
       this.currentOccurrenceId = undefined;
       this.currentPatternId = undefined;
+      this.currentEnergy = 0;
       this.publish();
       return;
     }
@@ -205,10 +239,34 @@ export class ArrangementPlaybackStore {
   }
 
   private resolveCurrentState(): void {
-    const resolved = arrangementStore.resolveAtTick(this.playheadTick);
+    const resolved = arrangementStore.resolvePlaybackAtTick(
+      this.playheadTick,
+    );
     this.currentSectionId = resolved?.occurrence.sectionId;
     this.currentOccurrenceId = resolved?.occurrence.id;
     this.currentPatternId = resolved?.occurrence.patternId;
+
+    const section = arrangementStore
+      .getSnapshot()
+      .blueprint?.sections.find(
+        (entry) => entry.id === resolved?.occurrence.sectionId,
+      );
+
+    if (section && section.lengthTicks > 0) {
+      const progress = Math.max(
+        0,
+        Math.min(
+          1,
+          (this.playheadTick - section.startTick) /
+            section.lengthTicks,
+        ),
+      );
+      this.currentEnergy =
+        section.energyStart +
+        (section.energyEnd - section.energyStart) * progress;
+    } else {
+      this.currentEnergy = 0;
+    }
   }
 
   private publish(): void {
@@ -228,6 +286,7 @@ export class ArrangementPlaybackStore {
       currentSectionId: this.currentSectionId,
       currentOccurrenceId: this.currentOccurrenceId,
       currentPatternId: this.currentPatternId,
+      currentEnergy: this.currentEnergy,
       revision: this.revision,
     };
   }
