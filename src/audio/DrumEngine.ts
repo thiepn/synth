@@ -202,31 +202,52 @@ export class DrumEngine {
       const startTime = context.currentTime + 0.035;
       let lastVoice: DrumVoiceId | undefined;
 
-      for (const lane of pattern.lanes) {
-        const definition = laneDefinitionById(lane.id);
-        if (!definition) continue;
+      const patternSteps = Math.max(
+        1,
+        Math.round(pattern.lengthTicks / FOUNDATION_STEP_TICKS),
+      );
 
-        for (const event of lane.events) {
-          const step = Math.round(event.tick / FOUNDATION_STEP_TICKS);
+      for (let absoluteStep = 0; absoluteStep < patternSteps; absoluteStep += 1) {
+        for (const lane of pattern.lanes) {
+          const definition = laneDefinitionById(lane.id);
+          if (!definition || lane.muted) continue;
+
+          const laneSteps = Math.max(
+            1,
+            Math.min(
+              patternSteps,
+              Math.round(
+                (lane.loopLengthTicks ?? pattern.lengthTicks) /
+                  FOUNDATION_STEP_TICKS,
+              ),
+            ),
+          );
+          const localStep = absoluteStep % laneSteps;
+          const laneCycle = Math.floor(absoluteStep / laneSteps);
+          const event = lane.events.find(
+            (entry) =>
+              Math.round(entry.tick / FOUNDATION_STEP_TICKS) === localStep,
+          );
+          if (!event) continue;
           if (
             !eventPassesProbability(
               pattern.id,
               lane.id,
               event,
-              0,
+              laneCycle,
             )
           ) {
             continue;
           }
 
           const swingOffsetUs = swingOffsetUsForStep(
-            step,
+            absoluteStep,
             safeBpm,
             pattern.groove?.swing ?? 0,
           );
           const at =
             startTime +
-            step * stepSeconds +
+            absoluteStep * stepSeconds +
             (swingOffsetUs + event.timingOffsetUs) / 1_000_000;
           const auditionVoice = drumSoundStore.resolveVoiceForSlot(
             lane.kitSlotId,
