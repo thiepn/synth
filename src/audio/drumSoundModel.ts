@@ -482,6 +482,8 @@ export class DrumSoundStore {
   resetAll(): void {
     this.specs = cloneSpecs(DRUM_DEFAULT_SPECS);
     this.activeKit = undefined;
+    this.morphA = undefined;
+    this.morphB = undefined;
     this.publish();
   }
 
