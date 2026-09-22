@@ -318,3 +318,19 @@ A SectionBlueprint is one concrete arrangement occurrence. It stores:
 - optional fill/transition Pattern routes
 
 An ArrangementBlueprint groups generated Scenes and SectionBlueprints under one arrangement shape (Compact / Standard / Extended). It is planning data for the later editable ARRANGE timeline, not rendered audio or browser-clock state.
+
+
+## 20. Editable Arrangement & Playback
+
+Phase 18 promotes ArrangementBlueprint from planning data into editable session state.
+
+SectionBlueprint may additionally store:
+
+- fillPlacement: off / last
+- transitionPlacement: off / replaceLast / append
+
+The editable Arrangement compiles Sections into concrete ordered Pattern occurrences with exact cumulative start/length ticks. Playback resolves those occurrences back to canonical Pattern objects and reuses the same advanced Pattern playback rules as SEQUENCE.
+
+Energy Start/End are arrangement-level macro dynamics. They are interpolated over a Section and currently scale event velocity during arrangement playback without mutating source Pattern events.
+
+Arrangement editor Undo/Redo is separate from Pattern Undo and from the Pattern-focused Evolution Tree. Persistent multi-artifact history may later record Arrangement artifacts using the existing arrangement HistoryArtifactKind.
