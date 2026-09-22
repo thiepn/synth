@@ -75,6 +75,10 @@ export interface KitCoherenceValidation {
   metrics: KitCoherenceMetrics;
 }
 
+export interface KitValidationOptions {
+  requireDirectionFit?: boolean;
+}
+
 export interface GeneratedKitResult {
   kit: Kit;
   sounds: Sound[];
@@ -663,6 +667,7 @@ function directionFit(
 export function validateGeneratedKit(
   specs: Record<DrumVoiceId, DrumMaterialSpec>,
   direction: KitDirectionId,
+  options: KitValidationOptions = {},
 ): KitCoherenceValidation {
   const closed = specs.closedHat;
   const open = specs.openHat;
@@ -733,7 +738,10 @@ export function validateGeneratedKit(
 
   const minimumDirectionFit =
     direction === "experimental" ? 0.42 : 0.48;
-  if (requestedDirectionFit < minimumDirectionFit) {
+  if (
+    options.requireDirectionFit !== false &&
+    requestedDirectionFit < minimumDirectionFit
+  ) {
     reasons.push("kit does not express the requested direction strongly enough");
     score -= Math.round(
       (minimumDirectionFit - requestedDirectionFit) * 80 + 12,
