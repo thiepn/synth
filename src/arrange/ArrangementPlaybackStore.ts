@@ -51,6 +51,11 @@ export class ArrangementPlaybackStore {
         arrangement.musicalRevision;
 
       if (this.engaged && musicalChanged) {
+        if (!arrangement.blueprint || arrangement.occurrences.length === 0) {
+          this.stop();
+          return;
+        }
+
         if (this.sectionOnlyId) {
           const section = arrangement.blueprint?.sections.find(
             (entry) => entry.id === this.sectionOnlyId,
@@ -64,7 +69,8 @@ export class ArrangementPlaybackStore {
             this.stopAtTick =
               section.startTick + section.lengthTicks;
           } else {
-            this.stopAtTick = undefined;
+            this.stop();
+            return;
           }
         } else {
           this.stopAtTick = arrangement.totalTicks;
