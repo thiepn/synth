@@ -471,3 +471,17 @@ export function styleFamilyLabel(family: StyleDNAFamily): string {
     case "experimental": return "CINEMATIC / EXPERIMENTAL";
   }
 }
+
+
+export const STYLE_DNA_META = Object.freeze({
+  version: STYLE_DNA_VERSION,
+  profileCount: STYLE_DNA_PROFILES.length,
+  families: [
+    "band",
+    "urban",
+    "club",
+    "roots",
+    "experimental",
+  ] as const,
+  profileIds: STYLE_DNA_PROFILES.map((profile) => profile.id),
+});
