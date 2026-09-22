@@ -190,6 +190,8 @@ A lock can protect:
 
 Generator operations must consume lock state as an input and prove that protected data remains unchanged.
 
+The sound lock dimension is now active in Kit generation/mutation/morphing: `PatternLane.lock.sound` protects the lane's current V2 material during those generative operations while direct manual sound editing remains an explicit user override.
+
 ## 13. Style representation
 
 Genres are not exclusive enum presets at the deepest layer.
@@ -239,6 +241,8 @@ For the current Pattern-focused Evolution Tree, each node stores an immutable Pa
 Artifact references remain typed and may later point to kits, sounds, scenes, or arrangement results. The lineage model therefore supports future sound and arrangement evolution rather than assuming all history is pattern-only.
 
 Pattern provenance may also store `sourceHistoryNodeId` so the generated artifact itself knows the creative history node it descended from.
+
+Generated Kit/Sound provenance may use `sourceEntityId` plus `mutationId` for sound-evolution lineage, including whole-Kit mutations, per-voice mutations, and committed A/B morphs. A/B morph capture itself is session workspace state rather than a persisted domain entity at the current phase.
 
 Branching is first-class. Undo history and creative lineage are separate concepts: Undo reverses editor state, while Evolution history preserves alternatives for restoration and further branching.
 
