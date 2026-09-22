@@ -162,6 +162,12 @@ export function SoundSurface() {
     void drumEngine.triggerNow(selectedVoice, 0.9);
   };
 
+  const resetAllSounds = () => {
+    drumSoundStore.resetAll();
+    setLastKitResult(null);
+    setKitError(null);
+  };
+
   const generateCurrentKit = () => {
     const result = generateKit({
       seed:
@@ -226,7 +232,10 @@ export function SoundSurface() {
                     ? "kit-direction-key is-active"
                     : "kit-direction-key"
                 }
-                onClick={() => setDirection(entry.id)}
+                onClick={() => {
+                  setDirection(entry.id);
+                  setKitError(null);
+                }}
                 aria-pressed={direction === entry.id}
               >
                 <span>{entry.code}</span>
@@ -475,7 +484,7 @@ export function SoundSurface() {
           persistence is still session-local until the later Archive/persistence
           phases.
         </span>
-        <button type="button" onClick={() => drumSoundStore.resetAll()}>
+        <button type="button" onClick={resetAllSounds}>
           RESET ALL VOICES
         </button>
       </div>
