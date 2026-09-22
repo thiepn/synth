@@ -6,11 +6,17 @@ import {
   drumSoundStore,
   type DrumMaterialParam,
 } from "../../audio/drumSoundModel";
+import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
 import {
   DRUM_SYNTH_ENGINE_VERSION,
   type DrumMaterialSpec,
 } from "../../domain/contracts";
-import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
+import {
+  KIT_DIRECTIONS,
+  generateKit,
+  type GeneratedKitResult,
+  type KitDirectionId,
+} from "../../generation/kitGenerator";
 import {
   DRUM_PADS,
   type DrumVoiceId,
@@ -102,14 +108,8 @@ function MaterialScope({
         className="sound-material-scope__grid"
         d="M5 25 H195 M5 50 H195 M5 75 H195 M50 7 V93 M100 7 V93 M150 7 V93"
       />
-      <path
-        className="sound-material-scope__ghost"
-        d={path}
-      />
-      <path
-        className="sound-material-scope__wave"
-        d={path}
-      />
+      <path className="sound-material-scope__ghost" d={path} />
+      <path className="sound-material-scope__wave" d={path} />
       <line
         className="sound-material-scope__impact"
         x1="12"
@@ -121,14 +121,80 @@ function MaterialScope({
   );
 }
 
+function DnaMeter({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | undefined;
+}) {
+  const normalized = value ?? 0;
+
+  return (
+    <div className="kit-dna-meter">
+      <span>{label}</span>
+      <div className="kit-dna-meter__track">
+        <i style={{ width: normalized * 100 + "%" }} />
+      </div>
+      <b>{value === undefined ? "--" : Math.round(normalized * 100)}</b>
+    </div>
+  );
+}
+
 export function SoundSurface() {
   const snapshot = useDrumSoundSnapshot();
   const [selectedVoice, setSelectedVoice] =
     useState<DrumVoiceId>("kick");
+  const [direction, setDirection] =
+    useState<KitDirectionId>("tight");
+  const [variation, setVariation] = useState(48);
+  const [kitCounter, setKitCounter] = useState(0);
+  const [lastKitResult, setLastKitResult] =
+    useState<GeneratedKitResult | null>(null);
+  const [kitError, setKitError] = useState<string | null>(null);
+
   const spec = snapshot.specs[selectedVoice];
+  const activeKit = snapshot.activeKit;
+  const dna = activeKit?.dna;
+  const activeDirection = activeKit?.direction ?? direction;
 
   const audition = () => {
     void drumEngine.triggerNow(selectedVoice, 0.9);
+  };
+
+  const generateCurrentKit = () => {
+    const result = generateKit({
+      seed:
+        "sound-kit:" +
+        direction +
+        ":" +
+        String(kitCounter).padStart(4, "0"),
+      direction,
+      intensity: variation / 100,
+    });
+
+    setKitCounter((value) => value + 1);
+    setLastKitResult(result);
+
+    if (!result.validation.valid) {
+      setKitError(
+        "Kit rejected · Q" +
+          result.validation.score +
+          " · " +
+          (result.validation.reasons[0] ?? "coherence gate failed"),
+      );
+      return;
+    }
+
+    drumSoundStore.applyGeneratedKit({
+      specs: result.specs,
+      kit: result.kit,
+      sounds: result.sounds,
+      direction: result.direction,
+      seed: result.effectiveSeed,
+      dna: result.dna,
+    });
+    setKitError(null);
   };
 
   return (
@@ -142,6 +208,127 @@ export function SoundSurface() {
       </div>
 
       <TransportPulseSpine />
+
+      <section className="kit-generator-panel" aria-labelledby="kit-generator-title">
+        <div className="machine-section-label">
+          <span id="kit-generator-title">KIT / GENERATOR</span>
+          <span>COHERENCE ENGINE / V1</span>
+        </div>
+
+        <div className="kit-generator-panel__body">
+          <div className="kit-direction-bank">
+            {KIT_DIRECTIONS.map((entry) => (
+              <button
+                type="button"
+                key={entry.id}
+                className={
+                  direction === entry.id
+                    ? "kit-direction-key is-active"
+                    : "kit-direction-key"
+                }
+                onClick={() => setDirection(entry.id)}
+                aria-pressed={direction === entry.id}
+              >
+                <span>{entry.code}</span>
+                <strong>{entry.label}</strong>
+              </button>
+            ))}
+          </div>
+
+          <div className="kit-generator-core">
+            <div className="kit-generator-core__identity">
+              <span>
+                {activeKit
+                  ? activeKit.kit.id.toUpperCase()
+                  : "NO GENERATED KIT"}
+              </span>
+              <strong>
+                {activeKit
+                  ? activeKit.kit.name
+                  : "Choose a direction"}
+              </strong>
+              <small>
+                {activeKit
+                  ? activeDirection.toUpperCase() +
+                    (activeKit.modified ? " · MOD" : " · CLEAN")
+                  : "8 VOICES / V2 SYNTH"}
+              </small>
+            </div>
+
+            <SignalRail
+              label="VARIATION"
+              value={variation}
+              tone="ice"
+              onChange={setVariation}
+            />
+
+            <button
+              type="button"
+              className="kit-generate-key"
+              onClick={generateCurrentKit}
+            >
+              <span>GENERATE KIT</span>
+              <strong>
+                {KIT_DIRECTIONS.find((entry) => entry.id === direction)?.code}
+              </strong>
+            </button>
+
+            <div
+              className={
+                kitError
+                  ? "kit-generator-result is-error"
+                  : "kit-generator-result"
+              }
+              aria-live="polite"
+            >
+              <span>
+                {kitError
+                  ? "REJECTED"
+                  : lastKitResult
+                    ? "ACCEPTED"
+                    : "READY"}
+              </span>
+              <strong>
+                {kitError ??
+                  (lastKitResult
+                    ? "Q" +
+                      lastKitResult.validation.score +
+                      " / " +
+                      lastKitResult.attempts +
+                      " TRY / " +
+                      lastKitResult.displaySeed
+                    : "DETERMINISTIC")}
+              </strong>
+            </div>
+          </div>
+
+          <div className="kit-dna">
+            <div className="kit-dna__header">
+              <span>SHARED / KIT DNA</span>
+              <strong>
+                {activeKit
+                  ? activeKit.kit.slots.length + " SLOTS / " +
+                    activeKit.sounds.length + " SOUNDS"
+                  : "WAITING"}
+              </strong>
+            </div>
+            <DnaMeter label="BRIGHT" value={dna?.brightness} />
+            <DnaMeter label="WEIGHT" value={dna?.weight} />
+            <DnaMeter label="TIGHT" value={dna?.tightness} />
+            <DnaMeter label="ROUGH" value={dna?.roughness} />
+            <DnaMeter label="SYNTH" value={dna?.synthetic} />
+            <DnaMeter label="DEPTH" value={dna?.depth} />
+            <DnaMeter label="AIR" value={dna?.air} />
+            <DnaMeter label="VAR" value={dna?.variance} />
+          </div>
+        </div>
+
+        <p className="kit-generator-panel__note">
+          One shared DNA shapes all eight voices. HYBRID currently means a
+          synthesized acoustic↔electronic material balance; sample layering
+          begins later with the sample/hybrid engine.
+        </p>
+      </section>
 
       <div className="sound-machine">
         <div className="sound-voice-bank">
@@ -179,7 +366,9 @@ export function SoundSurface() {
               onClick={() => drumSoundStore.resetVoice(selectedVoice)}
             >
               <span>RESET</span>
-              <strong>{DRUM_PADS.find((pad) => pad.voice === selectedVoice)?.code}</strong>
+              <strong>
+                {DRUM_PADS.find((pad) => pad.voice === selectedVoice)?.code}
+              </strong>
             </button>
           </div>
         </div>
@@ -226,7 +415,9 @@ export function SoundSurface() {
         <div className="sound-material-controls">
           <div className="machine-section-label">
             <span>C / SHAPE</span>
-            <span>VOICE SPEC / SERIALIZABLE</span>
+            <span>
+              {activeKit?.modified ? "KIT MODIFIED" : "VOICE SPEC / SERIALIZABLE"}
+            </span>
           </div>
 
           <div className="sound-material-controls__rails">
@@ -280,8 +471,9 @@ export function SoundSurface() {
 
       <div className="sound-reset-all">
         <span>
-          SOUND state is session-local. Phase 12 will generate coherent kits
-          from these V2 material specifications.
+          Generated kits are real Kit + Sound domain objects, but project
+          persistence is still session-local until the later Archive/persistence
+          phases.
         </span>
         <button type="button" onClick={() => drumSoundStore.resetAll()}>
           RESET ALL VOICES
