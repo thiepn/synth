@@ -214,8 +214,12 @@ export class DrumEngine {
             (swingOffsetUs + event.timingOffsetUs) / 1_000_000;
 
           const firstVoiceId = this.nextVoiceId;
-          this.scheduleVoice(
+          const auditionVoice = drumSoundStore.resolveVoiceForSlot(
+            lane.kitSlotId,
             definition.voice,
+          );
+          this.scheduleVoice(
+            auditionVoice,
             at,
             event.velocity,
             null,
@@ -229,7 +233,10 @@ export class DrumEngine {
             this.auditionVoiceIds.add(id);
           }
 
-          lastVoice = definition.voice;
+          lastVoice = drumSoundStore.resolveVoiceForSlot(
+            lane.kitSlotId,
+            definition.voice,
+          );
         }
       }
 
@@ -291,8 +298,13 @@ export class DrumEngine {
       );
 
       for (const hit of hits) {
-        this.scheduleVoice(
+        const resolvedVoice = drumSoundStore.resolveVoiceForSlot(
+          hit.kitSlotId,
           hit.voice,
+        );
+
+        this.scheduleVoice(
+          resolvedVoice,
           pulse.audioTime +
             (swingOffsetUs + hit.timingOffsetUs) / 1_000_000,
           hit.velocity,
