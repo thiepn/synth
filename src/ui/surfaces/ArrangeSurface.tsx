@@ -52,6 +52,37 @@ export function ArrangeSurface() {
     useState<string | null>(null);
 
   useEffect(() => {
+    const handleHistory = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.matches("input, textarea, select, button, [role='slider']"))
+      ) {
+        return;
+      }
+
+      const command = event.metaKey || event.ctrlKey;
+      if (!command) return;
+
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          arrangementStore.redo();
+        } else {
+          arrangementStore.undo();
+        }
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        arrangementStore.redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleHistory);
+    return () => window.removeEventListener("keydown", handleHistory);
+  }, []);
+
+  useEffect(() => {
     const blueprint = foundation.blueprint;
     if (!blueprint || !family.family) return;
     if (blueprint.familyId !== family.family.id) return;
@@ -619,17 +650,34 @@ export function ArrangeSurface() {
           Source: {arrangement.blueprint.name} ·{" "}
           {arrangement.edited ? "EDITED" : "FOUNDATION"}
         </span>
-        <MachineButton
-          onClick={() => {
-            arrangementPlaybackStore.stop();
-            arrangementStore.loadFromFoundation(
-              foundation.blueprint!,
-              family.patterns,
-            );
-          }}
-        >
-          RESET TO FOUNDATION
-        </MachineButton>
+
+        <div className="arrange-footer__actions">
+          <MachineButton
+            compact
+            disabled={!arrangement.canUndo}
+            onClick={() => arrangementStore.undo()}
+          >
+            UNDO
+          </MachineButton>
+          <MachineButton
+            compact
+            disabled={!arrangement.canRedo}
+            onClick={() => arrangementStore.redo()}
+          >
+            REDO
+          </MachineButton>
+          <MachineButton
+            onClick={() => {
+              arrangementPlaybackStore.stop();
+              arrangementStore.loadFromFoundation(
+                foundation.blueprint!,
+                family.patterns,
+              );
+            }}
+          >
+            RESET TO FOUNDATION
+          </MachineButton>
+        </div>
       </div>
     </section>
   );
