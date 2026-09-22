@@ -114,6 +114,17 @@ export interface IntentVector {
   mutationDistance: Normalized;
 }
 
+export type BeatFamilyRole =
+  | "core"
+  | "aVariation"
+  | "bVariation"
+  | "build"
+  | "breakdown"
+  | "drop"
+  | "fill1"
+  | "fill2"
+  | "transition";
+
 export interface GenerationProvenance {
   seed: Seed;
   generatorId: string;
@@ -121,6 +132,8 @@ export interface GenerationProvenance {
   sourceEntityId?: EntityId;
   sourceHistoryNodeId?: EntityId;
   mutationId?: string;
+  familyId?: EntityId;
+  familyRole?: BeatFamilyRole;
   style: StyleVector;
   intent: IntentVector;
 }
@@ -133,6 +146,23 @@ export interface Pattern {
   lengthTicks: Tick;
   lanes: PatternLane[];
   groove?: GrooveProfile;
+  provenance?: GenerationProvenance;
+}
+
+export interface BeatFamilyMember {
+  id: EntityId;
+  role: BeatFamilyRole;
+  label: string;
+  patternId: EntityId;
+  energy: Normalized;
+  kind: "core" | "variation" | "section" | "fill" | "transition";
+}
+
+export interface BeatFamily {
+  id: EntityId;
+  name: string;
+  corePatternId: EntityId;
+  members: BeatFamilyMember[];
   provenance?: GenerationProvenance;
 }
 
@@ -297,6 +327,7 @@ export interface SynthProject {
   activeKitId: EntityId;
   sounds: Sound[];
   patterns: Pattern[];
+  beatFamilies?: BeatFamily[];
   scenes: Scene[];
   arrangement: ArrangementSection[];
   assets: AssetReference[];
