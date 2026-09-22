@@ -198,7 +198,35 @@ export class ArrangementStore {
 
     const next = [...this.blueprint.sections];
     const [section] = next.splice(index, 1);
+    if (!section) return;
     next.splice(target, 0, section);
+    this.blueprint.sections = next;
+    this.markEditedAndPublish();
+  }
+
+  moveSectionTo(
+    sectionId: string,
+    targetSectionId: string,
+  ): void {
+    if (!this.blueprint || sectionId === targetSectionId) return;
+
+    const from = this.blueprint.sections.findIndex(
+      (section) => section.id === sectionId,
+    );
+    const target = this.blueprint.sections.findIndex(
+      (section) => section.id === targetSectionId,
+    );
+    if (from < 0 || target < 0) return;
+
+    const next = [...this.blueprint.sections];
+    const [section] = next.splice(from, 1);
+    if (!section) return;
+
+    const insertAt =
+      from < target
+        ? Math.max(0, target - 1)
+        : target;
+    next.splice(insertAt, 0, section);
     this.blueprint.sections = next;
     this.markEditedAndPublish();
   }
@@ -211,6 +239,7 @@ export class ArrangementStore {
     if (index < 0) return;
 
     const source = this.blueprint.sections[index];
+    if (!source) return;
     this.duplicateCounter += 1;
     const clone: SectionBlueprint = {
       ...cloneSection(source),
@@ -313,6 +342,22 @@ export class ArrangementStore {
     localTick: number;
     occurrenceIndex: number;
   } | null {
+    const resolved = this.resolvePlaybackAtTick(arrangementTickInput);
+    if (!resolved) return null;
+
+    return {
+      ...resolved,
+      occurrence: { ...resolved.occurrence },
+      pattern: clonePattern(resolved.pattern),
+    };
+  }
+
+  resolvePlaybackAtTick(arrangementTickInput: number): {
+    occurrence: ArrangementOccurrence;
+    pattern: Pattern;
+    localTick: number;
+    occurrenceIndex: number;
+  } | null {
     const arrangementTick = Math.max(0, arrangementTickInput);
     const index = this.occurrences.findIndex(
       (occurrence) =>
@@ -322,12 +367,13 @@ export class ArrangementStore {
     if (index < 0) return null;
 
     const occurrence = this.occurrences[index];
+    if (!occurrence) return null;
     const pattern = this.patternCatalog.get(occurrence.patternId);
     if (!pattern) return null;
 
     return {
-      occurrence: { ...occurrence },
-      pattern: clonePattern(pattern),
+      occurrence,
+      pattern,
       localTick: arrangementTick - occurrence.startTick,
       occurrenceIndex: index,
     };
