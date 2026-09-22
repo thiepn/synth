@@ -1,0 +1,294 @@
+.beat-morph-panel {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline-strong);
+}
+
+.beat-morph-machine {
+  display: grid;
+  grid-template-columns:
+    minmax(230px, 0.62fr)
+    minmax(470px, 1.38fr)
+    minmax(260px, 0.7fr);
+  border-top: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.beat-morph-machine > * + * {
+  border-left: 1px solid var(--hairline-strong);
+}
+
+.beat-morph-endpoint,
+.beat-morph-core {
+  min-width: 0;
+  padding: 14px 16px 16px;
+}
+
+.beat-morph-endpoint__head {
+  min-height: 56px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--hairline);
+  color: #5d6359;
+  font: 600 0.43rem/1 var(--font-mono);
+}
+
+.beat-morph-endpoint__head strong {
+  overflow: hidden;
+  color: var(--bone);
+  font-size: 0.57rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.beat-morph-endpoint__head small {
+  color: var(--ice);
+  font-size: 0.42rem;
+}
+
+.beat-morph-endpoint__glyph {
+  min-height: 132px;
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid var(--hairline);
+  color: #53594f;
+  font: 600 0.48rem/1 var(--font-mono);
+}
+
+.beat-morph-endpoint__glyph .rhythm-glyph {
+  width: min(100%, 180px);
+}
+
+.beat-morph-endpoint__meta {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #5b6157;
+  font: 600 0.42rem/1 var(--font-mono);
+}
+
+.beat-morph-endpoint__actions {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  border-top: 1px solid var(--hairline);
+  border-left: 1px solid var(--hairline);
+}
+
+.beat-morph-endpoint__actions .machine-button {
+  min-height: 42px;
+}
+
+.beat-morph-core__head {
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  color: #5d6359;
+  font: 600 0.43rem/1 var(--font-mono);
+}
+
+.beat-morph-core__head strong {
+  color: var(--phosphor);
+  font-size: 0.51rem;
+}
+
+.beat-morph-core__head span:last-child {
+  text-align: right;
+}
+
+.beat-morph-dimensions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+
+.beat-morph-dimensions .signal-rail:last-child {
+  grid-column: 1 / -1;
+}
+
+.beat-morph-preview {
+  display: grid;
+  grid-template-columns: 1fr 112px;
+  min-height: 122px;
+  margin-top: 12px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.beat-morph-preview__glyph {
+  display: grid;
+  place-items: center;
+  color: #565c53;
+  font: 600 0.47rem/1 var(--font-mono);
+}
+
+.beat-morph-preview__glyph .rhythm-glyph {
+  width: min(100%, 190px);
+}
+
+.beat-morph-preview__metrics {
+  margin: 0;
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  border-left: 1px solid var(--hairline);
+}
+
+.beat-morph-preview__metrics div {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.beat-morph-preview__metrics div:last-child {
+  border-bottom: 0;
+}
+
+.beat-morph-preview__metrics dt {
+  color: #565c53;
+  font: 600 0.4rem/1 var(--font-mono);
+}
+
+.beat-morph-preview__metrics dd {
+  margin: 0;
+  color: var(--bone);
+  font: 650 0.54rem/1 var(--font-mono);
+}
+
+.beat-morph-core__actions {
+  display: grid;
+  grid-template-columns: 72px 92px 1fr;
+  border-left: 1px solid var(--hairline);
+}
+
+.beat-morph-core__actions .machine-button {
+  min-height: 46px;
+}
+
+.beat-remix-control {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+.beat-remix-control__target {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #5b6157;
+  font: 600 0.42rem/1 var(--font-mono);
+}
+
+.beat-remix-control__target strong {
+  color: var(--heat);
+  text-align: right;
+}
+
+.beat-remix-control .machine-button {
+  width: 100%;
+  min-height: 42px;
+}
+
+.beat-remix-control .machine-button + .machine-button {
+  margin-top: 5px;
+}
+
+.beat-morph-status {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 1fr auto 58px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--hairline);
+  color: #5c6258;
+  font: 600 0.42rem/1 var(--font-mono);
+}
+
+.beat-morph-status > span {
+  overflow: hidden;
+  color: var(--bone);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.beat-morph-status > strong {
+  color: var(--ice);
+  font-size: 0.41rem;
+}
+
+.beat-morph-status button {
+  align-self: stretch;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ash);
+  cursor: pointer;
+  font: 650 0.42rem/1 var(--font-mono);
+}
+
+.beat-morph-status button:hover {
+  color: var(--bone);
+}
+
+.beat-morph-note {
+  margin: 8px 0 0;
+  color: #5e645a;
+  font: 500 0.5rem/1.45 var(--font-mono);
+}
+
+@media (max-width: 1120px) {
+  .beat-morph-machine {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .beat-morph-core {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    border-left: 0 !important;
+    border-bottom: 1px solid var(--hairline-strong);
+  }
+}
+
+@media (max-width: 760px) {
+  .beat-morph-machine {
+    display: block;
+  }
+
+  .beat-morph-machine > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--hairline-strong);
+  }
+
+  .beat-morph-endpoint,
+  .beat-morph-core {
+    padding-inline: 0;
+  }
+
+  .beat-morph-dimensions {
+    grid-template-columns: 1fr;
+  }
+
+  .beat-morph-dimensions .signal-rail:last-child {
+    grid-column: 1;
+  }
+
+  .beat-morph-status {
+    grid-template-columns: 1fr 52px;
+  }
+
+  .beat-morph-status > strong {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-bottom: 8px;
+  }
+
+  .beat-morph-status button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
