@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { CreateSurface } from "./ui/surfaces/CreateSurface";
 import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
 import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
+import { SoundSurface } from "./ui/surfaces/SoundSurface";
 import {
   MODES,
   type ModeDefinition,
@@ -30,6 +31,8 @@ export function App() {
           <CreateSurface />
         ) : modeId === "sequence" ? (
           <SequenceSurface />
+        ) : modeId === "sound" ? (
+          <SoundSurface />
         ) : (
           <ModePlaceholder mode={mode} />
         )}
@@ -85,7 +88,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 10</span>
+        <span>PHASE 11</span>
       </div>
     </nav>
   );
