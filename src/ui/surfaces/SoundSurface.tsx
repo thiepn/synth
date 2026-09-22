@@ -249,6 +249,18 @@ export function SoundSurface() {
   };
 
   const generateCurrentKit = () => {
+    if (lockedVoices.length === DRUM_PADS.length) {
+      setKitError("All sounds are locked.");
+      return;
+    }
+
+    const lockedSpecs = Object.fromEntries(
+      lockedVoices.map((voice) => [
+        voice,
+        { ...snapshot.specs[voice] },
+      ]),
+    ) as Partial<Record<DrumVoiceId, DrumMaterialSpec>>;
+
     const result = generateKit({
       seed:
         "sound-kit:" +
@@ -257,6 +269,7 @@ export function SoundSurface() {
         String(kitCounter).padStart(4, "0"),
       direction,
       intensity: variation / 100,
+      lockedSpecs,
     });
 
     setKitCounter((value) => value + 1);
@@ -490,6 +503,7 @@ export function SoundSurface() {
               type="button"
               className="kit-generate-key"
               onClick={generateCurrentKit}
+              disabled={lockedVoices.length === DRUM_PADS.length}
             >
               <span>GENERATE KIT</span>
               <strong>
