@@ -233,6 +233,8 @@ export function CreateSurface() {
       sequencerStore.applyGeneratedPattern(grooved.pattern);
       setLastGrooveResult(grooved);
       setLastOperation({ kind: "generate", result });
+      setActiveMutation(null);
+      setMutationError(null);
       setOperationError(null);
       setReactorVersion((value) => value + 1);
       setOperationCounter((value) => value + 1);
@@ -285,6 +287,8 @@ export function CreateSurface() {
       );
       sequencerStore.applyGeneratedPattern(grooved.pattern);
       setLastGrooveResult(grooved);
+      setActiveMutation(null);
+      setMutationError(null);
       setLastOperation({
         kind: "reroll",
         result,
@@ -325,6 +329,7 @@ export function CreateSurface() {
 
     sequencerStore.applyPatternTransform(result.pattern);
     setLastOperation({ kind: "mutation", result });
+    setLastGrooveResult(null);
     setActiveMutation(mutation);
     setMutationError(null);
     setOperationError(null);
