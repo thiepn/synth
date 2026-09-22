@@ -336,3 +336,11 @@
     grid-column: 1;
   }
 }
+
+
+.sample-waveform__trim {
+  stroke: var(--heat);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.9;
+}
