@@ -228,8 +228,11 @@ export class SequencerStore {
       return Array.from({ length }, () => 0);
     }
 
+    const laneLength = this.getLaneLengthSteps(laneId);
+
     return Array.from({ length }, (_, stepIndex) => {
-      return eventAtStep(lane, stepIndex)?.velocity ?? 0;
+      const localStep = stepIndex % laneLength;
+      return eventAtStep(lane, localStep)?.velocity ?? 0;
     });
   }
 
