@@ -184,6 +184,19 @@ function lane(pattern: Pattern, id: string): PatternLane | undefined {
   return pattern.lanes.find((entry) => entry.id === id);
 }
 
+function laneLengthSteps(pattern: Pattern, laneValue: PatternLane): number {
+  return Math.max(
+    1,
+    Math.min(
+      patternSteps(pattern),
+      Math.round(
+        (laneValue.loopLengthTicks ?? pattern.lengthTicks) /
+          FOUNDATION_STEP_TICKS,
+      ),
+    ),
+  );
+}
+
 function stepOf(event: StepEvent): number {
   return Math.round(event.tick / FOUNDATION_STEP_TICKS);
 }
@@ -201,7 +214,9 @@ function addHit(
   extra: Partial<StepEvent> = {},
 ): void {
   const target = lane(pattern, laneId);
-  if (!target || target.lock.rhythm || eventAt(target, step)) return;
+  if (!target || target.lock.rhythm) return;
+  const localStep = step % laneLengthSteps(pattern, target);
+  if (eventAt(target, localStep)) return;
 
   target.events.push({
     id:
@@ -210,8 +225,8 @@ function addHit(
       "-" +
       laneId.replace("lane-", "") +
       "-" +
-      step,
-    tick: step * FOUNDATION_STEP_TICKS,
+      localStep,
+    tick: localStep * FOUNDATION_STEP_TICKS,
     velocity: clamp01(velocity),
     probability: 1,
     timingOffsetUs: 0,
@@ -234,7 +249,10 @@ function scaleLane(
 ): void {
   const target = lane(pattern, laneId);
   if (!target || target.lock.dynamics) return;
+  const activeTicks =
+    laneLengthSteps(pattern, target) * FOUNDATION_STEP_TICKS;
   for (const event of target.events) {
+    if (event.tick >= activeTicks) continue;
     event.velocity = clamp01(Math.max(0.08, event.velocity * multiplier));
     event.accent =
       event.velocity >= 0.85
@@ -256,8 +274,11 @@ function removeSome(
   const target = lane(pattern, laneId);
   if (!target || target.lock.rhythm) return;
   const random = new SeededRandom(deriveSeed(seed, laneId));
+  const activeTicks =
+    laneLengthSteps(pattern, target) * FOUNDATION_STEP_TICKS;
 
   target.events = target.events.filter((event) => {
+    if (event.tick >= activeTicks) return true;
     if (protect?.(event)) return true;
     return !random.chance(probability);
   });
@@ -527,6 +548,12 @@ export function generateBeatFamily(
   );
   const reasons: string[] = [];
   let coherenceScore = avgScore;
+  const allRhythmLocked = source.lanes.every((lane) => lane.lock.rhythm);
+
+  if (allRhythmLocked) {
+    reasons.push("all rhythm lanes are locked");
+    coherenceScore -= 45;
+  }
 
   if (aDistance < 0.02) {
     reasons.push("A variation is too close to core");
