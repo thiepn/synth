@@ -26,6 +26,7 @@ export interface ArrangementSnapshot {
   occurrences: ArrangementOccurrence[];
   totalTicks: number;
   edited: boolean;
+  musicalRevision: number;
   revision: number;
 }
 
@@ -122,6 +123,7 @@ export class ArrangementStore {
   private occurrences: ArrangementOccurrence[] = [];
   private totalTicks = 0;
   private edited = false;
+  private musicalRevision = 0;
   private revision = 0;
   private duplicateCounter = 0;
   private snapshot: ArrangementSnapshot = this.buildSnapshot();
@@ -158,6 +160,7 @@ export class ArrangementStore {
     );
     this.edited = false;
     this.duplicateCounter = 0;
+    this.musicalRevision += 1;
     this.recalculate();
     this.publish();
   }
@@ -170,6 +173,7 @@ export class ArrangementStore {
     this.occurrences = [];
     this.totalTicks = 0;
     this.edited = false;
+    this.musicalRevision += 1;
     this.publish();
   }
 
@@ -222,11 +226,7 @@ export class ArrangementStore {
     const [section] = next.splice(from, 1);
     if (!section) return;
 
-    const insertAt =
-      from < target
-        ? Math.max(0, target - 1)
-        : target;
-    next.splice(insertAt, 0, section);
+    next.splice(target, 0, section);
     this.blueprint.sections = next;
     this.markEditedAndPublish();
   }
@@ -487,6 +487,7 @@ export class ArrangementStore {
 
   private markEditedAndPublish(recalculate = true): void {
     this.edited = true;
+    this.musicalRevision += 1;
     if (recalculate) this.recalculate();
     this.publish();
   }
@@ -507,6 +508,7 @@ export class ArrangementStore {
       occurrences: this.occurrences.map((occurrence) => ({ ...occurrence })),
       totalTicks: this.totalTicks,
       edited: this.edited,
+      musicalRevision: this.musicalRevision,
       revision: this.revision,
     };
   }
