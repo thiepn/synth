@@ -278,3 +278,23 @@
     display: none;
   }
 }
+
+
+.mutation-bank__grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 760px) {
+  .mutation-bank__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .mutation-bank__grid .machine-button {
+    min-width: 0;
+    padding-inline: 4px;
+  }
+
+  .mutation-bank__grid .machine-button__label {
+    font-size: 0.57rem;
+  }
+}
