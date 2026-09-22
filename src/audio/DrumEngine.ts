@@ -17,6 +17,11 @@ import {
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
+import {
+  eventPassesProbability,
+  normalizedFlamOffsetUs,
+  normalizedRatchetCount,
+} from "../sequencer/playbackRules";
 import { drumSoundStore } from "./drumSoundModel";
 
 export interface DrumMacros {
@@ -203,6 +208,17 @@ export class DrumEngine {
 
         for (const event of lane.events) {
           const step = Math.round(event.tick / FOUNDATION_STEP_TICKS);
+          if (
+            !eventPassesProbability(
+              pattern.id,
+              lane.id,
+              event,
+              0,
+            )
+          ) {
+            continue;
+          }
+
           const swingOffsetUs = swingOffsetUsForStep(
             step,
             safeBpm,
@@ -212,31 +228,47 @@ export class DrumEngine {
             startTime +
             step * stepSeconds +
             (swingOffsetUs + event.timingOffsetUs) / 1_000_000;
-
-          const firstVoiceId = this.nextVoiceId;
           const auditionVoice = drumSoundStore.resolveVoiceForSlot(
             lane.kitSlotId,
             definition.voice,
           );
-          this.scheduleVoice(
-            auditionVoice,
-            at,
-            event.velocity,
-            null,
-          );
+          const ratchets = normalizedRatchetCount(event);
+          const flamOffsetUs = normalizedFlamOffsetUs(event);
+          const ratchetSpacing =
+            ratchets > 1 ? (stepSeconds * 0.82) / ratchets : 0;
 
-          for (
-            let id = firstVoiceId;
-            id < this.nextVoiceId;
-            id += 1
-          ) {
-            this.auditionVoiceIds.add(id);
+          for (let index = 0; index < ratchets; index += 1) {
+            const firstVoiceId = this.nextVoiceId;
+            const ratchetVelocity =
+              event.velocity * Math.max(0.58, 1 - index * 0.09);
+            const ratchetTime = at + index * ratchetSpacing;
+
+            this.scheduleVoice(
+              auditionVoice,
+              ratchetTime,
+              ratchetVelocity,
+              null,
+            );
+
+            if (index === 0 && flamOffsetUs > 0) {
+              this.scheduleVoice(
+                auditionVoice,
+                ratchetTime + flamOffsetUs / 1_000_000,
+                ratchetVelocity * 0.72,
+                null,
+              );
+            }
+
+            for (
+              let id = firstVoiceId;
+              id < this.nextVoiceId;
+              id += 1
+            ) {
+              this.auditionVoiceIds.add(id);
+            }
           }
 
-          lastVoice = drumSoundStore.resolveVoiceForSlot(
-            lane.kitSlotId,
-            definition.voice,
-          );
+          lastVoice = auditionVoice;
         }
       }
 
@@ -297,19 +329,41 @@ export class DrumEngine {
         sequencer.pattern.groove?.swing ?? 0,
       );
 
+      const stepSeconds = 60 / transport.bpm / 4;
+
       for (const hit of hits) {
         const resolvedVoice = drumSoundStore.resolveVoiceForSlot(
           hit.kitSlotId,
           hit.voice,
         );
-
-        this.scheduleVoice(
-          resolvedVoice,
+        const baseTime =
           pulse.audioTime +
-            (swingOffsetUs + hit.timingOffsetUs) / 1_000_000,
-          hit.velocity,
-          pulse.epoch,
-        );
+          (swingOffsetUs + hit.timingOffsetUs) / 1_000_000;
+        const ratchets = Math.max(1, hit.ratchetCount);
+        const ratchetSpacing =
+          ratchets > 1 ? (stepSeconds * 0.82) / ratchets : 0;
+
+        for (let index = 0; index < ratchets; index += 1) {
+          const ratchetVelocity =
+            hit.velocity * Math.max(0.58, 1 - index * 0.09);
+          const ratchetTime = baseTime + index * ratchetSpacing;
+
+          this.scheduleVoice(
+            resolvedVoice,
+            ratchetTime,
+            ratchetVelocity,
+            pulse.epoch,
+          );
+
+          if (index === 0 && hit.flamOffsetUs > 0) {
+            this.scheduleVoice(
+              resolvedVoice,
+              ratchetTime + hit.flamOffsetUs / 1_000_000,
+              ratchetVelocity * 0.72,
+              pulse.epoch,
+            );
+          }
+        }
       }
 
       if (hits.length > 0) {
