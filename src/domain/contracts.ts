@@ -74,6 +74,8 @@ export interface PatternLane {
   /** Rhythms target a semantic kit slot, not a concrete sound. */
   kitSlotId: EntityId;
   events: StepEvent[];
+  /** Optional independent lane loop length for polymetric playback. */
+  loopLengthTicks?: Tick;
   muted?: boolean;
   solo?: boolean;
   lock: GenerationLock;
