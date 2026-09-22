@@ -18,9 +18,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 7 — Rhythm Glyph System:** complete
 - **Phase 8 — Groove & Humanization Engine:** complete
 - **Phase 9 — Groove Field & Musical Mutation:** complete
-- **Next: Phase 10 — Generation History & Evolution Tree**
+- **Phase 10 — Generation History & Evolution Tree:** complete
+- **Next: Phase 11 — Drum Synthesis Engine V2**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, and semantic musical mutation. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, and mutation logic.
+Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, and branching creative lineage. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, and history ownership.
 
 ## Run locally
 
@@ -205,6 +206,27 @@ See [Phase 8 implementation notes](docs/phase-8/PHASE_8.md).
 - accepted mutation state updates CREATE controls to match the resulting Pattern
 
 See [Phase 9 implementation notes](docs/phase-9/PHASE_9.md).
+
+### Phase 10 — Generation History & Evolution Tree
+
+- separate creative lineage from editor Undo/Redo
+- immutable Pattern snapshots per creative node
+- automatic nodes for Generate / Reroll / Mutation / Groove Field
+- manual EDIT checkpoints only when manual changes become creative branch sources
+- explicit sourceHistoryNodeId stamping
+- active vs selected node distinction
+- recursive spatial branch connectors
+- compact Rhythm Glyph per node
+- one-loop non-destructive history audition
+- Restore and explicit BRANCH operations
+- favorites and inline rename
+- CUT removes a branch and all descendants
+- active-branch deletion falls back safely
+- restore preserves current mute/solo monitoring while restoring creative locks
+- history audition cannot overlap the main transport
+- session-local persistence boundary documented honestly
+
+See [Phase 10 implementation notes](docs/phase-10/PHASE_10.md).
 
 ## Phase 0 architecture
 
