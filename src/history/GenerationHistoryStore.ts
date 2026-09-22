@@ -288,6 +288,7 @@ export class GenerationHistoryStore {
 
     this.activeNodeId = checkpoint.id;
     this.selectedNodeId = checkpoint.id;
+    this.publish();
     return checkpoint.id;
   }
 
