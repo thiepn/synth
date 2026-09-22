@@ -141,6 +141,10 @@ export class DrumEngine {
     sequencerStore.subscribe(() => {
       audioTransport.invalidateScheduledEvents();
     });
+
+    drumSoundStore.subscribe(() => {
+      audioTransport.invalidateScheduledEvents();
+    });
   }
 
   readonly subscribe = (listener: StoreListener): (() => void) => {
