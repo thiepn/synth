@@ -13,6 +13,7 @@ import {
   type BeatVariationResult,
 } from "../../generation/beatVariation";
 import { shortSeed } from "../../generation/prng";
+import { generationHistoryStore } from "../../history/GenerationHistoryStore";
 import {
   MUSICAL_MUTATIONS,
   mutateGrooveField,
@@ -35,6 +36,7 @@ import { sequencerStore } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { DrumEnginePanel } from "../drums/DrumEngineUI";
 import { GrooveEnginePanel } from "../groove/GrooveEngineUI";
+import { EvolutionTreePanel } from "../history/EvolutionTree";
 import {
   BeatReactor,
   GrooveField,
@@ -193,6 +195,34 @@ export function CreateSurface() {
     swing: swing / 100,
   });
 
+  const commitCreativePattern = (
+    nextPattern: typeof sequencer.pattern,
+    operation: "generateBeat" | "reroll" | "mutation",
+    operationLabel: string,
+    title?: string,
+    asTransform = false,
+  ) => {
+    const prepared = generationHistoryStore.prepareCreativePattern(
+      sequencer.pattern,
+      nextPattern,
+    );
+
+    if (asTransform) {
+      sequencerStore.applyPatternTransform(prepared.pattern);
+    } else {
+      sequencerStore.applyGeneratedPattern(prepared.pattern);
+    }
+
+    generationHistoryStore.commitPrepared(
+      prepared,
+      operation,
+      operationLabel,
+      title,
+    );
+
+    return prepared.pattern;
+  };
+
   const recordFailure = (message: string) => {
     setOperationError(message);
     setReactorVersion((value) => value + 1);
@@ -230,8 +260,16 @@ export function CreateSurface() {
         ...grooveRequest(result.pattern, "groove:" + result.effectiveSeed),
         swing: result.pattern.groove?.swing ?? swing / 100,
       });
-      sequencerStore.applyGeneratedPattern(grooved.pattern);
-      setLastGrooveResult(grooved);
+      const committedPattern = commitCreativePattern(
+        grooved.pattern,
+        "generateBeat",
+        "GENERATE",
+        grooved.pattern.name,
+      );
+      setLastGrooveResult({
+        ...grooved,
+        pattern: committedPattern,
+      });
       setLastOperation({ kind: "generate", result });
       setActiveMutation(null);
       setMutationError(null);
@@ -285,8 +323,16 @@ export function CreateSurface() {
             "groove:" + result.effectiveSeed,
         ),
       );
-      sequencerStore.applyGeneratedPattern(grooved.pattern);
-      setLastGrooveResult(grooved);
+      const committedPattern = commitCreativePattern(
+        grooved.pattern,
+        "reroll",
+        targetKey === "all-unlocked" ? "REROLL" : "REROLL / LANE",
+        grooved.pattern.name,
+      );
+      setLastGrooveResult({
+        ...grooved,
+        pattern: committedPattern,
+      });
       setActiveMutation(null);
       setMutationError(null);
       setLastOperation({
@@ -333,8 +379,18 @@ export function CreateSurface() {
       return;
     }
 
-    sequencerStore.applyPatternTransform(result.pattern);
-    setLastOperation({ kind: "mutation", result });
+    const committedPattern = commitCreativePattern(
+      result.pattern,
+      "mutation",
+      mutation ? mutation.toUpperCase() : "FIELD",
+      result.pattern.name,
+      true,
+    );
+    const committedResult = {
+      ...result,
+      pattern: committedPattern,
+    };
+    setLastOperation({ kind: "mutation", result: committedResult });
     setLastGrooveResult(null);
     setActiveMutation(mutation);
     setMutationError(null);
@@ -707,6 +763,8 @@ export function CreateSurface() {
         onApply={applyCurrentFeel}
         onReset={resetCurrentFeel}
       />
+
+      <EvolutionTreePanel />
 
       <DrumEnginePanel />
 
