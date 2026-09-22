@@ -12,6 +12,7 @@ import {
   DRUM_SYNTH_ENGINE_VERSION,
   type DrumMaterialSpec,
 } from "../../domain/contracts";
+import { isStyleDNAId } from "../../style/styleDNA";
 import {
   KIT_DIRECTIONS,
   generateKit,
@@ -266,6 +267,8 @@ export function SoundSurface() {
       ]),
     ) as Partial<Record<DrumVoiceId, DrumMaterialSpec>>;
 
+    const styleDnaId =
+      sequencer.pattern.provenance?.styleDnaId;
     const result = generateKit({
       seed:
         "sound-kit:" +
@@ -274,6 +277,10 @@ export function SoundSurface() {
         String(kitCounter).padStart(4, "0"),
       direction,
       intensity: variation / 100,
+      styleId:
+        styleDnaId && isStyleDNAId(styleDnaId)
+          ? styleDnaId
+          : undefined,
       lockedSpecs,
     });
 
