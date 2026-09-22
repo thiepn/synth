@@ -126,9 +126,16 @@ Creative operations become semantic commands, e.g.:
 
 Commands should retain enough metadata for undo, replay, and lineage.
 
+Editor Undo/Redo and creative lineage are distinct systems:
+
+- Undo/Redo is short-horizon reversible editor state.
+- Evolution history stores branchable creative snapshots and explicit ancestry.
+
 History nodes refer to typed creative artifacts rather than only patterns, allowing kit, sound, scene, and arrangement branches to participate in the evolution model.
 
-The user-facing evolution tree is derived from this history model rather than maintained as unrelated UI state.
+For the current Pattern-focused implementation, Evolution nodes own immutable Pattern snapshots and stamp child Pattern provenance with the parent history-node ID.
+
+The user-facing Evolution Tree is derived from this history model rather than maintained as unrelated UI state.
 
 ## 8. Project persistence
 
