@@ -13,6 +13,7 @@ export type Normalized = number;
 
 export const PROJECT_SCHEMA_VERSION = 1 as const;
 export const RHYTHM_EXCHANGE_SCHEMA_VERSION = 1 as const;
+export const DRUM_SYNTH_ENGINE_VERSION = 2 as const;
 export const PPQ = 960 as const;
 
 export type InstrumentRole =
