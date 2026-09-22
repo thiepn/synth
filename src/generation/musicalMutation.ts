@@ -210,6 +210,54 @@ function clonePattern(pattern: Pattern): Pattern {
   };
 }
 
+function isGrooveGeneratedEvent(event: StepEvent): boolean {
+  return Boolean(
+    event.generatorTags?.some((tag) => tag.startsWith("groove-engine")),
+  );
+}
+
+function baselineEvent(event: StepEvent): StepEvent {
+  const base = cloneEvent(event);
+
+  if (event.grooveBase) {
+    base.velocity = event.grooveBase.velocity;
+    base.timingOffsetUs = event.grooveBase.timingOffsetUs;
+    base.accent = event.grooveBase.accent;
+  }
+
+  delete base.grooveBase;
+  base.generatorTags = base.generatorTags?.filter(
+    (tag) => !tag.startsWith("groove-engine"),
+  );
+
+  return base;
+}
+
+function mutationBaseline(source: Pattern): Pattern {
+  const baseline = resetGroove(source);
+
+  for (const sourceLane of source.lanes) {
+    if (!sourceLane.lock.rhythm) continue;
+
+    const targetLane = baseline.lanes.find(
+      (lane) => lane.id === sourceLane.id,
+    );
+    if (!targetLane) continue;
+
+    targetLane.events = sourceLane.events.map((event) => {
+      const result = baselineEvent(event);
+
+      if (isGrooveGeneratedEvent(event) && result.accent !== "ghost") {
+        result.accent = "ghost";
+      }
+
+      return result;
+    });
+  }
+
+  return baseline;
+}
+
 function stepCount(pattern: Pattern): number {
   return Math.max(
     1,
@@ -792,7 +840,7 @@ function finalizeMutation(
   settings: GrooveSettings,
 ): MusicalMutationResult {
   assertStructuralLocks(
-    resetGroove(source),
+    mutationBaseline(source),
     baseline,
   );
 
@@ -880,7 +928,7 @@ export function mutateMusically(
     request.mutation + ":v" + MUSICAL_MUTATION_VERSION,
   );
   const seedCode = shortSeed(effectiveSeed);
-  const sourceBaseline = resetGroove(request.source);
+  const sourceBaseline = mutationBaseline(request.source);
   const random = new SeededRandom(
     deriveSeed(effectiveSeed, "transform"),
   );
@@ -1009,7 +1057,7 @@ export function mutateGrooveField(
       ":" +
       Math.round(targetSyncopation * 100),
   );
-  const baseline = resetGroove(request.source);
+  const baseline = mutationBaseline(request.source);
 
   const rerolled = rerollBeat({
     source: baseline,
