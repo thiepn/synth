@@ -12,6 +12,7 @@ import "./family.css";
 import "./arrange-foundation.css";
 import "./arrange.css";
 import "./sound.css";
+import "./sample.css";
 
 const root = document.getElementById("root");
 
