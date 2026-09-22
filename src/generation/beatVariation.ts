@@ -60,6 +60,9 @@ function cloneEvent(event: StepEvent): StepEvent {
     generatorTags: event.generatorTags
       ? [...event.generatorTags]
       : undefined,
+    grooveBase: event.grooveBase
+      ? { ...event.grooveBase }
+      : undefined,
   };
 }
 
