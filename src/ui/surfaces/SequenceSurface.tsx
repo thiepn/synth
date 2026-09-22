@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
@@ -18,6 +19,12 @@ import {
   sequencerStore,
   type SequencerLengthSteps,
 } from "../../sequencer/SequencerStore";
+import {
+  LANE_ACTIONS,
+  PATTERN_BRUSHES,
+  type LaneActionId,
+  type PatternBrushId,
+} from "../../sequencer/patternPainting";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { deriveRhythmGlyph } from "../../visual/rhythmGlyph";
 import {
@@ -65,6 +72,20 @@ export function SequenceSurface() {
     laneId: "lane-kick",
     stepIndex: 0,
   });
+  const [activeBrush, setActiveBrush] =
+    useState<PatternBrushId | null>(null);
+  const [brushDensity, setBrushDensity] = useState(62);
+  const [laneActionAmount, setLaneActionAmount] = useState(58);
+  const [laneActionStatus, setLaneActionStatus] = useState("READY");
+  const strokeCounterRef = useRef(0);
+  const laneActionCounterRef = useRef(0);
+  const paintGestureRef = useRef<{
+    id: string;
+    brush: PatternBrushId;
+    seed: string;
+    density: number;
+    visited: Set<string>;
+  } | null>(null);
 
   useEffect(() => {
     if (selection.stepIndex < sequencer.lengthSteps) return;
@@ -104,6 +125,63 @@ export function SequenceSurface() {
 
     window.addEventListener("keydown", handleHistoryShortcut);
     return () => window.removeEventListener("keydown", handleHistoryShortcut);
+  }, []);
+
+  useEffect(() => {
+    const finishGesture = () => {
+      const gesture = paintGestureRef.current;
+      if (!gesture) return;
+      sequencerStore.endPaintGesture(gesture.id);
+      paintGestureRef.current = null;
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const gesture = paintGestureRef.current;
+      if (!gesture) return;
+
+      event.preventDefault();
+      const element = document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+      const stepButton = element?.closest<HTMLButtonElement>(
+        ".sequence-step[data-lane-id][data-step-index]",
+      );
+      if (!stepButton) return;
+
+      const laneId = stepButton.dataset.laneId;
+      const rawStep = Number(stepButton.dataset.stepIndex);
+      if (!laneId || !Number.isInteger(rawStep)) return;
+
+      const key = laneId + ":" + rawStep;
+      if (gesture.visited.has(key)) return;
+      gesture.visited.add(key);
+
+      setSelection({
+        laneId,
+        stepIndex: rawStep,
+      });
+      sequencerStore.paintBrushStep(
+        gesture.id,
+        gesture.brush,
+        laneId,
+        rawStep,
+        gesture.density,
+        gesture.seed,
+      );
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: false,
+    });
+    window.addEventListener("pointerup", finishGesture);
+    window.addEventListener("pointercancel", finishGesture);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", finishGesture);
+      window.removeEventListener("pointercancel", finishGesture);
+    };
   }, []);
 
   const selectedDefinition = laneDefinitionById(selection.laneId);
@@ -178,6 +256,76 @@ export function SequenceSurface() {
     void drumEngine.triggerNow(
       selectedDefinition.voice,
       selectedVelocity ?? 0.8,
+    );
+  };
+
+  const startPaintGesture = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    if (!activeBrush) return;
+
+    event.preventDefault();
+    strokeCounterRef.current += 1;
+    const id = "stroke-" + strokeCounterRef.current;
+    const seed =
+      sequencer.pattern.id +
+      ":" +
+      sequencer.revision +
+      ":" +
+      activeBrush +
+      ":" +
+      laneId +
+      ":" +
+      stepIndex;
+
+    paintGestureRef.current = {
+      id,
+      brush: activeBrush,
+      seed,
+      density: brushDensity / 100,
+      visited: new Set([laneId + ":" + stepIndex]),
+    };
+
+    setSelection({ laneId, stepIndex });
+    sequencerStore.beginPaintGesture(id);
+    sequencerStore.paintBrushStep(
+      id,
+      activeBrush,
+      laneId,
+      stepIndex,
+      brushDensity / 100,
+      seed,
+    );
+  };
+
+  const runLaneAction = (action: LaneActionId) => {
+    const lane = sequencer.pattern.lanes.find(
+      (entry) => entry.id === selection.laneId,
+    );
+    if (!lane || !selectedDefinition) return;
+
+    laneActionCounterRef.current += 1;
+    const applied = sequencerStore.applyLaneGestureAction(
+      selection.laneId,
+      action,
+      brushDensity / 100,
+      laneActionAmount / 100,
+      [
+        sequencer.pattern.id,
+        selection.laneId,
+        action,
+        laneActionCounterRef.current,
+      ].join(":"),
+    );
+
+    setLaneActionStatus(
+      applied
+        ? selectedDefinition.code + " / " + action.toUpperCase()
+        : action === "humanize"
+          ? "DYNAMICS + TIMING LOCKED"
+          : "RHYTHM LOCKED",
     );
   };
 
@@ -300,7 +448,72 @@ export function SequenceSurface() {
         </dl>
       </div>
 
-      <div className="rhythm-matrix-shell">
+      <div className="pattern-paint-panel">
+        <div className="pattern-paint-panel__mode">
+          <div className="machine-section-label">
+            <span>PATTERN / PAINT</span>
+            <span>
+              {activeBrush ? "PAINT MODE / ONE UNDO" : "SELECT / SCROLL"}
+            </span>
+          </div>
+
+          <div className="pattern-brush-bank">
+            <button
+              type="button"
+              className={
+                activeBrush === null
+                  ? "pattern-brush-key is-active"
+                  : "pattern-brush-key"
+              }
+              onClick={() => setActiveBrush(null)}
+              aria-pressed={activeBrush === null}
+            >
+              <span>SEL</span>
+              <strong>SELECT</strong>
+            </button>
+
+            {PATTERN_BRUSHES.map((brush) => (
+              <button
+                type="button"
+                key={brush.id}
+                className={
+                  activeBrush === brush.id
+                    ? "pattern-brush-key is-active"
+                    : "pattern-brush-key"
+                }
+                onClick={() => setActiveBrush(brush.id)}
+                aria-pressed={activeBrush === brush.id}
+                title={brush.description}
+              >
+                <span>{brush.code}</span>
+                <strong>{brush.label}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="pattern-paint-panel__density">
+          <SignalRail
+            label="BRUSH DENSITY"
+            value={brushDensity}
+            tone="ice"
+            onChange={setBrushDensity}
+          />
+          <p>
+            {activeBrush
+              ? "Drag horizontally across steps. KICK / HAT / PERC / FILL route to their semantic lanes."
+              : "Select mode keeps normal step editing and horizontal touch scrolling."}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={
+          activeBrush
+            ? "rhythm-matrix-shell is-paint-mode"
+            : "rhythm-matrix-shell"
+        }
+      >
         <div
           className="rhythm-matrix"
           style={{
@@ -477,14 +690,28 @@ export function SequenceSurface() {
                           "--step-offset": timingPx + "px",
                           "--step-probability": probability,
                         } as CSSProperties}
-                        onClick={(event) =>
+                        data-lane-id={definition.id}
+                        data-step-index={index}
+                        onPointerDown={(event) =>
+                          startPaintGesture(
+                            event,
+                            definition.id,
+                            index,
+                          )
+                        }
+                        onClick={(event) => {
+                          if (activeBrush) {
+                            event.preventDefault();
+                            return;
+                          }
+
                           handleStep(
                             definition.id,
                             index,
                             isOn,
                             event.shiftKey,
-                          )
-                        }
+                          );
+                        }}
                         aria-pressed={isOn}
                         aria-label={
                           definition.name +
@@ -646,12 +873,62 @@ export function SequenceSurface() {
         </div>
       </div>
 
+      <div className="lane-gesture-panel">
+        <div className="lane-gesture-panel__identity">
+          <span>LANE / GESTURES</span>
+          <strong>
+            {selectedDefinition?.code ?? "--"} ·{" "}
+            {selectedDefinition?.name ?? "NO LANE"}
+          </strong>
+          <span>{laneActionStatus}</span>
+        </div>
+
+        <div className="lane-gesture-panel__actions">
+          {LANE_ACTIONS.map((action) => {
+            const lane = sequencer.pattern.lanes.find(
+              (entry) => entry.id === selection.laneId,
+            );
+            const disabled =
+              action.id === "humanize"
+                ? Boolean(
+                    lane?.lock.dynamics &&
+                    lane?.lock.timing,
+                  )
+                : Boolean(lane?.lock.rhythm);
+
+            return (
+              <MachineButton
+                key={action.id}
+                compact
+                disabled={disabled}
+                onClick={() => runLaneAction(action.id)}
+              >
+                {action.label}
+              </MachineButton>
+            );
+          })}
+        </div>
+
+        <div className="lane-gesture-panel__amount">
+          <SignalRail
+            label="GESTURE AMOUNT"
+            value={laneActionAmount}
+            onChange={setLaneActionAmount}
+          />
+          <span>
+            GEN uses Brush Density · VAR / SIMP / HUM use Amount
+          </span>
+        </div>
+      </div>
+
       <p className="sequence-hint">
         Empty step: click to add. Active step: first click selects, click the
         selected step again to remove. Shift-click cycles velocity. DUP ×2
         doubles the current phrase up to 64 steps. Probability is deterministic
         per lane cycle; ratchets and flams stay inside the transport grid. Lane
         −/+ controls establish independent loop lengths for polymetric playback.
+        In PAINT mode a complete drag stroke is one Undo action. Lane GEN /
+        VAR / SIMP respect rhythm locks; HUM respects timing/dynamics locks.
         Cmd/Ctrl-Z handles history.
       </p>
     </section>
