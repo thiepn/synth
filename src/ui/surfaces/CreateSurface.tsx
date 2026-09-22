@@ -47,6 +47,7 @@ import { EvolutionTreePanel } from "../history/EvolutionTree";
 import { BeatFamilyPanel } from "../family/BeatFamilyPanel";
 import { ArrangeFoundationPanel } from "../arrange/ArrangeFoundationPanel";
 import { StyleDNAPanel } from "../style/StyleDNAPanel";
+import { BeatMorphPanel } from "../morph/BeatMorphPanel";
 import {
   BeatReactor,
   GrooveField,
@@ -918,6 +919,12 @@ export function CreateSurface() {
         onSwingChange={setSwing}
         onApply={applyCurrentFeel}
         onReset={resetCurrentFeel}
+      />
+
+      <BeatMorphPanel
+        targetStyle={style}
+        intent={intent()}
+        bpm={transport.bpm}
       />
 
       <BeatFamilyPanel
