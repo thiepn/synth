@@ -19,9 +19,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 8 — Groove & Humanization Engine:** complete
 - **Phase 9 — Groove Field & Musical Mutation:** complete
 - **Phase 10 — Generation History & Evolution Tree:** complete
-- **Next: Phase 11 — Drum Synthesis Engine V2**
+- **Phase 11 — Drum Synthesis Engine V2:** complete
+- **Next: Phase 12 — Kit Generator**
 
-Synth now has a real Web Audio transport, an eight-voice local synthesized drum engine, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, and branching creative lineage. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, and history ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, and a serializable material sound model. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, and sound-spec ownership.
 
 ## Run locally
 
@@ -227,6 +228,26 @@ See [Phase 9 implementation notes](docs/phase-9/PHASE_9.md).
 - session-local persistence boundary documented honestly
 
 See [Phase 10 implementation notes](docs/phase-10/PHASE_10.md).
+
+### Phase 11 — Drum Synthesis Engine V2
+
+- serializable eight-parameter material spec per drum voice
+- active 03 / SOUND material-engineering mode
+- Kick body / sub / click layering
+- Snare body / ring / noise / snap layering
+- multi-burst Clap with temporal spread and body thickness
+- metallic oscillator-bank Closed/Open Hats plus filtered noise
+- Tom body, attack texture and pitch-drop synthesis
+- FM/resonator/noise Percussion
+- metallic oscillator-bank Crash plus filtered noise wash
+- existing master Punch / Tone / Decay / Grit / Space macros retained
+- V2 specs convert to domain SynthSoundSpec
+- live parameter edits coalesce scheduler invalidation
+- zero-level optional layers are Web-Audio-safe
+- hit-level polyphony raised to 64
+- session-local sound-state boundary documented honestly
+
+See [Phase 11 implementation notes](docs/phase-11/PHASE_11.md).
 
 ## Phase 0 architecture
 
