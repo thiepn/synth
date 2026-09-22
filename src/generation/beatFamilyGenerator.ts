@@ -157,6 +157,11 @@ function decorate(
 
   next.id = "pattern-family-" + role + "-" + code;
   next.name = label + " / " + code;
+  next.lanes = next.lanes.map((lane) => ({
+    ...lane,
+    muted: false,
+    solo: false,
+  }));
   next.groove = source.groove
     ? {
         ...source.groove,
