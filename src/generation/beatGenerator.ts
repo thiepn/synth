@@ -54,7 +54,7 @@ export interface BeatGenerationRequest {
   seed: string;
   style: BeatStyleId;
   intent: BeatGenerationIntent;
-  stepCount: 4 | 8 | 16;
+  stepCount: 4 | 8 | 16 | 32 | 64;
   bpm: number;
   meter?: Meter;
 }
@@ -165,14 +165,36 @@ function varyVelocity(
 
 function backbeatSteps(stepCount: number): number[] {
   if (stepCount <= 4) return [2];
-  if (stepCount <= 8) return [4];
-  return [4, 12];
+  return Array.from({ length: stepCount }, (_, index) => index).filter(
+    (index) => index % 8 === 4,
+  );
 }
 
 function quarterSteps(stepCount: number): number[] {
-  if (stepCount <= 4) return [0];
-  if (stepCount <= 8) return [0, 4];
-  return [0, 4, 8, 12];
+  return Array.from({ length: stepCount }, (_, index) => index).filter(
+    (index) => index % 4 === 0,
+  );
+}
+
+function extendSixteenStepMotif(
+  grid: Grid,
+  stepCount: number,
+  random: SeededRandom,
+): void {
+  if (stepCount <= 16) return;
+
+  for (const values of grid.values()) {
+    for (let blockStart = 16; blockStart < stepCount; blockStart += 16) {
+      for (let offset = 0; offset < 16 && blockStart + offset < stepCount; offset += 1) {
+        if (values[blockStart + offset] > 0) continue;
+        const source = values[offset];
+        if (source <= 0) continue;
+
+        const variation = random.range(0.92, 1.04);
+        values[blockStart + offset] = Math.min(1, source * variation);
+      }
+    }
+  }
 }
 
 function eighthSteps(stepCount: number): number[] {
@@ -1046,7 +1068,9 @@ export function generateBeat(
     stepCount:
       requestInput.stepCount === 4 ||
       requestInput.stepCount === 8 ||
-      requestInput.stepCount === 16
+      requestInput.stepCount === 16 ||
+      requestInput.stepCount === 32 ||
+      requestInput.stepCount === 64
         ? requestInput.stepCount
         : 16,
   };
@@ -1061,6 +1085,7 @@ export function generateBeat(
     const random = new SeededRandom(effectiveSeed);
     const grid = makeGrid(request.stepCount);
     generateStyle(request.style, random, grid, request.intent);
+    extendSixteenStepMotif(grid, request.stepCount, random);
 
     const pattern = buildPattern(
       request,
