@@ -210,9 +210,10 @@ function clonePattern(pattern: Pattern): Pattern {
   };
 }
 
-function isGrooveGeneratedEvent(event: StepEvent): boolean {
+function isGrooveGeneratedGhost(event: StepEvent): boolean {
   return Boolean(
-    event.generatorTags?.some((tag) => tag.startsWith("groove-engine")),
+    event.generatorTags?.includes("ghost") &&
+      event.generatorTags.some((tag) => tag.startsWith("groove-engine")),
   );
 }
 
@@ -247,7 +248,7 @@ function mutationBaseline(source: Pattern): Pattern {
     targetLane.events = sourceLane.events.map((event) => {
       const result = baselineEvent(event);
 
-      if (isGrooveGeneratedEvent(event) && result.accent !== "ghost") {
+      if (isGrooveGeneratedGhost(event) && result.accent !== "ghost") {
         result.accent = "ghost";
       }
 
