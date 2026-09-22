@@ -8,14 +8,14 @@ import {
   SEQUENCER_LANES,
   createFoundationPattern,
   laneDefinitionById,
-  type DrumVoiceId,
 } from "../music/foundationPattern";
 import {
   clampManualTimingOffsetUs,
-  eventPassesProbability,
-  normalizedFlamOffsetUs,
-  normalizedRatchetCount,
 } from "./playbackRules";
+import {
+  getPatternHitsForAbsoluteStep,
+  type PatternPlaybackHit,
+} from "./patternPlayback";
 import {
   applyLaneAction as applyLaneActionEvents,
   decideBrushStep,
@@ -27,17 +27,7 @@ export const SEQUENCER_LENGTH_OPTIONS = [4, 8, 16, 32, 64] as const;
 export type SequencerLengthSteps =
   (typeof SEQUENCER_LENGTH_OPTIONS)[number];
 
-export interface SequencerHit {
-  voice: DrumVoiceId;
-  kitSlotId: string;
-  velocity: number;
-  timingOffsetUs: number;
-  ratchetCount: number;
-  flamOffsetUs: number;
-  laneId: string;
-  laneStepIndex: number;
-  laneCycleIndex: number;
-}
+export type SequencerHit = PatternPlaybackHit;
 
 export interface SequencerSnapshot {
   pattern: Pattern;
@@ -252,57 +242,10 @@ export class SequencerStore {
   }
 
   getHitsForStep(stepIndex: number): SequencerHit[] {
-    const absoluteStep = Math.max(0, Math.floor(stepIndex));
-    const patternLength = lengthStepsFromPattern(this.pattern);
-    const soloActive = this.pattern.lanes.some((lane) => lane.solo);
-    const hits: SequencerHit[] = [];
-
-    for (const lane of this.pattern.lanes) {
-      if (lane.muted) continue;
-      if (soloActive && !lane.solo) continue;
-
-      const laneLength = Math.max(
-        1,
-        Math.min(
-          patternLength,
-          Math.round(
-            (lane.loopLengthTicks ?? this.pattern.lengthTicks) /
-              FOUNDATION_STEP_TICKS,
-          ),
-        ),
-      );
-      const laneStepIndex = absoluteStep % laneLength;
-      const laneCycleIndex = Math.floor(absoluteStep / laneLength);
-      const event = eventAtStep(lane, laneStepIndex);
-      if (!event) continue;
-      if (
-        !eventPassesProbability(
-          this.pattern.id,
-          lane.id,
-          event,
-          laneCycleIndex,
-        )
-      ) {
-        continue;
-      }
-
-      const definition = laneDefinitionById(lane.id);
-      if (!definition) continue;
-
-      hits.push({
-        voice: definition.voice,
-        kitSlotId: lane.kitSlotId,
-        velocity: event.velocity,
-        timingOffsetUs: event.timingOffsetUs,
-        ratchetCount: normalizedRatchetCount(event),
-        flamOffsetUs: normalizedFlamOffsetUs(event),
-        laneId: lane.id,
-        laneStepIndex,
-        laneCycleIndex,
-      });
-    }
-
-    return hits;
+    return getPatternHitsForAbsoluteStep(
+      this.pattern,
+      stepIndex,
+    );
   }
 
   toggleStep(laneId: string, stepIndex: number): void {
