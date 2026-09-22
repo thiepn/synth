@@ -3,6 +3,9 @@ import { CreateSurface } from "./ui/surfaces/CreateSurface";
 import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
 import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
 import { SoundSurface } from "./ui/surfaces/SoundSurface";
+import { ArrangeSurface } from "./ui/surfaces/ArrangeSurface";
+import { audioTransport } from "./audio/AudioTransport";
+import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
   MODES,
   type ModeDefinition,
@@ -23,7 +26,7 @@ export function App() {
 
   return (
     <div className="synth-app">
-      <TransportLifecycle />
+      <TransportLifecycle mode={mode} />
       <UtilityRail mode={mode} />
 
       <main className="synth-workspace">
@@ -33,12 +36,27 @@ export function App() {
           <SequenceSurface />
         ) : modeId === "sound" ? (
           <SoundSurface />
+        ) : modeId === "arrange" ? (
+          <ArrangeSurface />
         ) : (
           <ModePlaceholder mode={mode} />
         )}
       </main>
 
-      <ModeRail active={modeId} onChange={setModeId} />
+      <ModeRail
+        active={modeId}
+        onChange={(next) => {
+          if (next === modeId) return;
+
+          if (modeId === "arrange") {
+            arrangementPlaybackStore.stop();
+          } else if (next === "arrange") {
+            audioTransport.stop();
+          }
+
+          setModeId(next);
+        }}
+      />
     </div>
   );
 }
@@ -88,7 +106,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 17</span>
+        <span>PHASE 18</span>
       </div>
     </nav>
   );
