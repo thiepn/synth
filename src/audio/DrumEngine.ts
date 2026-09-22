@@ -313,7 +313,11 @@ export class DrumEngine {
       }
 
       if (hits.length > 0) {
-        this.lastVoice = hits[hits.length - 1].voice;
+        const lastHit = hits[hits.length - 1];
+        this.lastVoice = drumSoundStore.resolveVoiceForSlot(
+          lastHit.kitSlotId,
+          lastHit.voice,
+        );
         this.triggerSerial += 1;
       }
 
