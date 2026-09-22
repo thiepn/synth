@@ -463,6 +463,10 @@ function variedSteps(
           ),
         );
         existing.accent = accentFromVelocity(existing.velocity);
+        delete existing.grooveBase;
+        existing.generatorTags = existing.generatorTags?.filter(
+          (tag) => !tag.startsWith("groove-engine"),
+        );
       }
 
       result.push(existing);
