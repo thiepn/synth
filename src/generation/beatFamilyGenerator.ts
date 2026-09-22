@@ -644,11 +644,15 @@ export function generateBeatFamily(
     ),
   };
 
-  const patterns: BeatFamilyPattern[] = ROLES.map((entry, index) => {
+  const patterns: BeatFamilyPattern[] = ROLES.map((entry) => {
     const seed = deriveSeed(effectiveSeed, entry.role);
     const distance = entry.role === "core"
       ? 0
       : patternDistance(source, raw[entry.role]);
+    const memberEnergy = familyRoleEnergy(
+      entry.role,
+      styleDna,
+    );
     const pattern = decorate(
       source,
       raw[entry.role],
@@ -657,7 +661,7 @@ export function generateBeatFamily(
       seed,
       request.style,
       request.intent,
-      entry.energy,
+      memberEnergy,
       distance,
     );
     const validation = validateGeneratedBeat(pattern, request.style);
@@ -666,7 +670,7 @@ export function generateBeatFamily(
       role: entry.role,
       label: entry.label,
       kind: entry.kind,
-      energy: familyRoleEnergy(entry.role, styleDna),
+      energy: memberEnergy,
       pattern,
       validation,
     };
