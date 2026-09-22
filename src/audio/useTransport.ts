@@ -12,7 +12,9 @@ export function useTransportSnapshot(): TransportSnapshot {
   );
 }
 
-export function useTransportLifecycle(): void {
+export function useTransportLifecycle(
+  toggleOverride?: () => void,
+): void {
   useEffect(() => {
     const recover = () => {
       if (!document.hidden) {
@@ -33,7 +35,11 @@ export function useTransportLifecycle(): void {
       }
 
       event.preventDefault();
-      void audioTransport.toggle();
+      if (toggleOverride) {
+        toggleOverride();
+      } else {
+        void audioTransport.toggle();
+      }
     };
 
     document.addEventListener("visibilitychange", recover);
@@ -45,5 +51,5 @@ export function useTransportLifecycle(): void {
       window.removeEventListener("pageshow", recover);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [toggleOverride]);
 }
