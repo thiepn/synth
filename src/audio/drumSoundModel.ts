@@ -26,6 +26,7 @@ export interface ActiveGeneratedKit {
   direction: string;
   seed: string;
   dna: Record<string, number>;
+  modified: boolean;
 }
 
 export interface DrumSoundSnapshot {
@@ -213,6 +214,12 @@ export class DrumSoundStore {
         [param]: next,
       },
     };
+    if (this.activeKit) {
+      this.activeKit = {
+        ...this.activeKit,
+        modified: true,
+      };
+    }
     this.publish();
   }
 
@@ -233,6 +240,12 @@ export class DrumSoundStore {
         character: clamp01(spec.character),
       },
     };
+    if (this.activeKit) {
+      this.activeKit = {
+        ...this.activeKit,
+        modified: true,
+      };
+    }
     this.publish();
   }
 
@@ -296,6 +309,7 @@ export class DrumSoundStore {
       direction: input.direction,
       seed: input.seed,
       dna: { ...input.dna },
+      modified: false,
     };
     this.publish();
   }
@@ -305,7 +319,12 @@ export class DrumSoundStore {
       ...this.specs,
       [voice]: cloneSpec(DRUM_DEFAULT_SPECS[voice]),
     };
-    this.activeKit = undefined;
+    if (this.activeKit) {
+      this.activeKit = {
+        ...this.activeKit,
+        modified: true,
+      };
+    }
     this.publish();
   }
 
@@ -362,6 +381,7 @@ export class DrumSoundStore {
             direction: this.activeKit.direction,
             seed: this.activeKit.seed,
             dna: { ...this.activeKit.dna },
+            modified: this.activeKit.modified,
           }
         : undefined,
       revision: this.revision,
