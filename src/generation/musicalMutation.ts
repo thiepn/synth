@@ -19,6 +19,7 @@ import {
 } from "./beatGenerator";
 import { rerollBeat } from "./beatVariation";
 import { SeededRandom, deriveSeed, shortSeed } from "./prng";
+import { STYLE_DNA_VERSION } from "../style/styleDNA";
 
 export const MUSICAL_MUTATION_ID = "musical-mutation";
 export const MUSICAL_MUTATION_VERSION = 1;
@@ -158,7 +159,7 @@ const LANE = Object.freeze({
 const CRITICAL_REASONS = new Set([
   "missing kick foundation",
   "missing backbeat",
-  "house pulse lost four-on-floor foundation",
+  "style pulse lost four-on-floor foundation",
 ]);
 
 function clamp01(value: number): number {
@@ -833,6 +834,8 @@ function decorateProvenance(
     generatorVersion: MUSICAL_MUTATION_VERSION,
     sourceEntityId: source.id,
     mutationId,
+    styleDnaId: style,
+    styleDnaVersion: STYLE_DNA_VERSION,
     style: styleVector(style),
     intent: intentVector(intent, amount, humanization),
   };
