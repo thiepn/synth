@@ -134,6 +134,8 @@ export interface GenerationProvenance {
   mutationId?: string;
   familyId?: EntityId;
   familyRole?: BeatFamilyRole;
+  styleDnaId?: string;
+  styleDnaVersion?: number;
   style: StyleVector;
   intent: IntentVector;
 }
