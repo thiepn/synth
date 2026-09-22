@@ -553,7 +553,7 @@ export class DrumEngine {
     const subEnvelope = context.createGain();
     subEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     subEnvelope.gain.linearRampToValueAtTime(
-      amp * spec.character * 0.42,
+      Math.max(MIN_GAIN, amp * spec.character * 0.42),
       at + 0.004,
     );
     subEnvelope.gain.exponentialRampToValueAtTime(
@@ -649,7 +649,7 @@ export class DrumEngine {
     const ringEnvelope = context.createGain();
     ringEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     ringEnvelope.gain.linearRampToValueAtTime(
-      amp * spec.character * 0.1,
+      Math.max(MIN_GAIN, amp * spec.character * 0.1),
       at + 0.0015,
     );
     ringEnvelope.gain.exponentialRampToValueAtTime(
@@ -771,7 +771,7 @@ export class DrumEngine {
     const bodyEnvelope = context.createGain();
     bodyEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     bodyEnvelope.gain.linearRampToValueAtTime(
-      amp * spec.body * 0.09,
+      Math.max(MIN_GAIN, amp * spec.body * 0.09),
       at + 0.001,
     );
     bodyEnvelope.gain.exponentialRampToValueAtTime(
@@ -941,7 +941,10 @@ export class DrumEngine {
     const attackEnvelope = context.createGain();
     attackEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     attackEnvelope.gain.linearRampToValueAtTime(
-      amp * spec.noise * (0.05 + impact * 0.18),
+      Math.max(
+        MIN_GAIN,
+        amp * spec.noise * (0.05 + impact * 0.18),
+      ),
       at + 0.0007,
     );
     attackEnvelope.gain.exponentialRampToValueAtTime(
@@ -1027,7 +1030,7 @@ export class DrumEngine {
     const textureEnvelope = context.createGain();
     textureEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     textureEnvelope.gain.linearRampToValueAtTime(
-      amp * spec.noise * 0.16,
+      Math.max(MIN_GAIN, amp * spec.noise * 0.16),
       at + 0.0006,
     );
     textureEnvelope.gain.exponentialRampToValueAtTime(
