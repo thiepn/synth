@@ -690,3 +690,219 @@
     font-size: 0.68rem;
   }
 }
+
+
+/* Phase 15 — Pattern Painting & Advanced Sequencer Gestures */
+.pattern-paint-panel {
+  display: grid;
+  grid-template-columns: minmax(520px, 1.35fr) minmax(260px, 0.65fr);
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.pattern-paint-panel > * {
+  min-width: 0;
+  padding: 16px 18px 18px;
+}
+
+.pattern-paint-panel > * + * {
+  border-left: 1px solid var(--hairline-strong);
+}
+
+.pattern-brush-bank {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-top: 8px;
+  border-top: 1px solid var(--hairline);
+  border-left: 1px solid var(--hairline);
+}
+
+.pattern-brush-key {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--graphite);
+  color: #62685e;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pattern-brush-key:hover {
+  color: var(--bone);
+  background: var(--carbon);
+}
+
+.pattern-brush-key span {
+  color: currentColor;
+  font: 650 0.46rem/1 var(--font-mono);
+}
+
+.pattern-brush-key strong {
+  overflow: hidden;
+  color: var(--bone);
+  font: 650 0.5rem/1 var(--font-mono);
+  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pattern-brush-key.is-active {
+  color: var(--phosphor);
+  background: rgba(207, 255, 71, 0.04);
+  box-shadow: inset 0 -2px 0 var(--phosphor);
+}
+
+.pattern-paint-panel__density {
+  display: grid;
+  align-content: center;
+}
+
+.pattern-paint-panel__density .signal-rail {
+  margin-top: 0;
+}
+
+.pattern-paint-panel__density p {
+  margin: 10px 0 0;
+  color: #5f655b;
+  font: 500 0.5rem/1.45 var(--font-mono);
+}
+
+.rhythm-matrix-shell.is-paint-mode {
+  cursor: crosshair;
+  overscroll-behavior: none;
+}
+
+.rhythm-matrix-shell.is-paint-mode .sequence-step {
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.rhythm-matrix-shell.is-paint-mode .sequence-step:hover {
+  background: rgba(207, 255, 71, 0.025);
+}
+
+.lane-gesture-panel {
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.48fr) minmax(330px, 0.82fr) minmax(300px, 0.7fr);
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.lane-gesture-panel > * {
+  min-width: 0;
+}
+
+.lane-gesture-panel > * + * {
+  border-left: 1px solid var(--hairline);
+}
+
+.lane-gesture-panel__identity {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 14px 18px;
+  color: #62685e;
+  font: 600 0.48rem/1 var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.lane-gesture-panel__identity strong {
+  color: var(--bone);
+  font-size: 0.66rem;
+}
+
+.lane-gesture-panel__identity span:last-child {
+  color: var(--phosphor);
+}
+
+.lane-gesture-panel__actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.lane-gesture-panel__actions .machine-button {
+  min-width: 0;
+  min-height: 77px;
+}
+
+.lane-gesture-panel__actions .machine-button:disabled {
+  opacity: 0.24;
+}
+
+.lane-gesture-panel__amount {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 13px 18px;
+}
+
+.lane-gesture-panel__amount .signal-rail {
+  margin-top: 0;
+}
+
+.lane-gesture-panel__amount > span {
+  color: #5f655b;
+  font: 500 0.47rem/1.35 var(--font-mono);
+}
+
+@media (max-width: 1040px) {
+  .pattern-paint-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .pattern-paint-panel > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .lane-gesture-panel {
+    grid-template-columns: 180px 1fr;
+  }
+
+  .lane-gesture-panel__amount {
+    grid-column: 1 / -1;
+    border-left: 0 !important;
+    border-top: 1px solid var(--hairline);
+  }
+}
+
+@media (max-width: 760px) {
+  .pattern-paint-panel > * {
+    padding-inline: 0;
+  }
+
+  .pattern-brush-bank {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .pattern-brush-key {
+    min-height: 42px;
+  }
+
+  .rhythm-matrix-shell.is-paint-mode {
+    overflow-x: hidden;
+  }
+
+  .lane-gesture-panel {
+    display: block;
+  }
+
+  .lane-gesture-panel > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .lane-gesture-panel__actions .machine-button {
+    min-height: 52px;
+  }
+
+  .lane-gesture-panel__amount {
+    padding-inline: 0;
+  }
+}
