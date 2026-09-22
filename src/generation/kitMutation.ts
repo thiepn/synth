@@ -406,7 +406,14 @@ function buildArtifacts(
     generatorVersion: KIT_MUTATION_VERSION,
     sourceEntityId: sourceKit?.id,
     mutationId,
-    style: styleVector(direction),
+    styleDnaId: sourceKit?.provenance?.styleDnaId,
+    styleDnaVersion: sourceKit?.provenance?.styleDnaVersion,
+    style: sourceKit?.provenance?.style
+      ? {
+          ...sourceKit.provenance.style,
+          ...styleVector(direction),
+        }
+      : styleVector(direction),
     intent: intentVector(dna, distance),
   };
 
