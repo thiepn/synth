@@ -259,6 +259,11 @@ export function ArrangeSurface() {
                   8,
                   (section.lengthTicks / totalTicks) * 100,
                 );
+              const sectionOccurrences =
+                arrangement.occurrences.filter(
+                  (occurrence) =>
+                    occurrence.sectionId === section.id,
+                );
 
               return (
                 <button
@@ -315,15 +320,24 @@ export function ArrangeSurface() {
                   </small>
 
                   <span className="arrange-section-block__cycles">
-                    {section.patternSequence.map((patternId, cycle) => (
-                      <i key={patternId + ":" + cycle}>
-                        {patternLabelById.get(patternId) ?? "?"}
+                    {sectionOccurrences.map((occurrence) => (
+                      <i
+                        key={occurrence.id}
+                        className={
+                          occurrence.kind === "transition"
+                            ? "is-transition"
+                            : occurrence.kind === "fill"
+                              ? "is-fill"
+                              : ""
+                        }
+                      >
+                        {occurrence.kind === "transition"
+                          ? "TRN"
+                          : patternLabelById.get(
+                              occurrence.patternId,
+                            ) ?? "?"}
                       </i>
                     ))}
-                    {section.transitionPlacement === "append" &&
-                    section.transitionPatternId ? (
-                      <i className="is-transition">TRN</i>
-                    ) : null}
                   </span>
 
                   <span className="arrange-section-block__energy">
@@ -570,19 +584,32 @@ export function ArrangeSurface() {
           </div>
 
           <div className="arrange-editor__sequence">
-            {selectedSection.patternSequence.map((patternId, index) => (
-              <span key={patternId + ":" + index}>
-                <b>{String(index + 1).padStart(2, "0")}</b>
-                <strong>{patternLabelById.get(patternId) ?? "?"}</strong>
-              </span>
-            ))}
-            {selectedSection.transitionPlacement === "append" &&
-            selectedSection.transitionPatternId ? (
-              <span className="is-transition">
-                <b>+</b>
-                <strong>TRANSITION</strong>
-              </span>
-            ) : null}
+            {arrangement.occurrences
+              .filter(
+                (occurrence) =>
+                  occurrence.sectionId === selectedSection.id,
+              )
+              .map((occurrence, index) => (
+                <span
+                  key={occurrence.id}
+                  className={
+                    occurrence.kind === "transition"
+                      ? "is-transition"
+                      : occurrence.kind === "fill"
+                        ? "is-fill"
+                        : ""
+                  }
+                >
+                  <b>{String(index + 1).padStart(2, "0")}</b>
+                  <strong>
+                    {occurrence.kind === "transition"
+                      ? "TRANSITION"
+                      : patternLabelById.get(
+                          occurrence.patternId,
+                        ) ?? "?"}
+                  </strong>
+                </span>
+              ))}
           </div>
         </section>
       ) : null}
