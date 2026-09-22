@@ -99,7 +99,7 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
         aria-label={transportPlaying ? "Pause transport" : "Start transport"}
         title="Play/Pause · Space"
       >
-        <span aria-hidden="true">{snapshot.desiredPlaying ? "Ⅱ" : "▶"}</span>
+        <span aria-hidden="true">{transportPlaying ? "Ⅱ" : "▶"}</span>
       </button>
 
       <button
