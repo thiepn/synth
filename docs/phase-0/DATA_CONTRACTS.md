@@ -134,6 +134,10 @@ Supported conceptual sources:
 - sample
 - hybrid
 
+Drum Synthesis V2 uses a serializable material specification that maps into `SynthSoundSpec.params`. Current normalized drum-material dimensions are Impact, Body, Noise, Air, Tone, Decay, Pitch, and Character; Character is interpreted by voice type.
+
+The runtime Drum Engine consumes those specifications and constructs transient AudioNodes only when a hit is scheduled.
+
 A hybrid may reference a sample asset plus synthesis layers.
 
 ## 10. Groove profile
