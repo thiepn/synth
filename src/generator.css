@@ -241,3 +241,40 @@
     min-height: 44px;
   }
 }
+
+
+/* Phase 9 — semantic mutation feedback */
+.mutation-bank__note.is-error {
+  color: var(--error);
+}
+
+.mutation-bank .machine-button.is-active {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(207, 255, 71, 0.065),
+      rgba(207, 255, 71, 0.025)
+    ),
+    var(--graphite);
+  box-shadow:
+    inset 0 -2px 0 var(--phosphor),
+    inset 0 0 0 1px rgba(207, 255, 71, 0.08);
+}
+
+.mutation-bank .machine-button.is-active .machine-button__label {
+  color: var(--phosphor);
+}
+
+.groove-field-shell__header::after {
+  content: "DRAG → COMMIT";
+  margin-left: auto;
+  color: #4f554c;
+  font-size: 0.47rem;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 760px) {
+  .groove-field-shell__header::after {
+    display: none;
+  }
+}
