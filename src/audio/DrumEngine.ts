@@ -14,6 +14,7 @@ import {
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
 import {
+  DRUM_SYNTH_ENGINE_VERSION,
   drumSoundStore,
   type DrumMaterialSpec,
 } from "./drumSoundModel";
@@ -1309,6 +1310,7 @@ export class DrumEngine {
 export const drumEngine = new DrumEngine();
 
 export const DRUM_ENGINE_META = Object.freeze({
+  engineVersion: DRUM_SYNTH_ENGINE_VERSION,
   voices: DRUM_PADS.map((pad) => pad.voice),
   maxPolyphony: MAX_ACTIVE_VOICES,
   directTriggerOffsetSeconds: DIRECT_TRIGGER_OFFSET_SECONDS,
