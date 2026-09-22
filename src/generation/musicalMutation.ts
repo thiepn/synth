@@ -22,7 +22,7 @@ import { SeededRandom, deriveSeed, shortSeed } from "./prng";
 import { STYLE_DNA_VERSION } from "../style/styleDNA";
 
 export const MUSICAL_MUTATION_ID = "musical-mutation";
-export const MUSICAL_MUTATION_VERSION = 1;
+export const MUSICAL_MUTATION_VERSION = 2;
 
 export type MusicalMutationId =
   | "harder"
