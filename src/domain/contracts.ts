@@ -166,6 +166,17 @@ export interface DrumMaterialSpec {
   character: Normalized;
 }
 
+export interface KitDNA {
+  brightness: Normalized;
+  weight: Normalized;
+  tightness: Normalized;
+  roughness: Normalized;
+  synthetic: Normalized;
+  depth: Normalized;
+  air: Normalized;
+  variance: Normalized;
+}
+
 export interface SynthSoundSpec {
   kind: "synth";
   voice: SynthVoiceKind;
