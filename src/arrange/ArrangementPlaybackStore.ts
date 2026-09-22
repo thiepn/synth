@@ -10,6 +10,7 @@ export interface ArrangementPlaybackSnapshot {
   startOffsetTick: number;
   playheadTick: number;
   totalTicks: number;
+  scope: "arrangement" | "section";
   currentSectionId?: string;
   currentOccurrenceId?: string;
   currentPatternId?: string;
@@ -23,6 +24,9 @@ export class ArrangementPlaybackStore {
   private engaged = false;
   private startOffsetTick = 0;
   private playheadTick = 0;
+  private scope: "arrangement" | "section" = "arrangement";
+  private sectionOnlyId: string | undefined;
+  private stopAtTick: number | undefined;
   private currentSectionId: string | undefined;
   private currentOccurrenceId: string | undefined;
   private currentPatternId: string | undefined;
@@ -36,6 +40,16 @@ export class ArrangementPlaybackStore {
 
     arrangementStore.subscribe(() => {
       if (this.engaged) {
+        if (this.sectionOnlyId) {
+          const section = arrangementStore
+            .getSnapshot()
+            .blueprint?.sections.find(
+              (entry) => entry.id === this.sectionOnlyId,
+            );
+          this.stopAtTick = section
+            ? section.startTick + section.lengthTicks
+            : undefined;
+        }
         audioTransport.invalidateScheduledEvents();
       }
       this.handleTransportUpdate();
@@ -49,7 +63,10 @@ export class ArrangementPlaybackStore {
 
   readonly getSnapshot = (): ArrangementPlaybackSnapshot => this.snapshot;
 
-  async start(sectionId?: string): Promise<void> {
+  async start(
+    sectionId?: string,
+    sectionOnly = false,
+  ): Promise<void> {
     const arrangement = arrangementStore.getSnapshot();
     if (!arrangement.blueprint || arrangement.occurrences.length === 0) {
       throw new Error("Load an arrangement before playback.");
@@ -63,6 +80,13 @@ export class ArrangementPlaybackStore {
 
     this.startOffsetTick = section?.startTick ?? 0;
     this.playheadTick = this.startOffsetTick;
+    this.scope = sectionOnly && section ? "section" : "arrangement";
+    this.sectionOnlyId =
+      sectionOnly && section ? section.id : undefined;
+    this.stopAtTick =
+      sectionOnly && section
+        ? section.startTick + section.lengthTicks
+        : arrangement.totalTicks;
     this.engaged = true;
     this.resolveCurrentState();
     this.publish();
@@ -83,7 +107,7 @@ export class ArrangementPlaybackStore {
 
   async toggle(sectionId?: string): Promise<void> {
     if (!this.engaged) {
-      await this.start(sectionId);
+      await this.start(sectionId, false);
       return;
     }
 
@@ -103,6 +127,9 @@ export class ArrangementPlaybackStore {
     this.engaged = false;
     this.startOffsetTick = 0;
     this.playheadTick = 0;
+    this.scope = "arrangement";
+    this.sectionOnlyId = undefined;
+    this.stopAtTick = undefined;
     this.currentSectionId = undefined;
     this.currentOccurrenceId = undefined;
     this.currentPatternId = undefined;
@@ -114,6 +141,12 @@ export class ArrangementPlaybackStore {
     if (!this.engaged) return null;
     const arrangementTick =
       this.startOffsetTick + Math.max(0, transportAbsoluteTick);
+    if (
+      this.stopAtTick !== undefined &&
+      arrangementTick >= this.stopAtTick
+    ) {
+      return null;
+    }
     return arrangementStore.resolveAtTick(arrangementTick);
   }
 
@@ -133,6 +166,9 @@ export class ArrangementPlaybackStore {
       this.engaged = false;
       this.startOffsetTick = 0;
       this.playheadTick = 0;
+      this.scope = "arrangement";
+      this.sectionOnlyId = undefined;
+      this.stopAtTick = undefined;
       this.currentSectionId = undefined;
       this.currentOccurrenceId = undefined;
       this.currentPatternId = undefined;
@@ -145,13 +181,18 @@ export class ArrangementPlaybackStore {
       Math.max(0, transport.position.absoluteTick);
 
     const arrangement = arrangementStore.getSnapshot();
+    const playbackEnd =
+      this.stopAtTick ?? arrangement.totalTicks;
     if (
-      arrangement.totalTicks > 0 &&
-      this.playheadTick >= arrangement.totalTicks
+      playbackEnd > 0 &&
+      this.playheadTick >= playbackEnd
     ) {
       this.engaged = false;
       audioTransport.stop();
-      this.playheadTick = arrangement.totalTicks;
+      this.playheadTick = playbackEnd;
+      this.scope = "arrangement";
+      this.sectionOnlyId = undefined;
+      this.stopAtTick = undefined;
       this.currentSectionId = undefined;
       this.currentOccurrenceId = undefined;
       this.currentPatternId = undefined;
@@ -183,6 +224,7 @@ export class ArrangementPlaybackStore {
       startOffsetTick: this.startOffsetTick,
       playheadTick: this.playheadTick,
       totalTicks: arrangementStore.getSnapshot().totalTicks,
+      scope: this.scope,
       currentSectionId: this.currentSectionId,
       currentOccurrenceId: this.currentOccurrenceId,
       currentPatternId: this.currentPatternId,
