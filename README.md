@@ -20,9 +20,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 9 — Groove Field & Musical Mutation:** complete
 - **Phase 10 — Generation History & Evolution Tree:** complete
 - **Phase 11 — Drum Synthesis Engine V2:** complete
-- **Next: Phase 12 — Kit Generator**
+- **Phase 12 — Kit Generator:** complete
+- **Next: Phase 13 — Sound Morphing & Kit Mutation**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, and a serializable material sound model. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, and sound-spec ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable domain-backed sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, and deterministic coherent Kit generation. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, and Kit generation.
 
 ## Run locally
 
@@ -248,6 +249,28 @@ See [Phase 10 implementation notes](docs/phase-10/PHASE_10.md).
 - session-local sound-state boundary documented honestly
 
 See [Phase 11 implementation notes](docs/phase-11/PHASE_11.md).
+
+### Phase 12 — Kit Generator
+
+- 11 deterministic kit directions: Tight / Huge / Dark / Bright / Clean / Dirty / Electronic / Hybrid / Vintage / Industrial / Experimental
+- shared Kit DNA: Brightness / Weight / Tightness / Roughness / Synthetic / Depth / Air / Variance
+- role-aware V2 material derivation for all eight voices
+- coherence validation for hat family, decay hierarchy, low end, cymbal air, and cross-voice spread
+- requested direction-fit validation
+- deterministic retry loop
+- real generated Kit + eight Sound domain objects
+- generated Sounds contain V2 SynthSoundSpec and provenance
+- generated Kit slots reuse the sequencer's exact semantic kit-slot IDs
+- runtime playback now resolves Pattern Lane → Kit Slot → Sound → Voice
+- atomic eight-voice kit application
+- generated-kit CLEAN/MOD state tracking
+- manual voice edits mark generated kits modified
+- RESET ALL clears generated-kit identity
+- SOUND exposes shared Kit DNA and generation quality
+- HYBRID is explicitly synth-only until the later sample/hybrid engine
+- generated Kit/Sound snapshots are deep-cloned
+
+See [Phase 12 implementation notes](docs/phase-12/PHASE_12.md).
 
 ## Phase 0 architecture
 
