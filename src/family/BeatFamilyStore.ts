@@ -142,6 +142,13 @@ export class BeatFamilyStore {
         ? {
             ...this.family,
             members: this.family.members.map((member) => ({ ...member })),
+            provenance: this.family.provenance
+              ? {
+                  ...this.family.provenance,
+                  style: { ...this.family.provenance.style },
+                  intent: { ...this.family.provenance.intent },
+                }
+              : undefined,
           }
         : undefined,
       patterns: this.patterns.map(cloneEntry),
