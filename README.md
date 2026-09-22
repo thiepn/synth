@@ -24,9 +24,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 13 — Sound Morphing & Kit Mutation:** complete
 - **Phase 14 — Advanced Sequencer V2:** complete
 - **Phase 15 — Pattern Painting & Advanced Sequencer Gestures:** complete
-- **Next: Phase 16 — Beat Families, Fills & Transitions**
+- **Phase 16 — Beat Families, Fills & Transitions:** complete
+- **Next: Phase 17 — Scene & Section Generator / Arrange Foundation**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, and fast gesture-based Pattern shaping. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, and Pattern Painting logic.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, an editable 64-step polymetric sequencer, deterministic style-aware beat generation, lock-aware iterative rerolling, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, deterministic coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, and semantic Beat Family generation for section-ready variations/fills/transitions. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, and Beat Family ownership.
 
 ## Run locally
 
@@ -341,6 +342,32 @@ See [Phase 14 implementation notes](docs/phase-14/PHASE_14.md).
 - all gesture results remain canonical Pattern state observed by CREATE / Glyph / history
 
 See [Phase 15 implementation notes](docs/phase-15/PHASE_15.md).
+
+### Phase 16 — Beat Families, Fills & Transitions
+
+- first-class BeatFamily / BeatFamilyMember domain contracts
+- CORE / A VAR / B VAR / BUILD / BREAKDOWN / DROP / FILL 1 / FILL 2 / TRANSITION
+- deterministic family seeds and member provenance
+- A/B generated through related Beat Variation distances
+- role-aware Build / Breakdown / Drop transforms
+- Advanced Sequencer ratchet/flam Fill patterns
+- dedicated Transition material
+- shared GrooveProfile across the family
+- rhythm/dynamics lock-aware family transforms
+- all-locked degenerate-family rejection
+- polymetric lane-loop-aware family edits
+- dormant out-of-loop material preserved
+- member-level quality validation and family coherence score
+- non-destructive family generation
+- immutable session BeatFamilyStore
+- Rhythm Glyph per member
+- one-loop non-destructive audition
+- explicit USE promotion into SEQUENCE
+- USE creates Evolution variation/transition branches
+- family generation itself does not pollute Undo or history
+- full ARRANGE UI intentionally remains deferred
+
+See [Phase 16 implementation notes](docs/phase-16/PHASE_16.md).
 
 ## Phase 0 architecture
 
