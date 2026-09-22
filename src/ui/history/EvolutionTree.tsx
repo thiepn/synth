@@ -19,6 +19,7 @@ interface NodeBranchProps {
   editingNodeId: string | null;
   renameDraft: string;
   onSelect: (nodeId: string) => void;
+  auditionDisabled: boolean;
   onAudition: (node: EvolutionNode) => void;
   onRestore: (nodeId: string) => void;
   onBranch: (nodeId: string) => void;
@@ -60,6 +61,7 @@ function NodeBranch({
   activeNodeId,
   selectedNodeId,
   rootNodeId,
+  auditionDisabled,
   editingNodeId,
   renameDraft,
   onSelect,
@@ -151,7 +153,12 @@ function NodeBranch({
           <button
             type="button"
             onClick={() => onAudition(node)}
-            title="Audition this Pattern without restoring it"
+            disabled={auditionDisabled}
+            title={
+              auditionDisabled
+                ? "Pause transport to audition a history node"
+                : "Audition this Pattern without restoring it"
+            }
             aria-label={"Audition " + node.title}
           >
             ▶
@@ -211,6 +218,7 @@ function NodeBranch({
               activeNodeId={activeNodeId}
               selectedNodeId={selectedNodeId}
               rootNodeId={rootNodeId}
+              auditionDisabled={auditionDisabled}
               editingNodeId={editingNodeId}
               renameDraft={renameDraft}
               onSelect={onSelect}
@@ -326,6 +334,7 @@ export function EvolutionTreePanel() {
               activeNodeId={history.activeNodeId}
               selectedNodeId={history.selectedNodeId}
               rootNodeId={history.rootNodeId}
+              auditionDisabled={transport.status === "running"}
               editingNodeId={editingNodeId}
               renameDraft={renameDraft}
               onSelect={select}
@@ -396,7 +405,10 @@ export function EvolutionTreePanel() {
           </dl>
 
           <div className="evolution-inspector__actions">
-            <MachineButton onClick={() => audition(selected)}>
+            <MachineButton
+              disabled={transport.status === "running"}
+              onClick={() => audition(selected)}
+            >
               AUDITION
             </MachineButton>
             <MachineButton
