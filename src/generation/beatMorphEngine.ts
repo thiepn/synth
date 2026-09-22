@@ -718,7 +718,19 @@ export function morphPatterns(
       generatorId: BEAT_MORPH_ENGINE_ID,
       generatorVersion: BEAT_MORPH_ENGINE_VERSION,
       sourceEntityId: a.id,
-      mutationId: "morph:" + a.id + ":" + b.id,
+      mutationId:
+        "morph:" +
+        b.id +
+        ":r" +
+        Math.round(dimensions.rhythm * 100) +
+        ":d" +
+        Math.round(dimensions.dynamics * 100) +
+        ":t" +
+        Math.round(dimensions.timing * 100) +
+        ":g" +
+        Math.round(dimensions.groove * 100) +
+        ":s" +
+        Math.round(dimensions.styleDNA * 100),
       styleDnaId: exactStyleId,
       styleDnaVersion:
         styleA || styleB ? STYLE_DNA_VERSION : undefined,
