@@ -261,8 +261,12 @@ export function ArrangeSurface() {
             <strong>{arrangement.blueprint.sections.length}</strong>
           </div>
           <div className="arrange-transport__readout">
-            <span>STATE</span>
-            <strong>{arrangement.edited ? "EDITED" : "FOUNDATION"}</strong>
+            <span>ENERGY</span>
+            <strong>
+              {playback.engaged
+                ? "E" + Math.round(playback.currentEnergy * 100)
+                : "--"}
+            </strong>
           </div>
         </div>
 
