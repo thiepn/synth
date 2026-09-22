@@ -26,11 +26,15 @@ export interface ArrangementSnapshot {
   occurrences: ArrangementOccurrence[];
   totalTicks: number;
   edited: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   musicalRevision: number;
   revision: number;
 }
 
 type Listener = () => void;
+
+const ARRANGEMENT_HISTORY_LIMIT = 60;
 
 function cloneProvenance(
   provenance: GenerationProvenance | undefined,
@@ -126,6 +130,10 @@ export class ArrangementStore {
   private musicalRevision = 0;
   private revision = 0;
   private duplicateCounter = 0;
+  private undoStack: ArrangementBlueprint[] = [];
+  private redoStack: ArrangementBlueprint[] = [];
+  private lastUndoKey: string | null = null;
+  private lastUndoAt = 0;
   private snapshot: ArrangementSnapshot = this.buildSnapshot();
 
   readonly subscribe = (listener: Listener): (() => void) => {
@@ -160,6 +168,10 @@ export class ArrangementStore {
     );
     this.edited = false;
     this.duplicateCounter = 0;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastUndoKey = null;
+    this.lastUndoAt = 0;
     this.musicalRevision += 1;
     this.recalculate();
     this.publish();
@@ -173,6 +185,10 @@ export class ArrangementStore {
     this.occurrences = [];
     this.totalTicks = 0;
     this.edited = false;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastUndoKey = null;
+    this.lastUndoAt = 0;
     this.musicalRevision += 1;
     this.publish();
   }
@@ -200,6 +216,8 @@ export class ArrangementStore {
     const target = index + delta;
     if (target < 0 || target >= this.blueprint.sections.length) return;
 
+    this.captureUndo();
+
     const next = [...this.blueprint.sections];
     const [section] = next.splice(index, 1);
     if (!section) return;
@@ -222,6 +240,8 @@ export class ArrangementStore {
     );
     if (from < 0 || target < 0) return;
 
+    this.captureUndo();
+
     const next = [...this.blueprint.sections];
     const [section] = next.splice(from, 1);
     if (!section) return;
@@ -240,6 +260,7 @@ export class ArrangementStore {
 
     const source = this.blueprint.sections[index];
     if (!source) return;
+    this.captureUndo();
     this.duplicateCounter += 1;
     const clone: SectionBlueprint = {
       ...cloneSection(source),
@@ -262,6 +283,7 @@ export class ArrangementStore {
     );
     if (index < 0) return;
 
+    this.captureUndo();
     this.blueprint.sections.splice(index, 1);
     if (this.selectedSectionId === sectionId) {
       this.selectedSectionId =
@@ -276,10 +298,13 @@ export class ArrangementStore {
     if (!section || !this.blueprint) return;
 
     const count = Math.max(1, Math.min(16, Math.round(cycles)));
+    if (count === section.cycleCount) return;
     const scene = this.blueprint.scenes.find(
       (entry) => entry.id === section.sceneId,
     );
     if (!scene || scene.patternIds.length === 0) return;
+
+    this.captureUndo();
 
     const next = Array.from({ length: count }, (_, index) => {
       return scene.patternIds[index % scene.patternIds.length];
@@ -301,14 +326,20 @@ export class ArrangementStore {
   setSectionEnergyStart(sectionId: string, value: number): void {
     const section = this.findSection(sectionId);
     if (!section) return;
-    section.energyStart = clamp01(value);
+    const next = clamp01(value);
+    if (Math.abs(next - section.energyStart) < 0.0001) return;
+    this.captureUndo("energy-start:" + sectionId);
+    section.energyStart = next;
     this.markEditedAndPublish(false);
   }
 
   setSectionEnergyEnd(sectionId: string, value: number): void {
     const section = this.findSection(sectionId);
     if (!section) return;
-    section.energyEnd = clamp01(value);
+    const next = clamp01(value);
+    if (Math.abs(next - section.energyEnd) < 0.0001) return;
+    this.captureUndo("energy-end:" + sectionId);
+    section.energyEnd = next;
     this.markEditedAndPublish(false);
   }
 
@@ -316,6 +347,7 @@ export class ArrangementStore {
     const section = this.findSection(sectionId);
     if (!section?.fillPatternId || !this.blueprint) return;
 
+    this.captureUndo();
     section.fillPlacement =
       section.fillPlacement === "off" ? "last" : "off";
     this.rebuildMainSequence(section);
@@ -326,6 +358,7 @@ export class ArrangementStore {
     const section = this.findSection(sectionId);
     if (!section?.transitionPatternId) return;
 
+    this.captureUndo();
     const current = section.transitionPlacement ?? "off";
     section.transitionPlacement =
       current === "off"
@@ -334,6 +367,54 @@ export class ArrangementStore {
           ? "append"
           : "off";
     this.markEditedAndPublish();
+  }
+
+  undo(): void {
+    if (!this.blueprint || this.undoStack.length === 0) return;
+
+    this.redoStack.push(cloneBlueprint(this.blueprint));
+    const previous = this.undoStack.pop();
+    if (!previous) return;
+
+    this.blueprint = cloneBlueprint(previous);
+    if (
+      this.selectedSectionId &&
+      !this.blueprint.sections.some(
+        (section) => section.id === this.selectedSectionId,
+      )
+    ) {
+      this.selectedSectionId = this.blueprint.sections[0]?.id;
+    }
+    this.edited = true;
+    this.musicalRevision += 1;
+    this.lastUndoKey = null;
+    this.lastUndoAt = 0;
+    this.recalculate();
+    this.publish();
+  }
+
+  redo(): void {
+    if (!this.blueprint || this.redoStack.length === 0) return;
+
+    this.undoStack.push(cloneBlueprint(this.blueprint));
+    const next = this.redoStack.pop();
+    if (!next) return;
+
+    this.blueprint = cloneBlueprint(next);
+    if (
+      this.selectedSectionId &&
+      !this.blueprint.sections.some(
+        (section) => section.id === this.selectedSectionId,
+      )
+    ) {
+      this.selectedSectionId = this.blueprint.sections[0]?.id;
+    }
+    this.edited = true;
+    this.musicalRevision += 1;
+    this.lastUndoKey = null;
+    this.lastUndoAt = 0;
+    this.recalculate();
+    this.publish();
   }
 
   resolveAtTick(arrangementTickInput: number): {
@@ -377,6 +458,27 @@ export class ArrangementStore {
       localTick: arrangementTick - occurrence.startTick,
       occurrenceIndex: index,
     };
+  }
+
+  private captureUndo(coalesceKey?: string): void {
+    if (!this.blueprint) return;
+
+    const now = Date.now();
+    const shouldCoalesce =
+      coalesceKey !== undefined &&
+      this.lastUndoKey === coalesceKey &&
+      now - this.lastUndoAt < 900;
+
+    if (!shouldCoalesce) {
+      this.undoStack.push(cloneBlueprint(this.blueprint));
+      if (this.undoStack.length > ARRANGEMENT_HISTORY_LIMIT) {
+        this.undoStack.shift();
+      }
+      this.redoStack = [];
+    }
+
+    this.lastUndoKey = coalesceKey ?? null;
+    this.lastUndoAt = now;
   }
 
   private findSection(sectionId: string): SectionBlueprint | undefined {
@@ -508,6 +610,8 @@ export class ArrangementStore {
       occurrences: this.occurrences.map((occurrence) => ({ ...occurrence })),
       totalTicks: this.totalTicks,
       edited: this.edited,
+      canUndo: this.undoStack.length > 0,
+      canRedo: this.redoStack.length > 0,
       musicalRevision: this.musicalRevision,
       revision: this.revision,
     };
