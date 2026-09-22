@@ -356,6 +356,7 @@ interface GrooveFieldProps {
     se: string;
   };
   onChange: (x: number, y: number) => void;
+  onCommit?: (x: number, y: number) => void;
 }
 
 export function GrooveField({
@@ -368,19 +369,36 @@ export function GrooveField({
     se: "SPARSE",
   },
   onChange,
+  onCommit,
 }: GrooveFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
 
-  const setFromPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const pointFromPointer = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ): { x: number; y: number } | null => {
     const rect = fieldRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    if (!rect) return null;
 
-    const nextX = ((event.clientX - rect.left) / rect.width) * 100;
-    const nextY = (1 - (event.clientY - rect.top) / rect.height) * 100;
-    onChange(
-      Math.max(0, Math.min(100, nextX)),
-      Math.max(0, Math.min(100, nextY)),
-    );
+    return {
+      x: Math.max(
+        0,
+        Math.min(100, ((event.clientX - rect.left) / rect.width) * 100),
+      ),
+      y: Math.max(
+        0,
+        Math.min(
+          100,
+          (1 - (event.clientY - rect.top) / rect.height) * 100,
+        ),
+      ),
+    };
+  };
+
+  const setFromPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const point = pointFromPointer(event);
+    if (!point) return null;
+    onChange(point.x, point.y);
+    return point;
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -395,10 +413,10 @@ export function GrooveField({
     else return;
 
     event.preventDefault();
-    onChange(
-      Math.max(0, Math.min(100, nextX)),
-      Math.max(0, Math.min(100, nextY)),
-    );
+    const committedX = Math.max(0, Math.min(100, nextX));
+    const committedY = Math.max(0, Math.min(100, nextY));
+    onChange(committedX, committedY);
+    onCommit?.(committedX, committedY);
   };
 
   return (
@@ -421,6 +439,20 @@ export function GrooveField({
         onPointerMove={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             setFromPointer(event);
+          }
+        }}
+        onPointerUp={(event) => {
+          if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+            return;
+          }
+
+          const point = setFromPointer(event);
+          event.currentTarget.releasePointerCapture(event.pointerId);
+          if (point) onCommit?.(point.x, point.y);
+        }}
+        onPointerCancel={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
           }
         }}
       >
