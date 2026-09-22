@@ -768,7 +768,7 @@ export class DrumEngine {
       this.chokeOpenHats(at);
     }
 
-    const start = Math.max(
+    const selectedStart = Math.max(
       0,
       Math.min(
         Math.max(0, buffer.duration - 0.001),
@@ -777,14 +777,17 @@ export class DrumEngine {
     );
     const requestedEnd =
       spec.trimEndSeconds ?? buffer.duration;
-    const end = Math.max(
-      start + 0.001,
+    const selectedEnd = Math.max(
+      selectedStart + 0.001,
       Math.min(buffer.duration, requestedEnd),
     );
     const sourceDuration = Math.max(
       0.001,
-      end - start,
+      selectedEnd - selectedStart,
     );
+    const start = spec.reversed
+      ? Math.max(0, buffer.duration - selectedEnd)
+      : selectedStart;
     const playbackRate = Math.pow(
       2,
       Math.max(-24, Math.min(24, spec.pitchSemitones)) / 12,
