@@ -153,7 +153,9 @@ function endpointSource(endpoint: SoundMorphEndpoint): KitMutationSource {
     specs: endpoint.specs,
     kit: endpoint.activeKit?.kit,
     sounds: endpoint.activeKit?.sounds,
-    dna: endpoint.activeKit?.dna,
+    dna: endpoint.activeKit?.modified
+      ? undefined
+      : endpoint.activeKit?.dna,
     direction: endpoint.activeKit?.direction,
     seed: endpoint.activeKit?.seed,
   };
@@ -217,7 +219,7 @@ export function SoundSurface() {
     specs: snapshot.specs,
     kit: activeKit?.kit,
     sounds: activeKit?.sounds,
-    dna: activeKit?.dna,
+    dna: activeKit?.modified ? undefined : activeKit?.dna,
     direction: activeKit?.direction,
     seed: activeKit?.seed,
   });
