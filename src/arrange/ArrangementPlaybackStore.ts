@@ -32,6 +32,8 @@ export class ArrangementPlaybackStore {
   private currentOccurrenceId: string | undefined;
   private currentPatternId: string | undefined;
   private currentEnergy = 0;
+  private lastArrangementMusicalRevision =
+    arrangementStore.getSnapshot().musicalRevision;
   private revision = 0;
   private snapshot: ArrangementPlaybackSnapshot = this.buildSnapshot();
 
@@ -41,19 +43,36 @@ export class ArrangementPlaybackStore {
     });
 
     arrangementStore.subscribe(() => {
-      if (this.engaged) {
+      const arrangement = arrangementStore.getSnapshot();
+      const musicalChanged =
+        arrangement.musicalRevision !==
+        this.lastArrangementMusicalRevision;
+      this.lastArrangementMusicalRevision =
+        arrangement.musicalRevision;
+
+      if (this.engaged && musicalChanged) {
         if (this.sectionOnlyId) {
-          const section = arrangementStore
-            .getSnapshot()
-            .blueprint?.sections.find(
-              (entry) => entry.id === this.sectionOnlyId,
-            );
-          this.stopAtTick = section
-            ? section.startTick + section.lengthTicks
-            : undefined;
+          const section = arrangement.blueprint?.sections.find(
+            (entry) => entry.id === this.sectionOnlyId,
+          );
+          if (section) {
+            const elapsed =
+              this.playheadTick - this.startOffsetTick;
+            this.startOffsetTick = section.startTick;
+            this.playheadTick =
+              this.startOffsetTick + Math.max(0, elapsed);
+            this.stopAtTick =
+              section.startTick + section.lengthTicks;
+          } else {
+            this.stopAtTick = undefined;
+          }
+        } else {
+          this.stopAtTick = arrangement.totalTicks;
         }
+
         audioTransport.invalidateScheduledEvents();
       }
+
       this.handleTransportUpdate();
     });
   }
