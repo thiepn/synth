@@ -44,7 +44,7 @@ export function DrumEnginePanel() {
   return (
     <section className="drum-engine-panel" aria-labelledby="drum-engine-title">
       <div className="machine-section-label">
-        <span id="drum-engine-title">DRUM / ENGINE V1</span>
+        <span id="drum-engine-title">DRUM / ENGINE V2</span>
         <span>
           {snapshot.status.toUpperCase()} · {snapshot.activeVoiceCount
             .toString()
@@ -76,7 +76,7 @@ export function DrumEnginePanel() {
         <div className="drum-macros">
           <div className="drum-macros__status">
             <span>MASTER / SYNTH BUS</span>
-            <span>{snapshot.lastError ?? "SYNTHESIZED / LOCAL"}</span>
+            <span>{snapshot.lastError ?? "SYNTH V2 / LOCAL"}</span>
           </div>
 
           <SignalRail
