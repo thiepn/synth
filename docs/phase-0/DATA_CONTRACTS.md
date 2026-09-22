@@ -355,3 +355,12 @@ GenerationProvenance may store styleDnaId and styleDnaVersion alongside the exis
 A Style DNA profile describes rhythm archetype, subdivision vocabulary, kick/backbeat/instrument tendencies, groove defaults, fill vocabulary, sound-material tendencies, BPM reference range and arrangement Scene energy.
 
 Pattern, Kit, BeatFamily and Arrangement provenance can therefore preserve one coherent style lineage without duplicating the full registry profile into serialized artifacts.
+## 23. Beat Morph & Remix
+
+Beat Morph previews are derived session state rather than a new serialized musical artifact. A committed Morph or Remix is an ordinary Pattern with GenerationProvenance.
+
+HistoryOperation includes beatMorph and remix so Pattern lineage can distinguish committed transformations without introducing a Morph-specific artifact kind.
+
+Intermediate Style-DNA morphs are represented by the existing StyleVector. styleDnaId may be omitted when no single exact Style DNA profile describes the committed blend; styleDnaVersion still identifies the registry semantics.
+
+Morph provenance uses sourceEntityId for endpoint A and encodes endpoint B plus the five requested dimension values in mutationId. The uncommitted A/B workspace remains session-local.
