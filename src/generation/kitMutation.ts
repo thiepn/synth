@@ -655,6 +655,10 @@ export function morphKitSpecs(
       KIT_MUTATION_VERSION,
   );
   const locked = new Set(request.lockedVoices ?? []);
+  if (locked.size >= DRUM_PADS.length) {
+    throw new Error("All sounds are locked.");
+  }
+
   const specs = {} as Record<DrumVoiceId, DrumMaterialSpec>;
 
   for (const pad of DRUM_PADS) {
