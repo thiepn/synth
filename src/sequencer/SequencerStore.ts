@@ -404,7 +404,7 @@ export class SequencerStore {
       laneId,
       stepIndex,
       "flamOffsetUs",
-      Math.max(0, Math.min(60_000, Math.round(offsetUs))),
+      Math.max(0, Math.min(40_000, Math.round(offsetUs))),
     );
   }
 
