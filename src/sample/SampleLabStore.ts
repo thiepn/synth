@@ -75,6 +75,7 @@ export interface SampleLabSnapshot {
   transientMaxSlices: number;
   manualCuts: number[];
   bankIndex: number;
+  loopPreview: boolean;
   recording: boolean;
   currentEventCount: number;
   takes: ChopTake[];
@@ -185,6 +186,7 @@ export class SampleLabStore {
   private transientMaxSlices = 16;
   private manualCuts: number[] = [];
   private bankIndex = 0;
+  private loopPreview = false;
   private recording = false;
   private recordingStartedAt = 0;
   private recordingEvents: ChopEvent[] = [];
@@ -440,6 +442,12 @@ export class SampleLabStore {
     const next = Math.max(0, Math.min(maximum, Math.round(index)));
     if (this.bankIndex === next) return;
     this.bankIndex = next;
+    this.publish();
+  }
+
+  setLoopPreview(loop: boolean): void {
+    if (this.loopPreview === loop) return;
+    this.loopPreview = loop;
     this.publish();
   }
 
@@ -794,6 +802,7 @@ export class SampleLabStore {
       transientMaxSlices: this.transientMaxSlices,
       manualCuts: [...this.manualCuts],
       bankIndex: this.bankIndex,
+      loopPreview: this.loopPreview,
       recording: this.recording,
       currentEventCount: this.recordingEvents.length,
       takes: this.takes.map(cloneTake),
