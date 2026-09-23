@@ -86,11 +86,21 @@ if (localFamilyClones.length > 0) {
 }
 
 const legacyModeImports = sources
-  .filter((path) =>
-    /import\s*\{[\s\S]*?\b(?:MODES|ModeId|ModeDefinition)\b[\s\S]*?\}\s*from\s*["'][^"']*pulse\/Primitives["']/.test(
-      content(path),
-    ),
-  )
+  .filter((path) => {
+    const source = content(path);
+    const imports =
+      source.match(
+        /import\s+(?:type\s+)?\{[^}]*\}\s+from\s+["'][^"']+["'];?/g,
+      ) ?? [];
+
+    return imports.some(
+      (statement) =>
+        statement.includes("pulse/Primitives") &&
+        /\b(?:MODES|ModeId|ModeDefinition)\b/.test(
+          statement,
+        ),
+    );
+  })
   .map(projectPath);
 
 if (legacyModeImports.length > 0) {
