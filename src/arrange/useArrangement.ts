@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   arrangementStore,
   type ArrangementSnapshot,
@@ -9,18 +9,10 @@ import {
 } from "./ArrangementPlaybackStore";
 
 export function useArrangementSnapshot(): ArrangementSnapshot {
-  return useSyncExternalStore(
-    arrangementStore.subscribe,
-    arrangementStore.getSnapshot,
-    arrangementStore.getSnapshot,
-  );
+  return useStoreSnapshot(arrangementStore);
 }
 
 export function useArrangementPlaybackSnapshot():
   ArrangementPlaybackSnapshot {
-  return useSyncExternalStore(
-    arrangementPlaybackStore.subscribe,
-    arrangementPlaybackStore.getSnapshot,
-    arrangementPlaybackStore.getSnapshot,
-  );
+  return useStoreSnapshot(arrangementPlaybackStore);
 }
