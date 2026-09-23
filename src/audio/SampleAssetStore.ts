@@ -169,6 +169,30 @@ export class SampleAssetStore {
     return cloneAsset(state);
   }
 
+  restorePersistedAsset(
+    stateInput: SampleAssetState,
+    bytesInput: ArrayBuffer,
+  ): void {
+    const state = cloneAsset(stateInput);
+    const bytes = bytesInput.slice(0);
+    if (bytes.byteLength <= 0 || bytes.byteLength > MAX_SAMPLE_BYTES) {
+      throw new Error("Persisted sample bytes are invalid.");
+    }
+    if (state.reference.id.length === 0) {
+      throw new Error("Persisted sample ID is invalid.");
+    }
+
+    state.reference = {
+      ...state.reference,
+      byteLength: bytes.byteLength,
+    };
+    state.decodeStatus = "raw";
+    state.lastError = undefined;
+    this.bytes.set(state.reference.id, bytes);
+    this.states.set(state.reference.id, state);
+    this.publish();
+  }
+
   getAsset(assetId: string): SampleAssetState | undefined {
     const asset = this.states.get(assetId);
     return asset ? cloneAsset(asset) : undefined;
