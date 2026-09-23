@@ -73,6 +73,7 @@ export class ModulationStore {
     );
     this.sources = [source];
     this.selectedSourceId = source.id;
+    this.snapshot = this.buildSnapshot();
   }
 
   readonly subscribe = (listener: Listener): (() => void) => {
