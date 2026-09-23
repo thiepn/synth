@@ -56,11 +56,11 @@ const totalCss = css.reduce(
 );
 
 const budgets = {
-  entryJs: 700 * 1024,
-  anyJs: 750 * 1024,
-  totalJs: 2500 * 1024,
-  totalCss: 240 * 1024,
-  minimumJsChunks: 5,
+  entryJs: 550 * 1024,
+  anyJs: 550 * 1024,
+  totalJs: 1100 * 1024,
+  totalCss: 210 * 1024,
+  minimumJsChunks: 10,
 };
 
 console.log(
