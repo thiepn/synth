@@ -74,6 +74,25 @@ export class ArrangementFoundationStore {
 
   readonly getSnapshot = (): ArrangementFoundationSnapshot => this.snapshot;
 
+  restoreProjectState(
+    state: Omit<ArrangementFoundationSnapshot, "revision">,
+  ): void {
+    this.blueprint = state.blueprint
+      ? cloneBlueprint(state.blueprint)
+      : undefined;
+    this.selectedSectionId =
+      state.selectedSectionId &&
+      this.blueprint?.sections.some(
+        (section) => section.id === state.selectedSectionId,
+      )
+        ? state.selectedSectionId
+        : this.blueprint?.sections[0]?.id;
+    this.coherenceScore = state.coherenceScore;
+    this.displaySeed = state.displaySeed;
+    this.totalTicks = state.totalTicks;
+    this.publish();
+  }
+
   apply(result: SceneSectionGenerationResult): void {
     this.blueprint = cloneBlueprint(result.blueprint);
     this.selectedSectionId = result.blueprint.sections[0]?.id;
