@@ -55,7 +55,12 @@ export type MidiStatus =
   | "ready"
   | "error";
 
-export type MidiMessageKind = "note" | "cc";
+export type MidiMessageKind =
+  | "note"
+  | "cc"
+  | "pitchBend"
+  | "channelPressure"
+  | "polyAftertouch";
 export type MidiRecordQuantize = "off" | "1/16" | "1/8" | "1/4";
 
 export type MidiBindingTarget =
@@ -122,6 +127,8 @@ export interface MidiSnapshot {
   recordingHitCount: number;
   recordQuantize: MidiRecordQuantize;
   overdub: boolean;
+  clockSync: boolean;
+  externalClockBpm?: number;
   lastMessage?: string;
   lastError?: string;
   revision: number;
@@ -263,6 +270,11 @@ export class MidiStore {
   private recordedHits: RecordedMidiHit[] = [];
   private recordQuantize: MidiRecordQuantize = "1/16";
   private overdub = true;
+  private clockSync = false;
+  private externalClockBpm: number | undefined;
+  private clockIntervals: number[] = [];
+  private lastClockSeconds: number | undefined;
+  private lastClockTempoApplySeconds = 0;
   private lastMessage: string | undefined;
   private lastError: string | undefined;
   private revision = 0;
@@ -319,8 +331,16 @@ export class MidiStore {
   }
 
   async selectInput(inputId: string | undefined): Promise<void> {
-    if (this.selectedInput?.onmidimessage) {
-      this.selectedInput.onmidimessage = null;
+    const previousInput = this.selectedInput;
+    if (previousInput?.onmidimessage) {
+      previousInput.onmidimessage = null;
+    }
+    if (previousInput && previousInput.id !== inputId) {
+      try {
+        await previousInput.close?.();
+      } catch {
+        // Some implementations do not expose meaningful close semantics.
+      }
     }
 
     if (!inputId || !this.access) {
@@ -426,6 +446,16 @@ export class MidiStore {
   setOverdub(overdub: boolean): void {
     if (this.overdub === overdub) return;
     this.overdub = overdub;
+    this.publish();
+  }
+
+  setClockSync(enabled: boolean): void {
+    if (this.clockSync === enabled) return;
+    this.clockSync = enabled;
+    this.clockIntervals = [];
+    this.lastClockSeconds = undefined;
+    this.externalClockBpm = undefined;
+    this.lastClockTempoApplySeconds = 0;
     this.publish();
   }
 
@@ -584,7 +614,11 @@ export class MidiStore {
     const status = data[0] ?? 0;
 
     if (status >= 0xf8) {
-      if (status === 0xfa || status === 0xfb) {
+      if (status === 0xf8) {
+        if (this.clockSync) {
+          this.handleClockPulse(performance.now() / 1000);
+        }
+      } else if (status === 0xfa || status === 0xfb) {
         void this.startExternalTransport();
         this.lastMessage =
           status === 0xfa ? "MIDI START" : "MIDI CONTINUE";
@@ -592,6 +626,8 @@ export class MidiStore {
       } else if (status === 0xfc) {
         arrangementPlaybackStore.stop();
         audioTransport.stop();
+        this.clockIntervals = [];
+        this.lastClockSeconds = undefined;
         this.lastMessage = "MIDI STOP";
         this.publish();
       }
@@ -607,20 +643,52 @@ export class MidiStore {
       return;
     }
 
-    const number = data[1] ?? 0;
-    const rawValue = data[2] ?? 0;
-    const value = clamp01(rawValue / 127);
-    const noteOn = message === 0x90 && rawValue > 0;
+    const data1 = data[1] ?? 0;
+    const data2 = data[2] ?? 0;
+    const noteOn = message === 0x90 && data2 > 0;
     const noteOff =
       message === 0x80 ||
-      (message === 0x90 && rawValue === 0);
+      (message === 0x90 && data2 === 0);
     const cc = message === 0xb0;
+    const polyAftertouch = message === 0xa0;
+    const channelPressure = message === 0xd0;
+    const pitchBend = message === 0xe0;
 
-    if (!noteOn && !noteOff && !cc) return;
+    if (
+      !noteOn &&
+      !noteOff &&
+      !cc &&
+      !polyAftertouch &&
+      !channelPressure &&
+      !pitchBend
+    ) {
+      return;
+    }
 
-    const kind: MidiMessageKind = cc ? "cc" : "note";
+    const kind: MidiMessageKind =
+      cc
+        ? "cc"
+        : pitchBend
+          ? "pitchBend"
+          : channelPressure
+            ? "channelPressure"
+            : polyAftertouch
+              ? "polyAftertouch"
+              : "note";
+    const number =
+      pitchBend || channelPressure ? 0 : data1;
+    const raw14 = data1 | (data2 << 7);
+    const value =
+      pitchBend
+        ? clamp01(raw14 / 16383)
+        : channelPressure
+          ? clamp01(data1 / 127)
+          : clamp01(data2 / 127);
 
-    if (this.learn && (noteOn || cc)) {
+    if (
+      this.learn &&
+      (noteOn || cc || pitchBend || channelPressure || polyAftertouch)
+    ) {
       this.captureLearn(
         input,
         channel,
@@ -645,15 +713,15 @@ export class MidiStore {
     if (matched.length > 0) {
       for (const binding of matched) {
         if (binding.target.kind === "parameter") {
-          if (cc || noteOn) {
-            modulationStore.setExternalSourceValue(
-              binding.target.sourceId,
-              value,
-            );
-          } else if (noteOff) {
+          if (noteOff) {
             modulationStore.setExternalSourceValue(
               binding.target.sourceId,
               0,
+            );
+          } else {
+            modulationStore.setExternalSourceValue(
+              binding.target.sourceId,
+              value,
             );
           }
           continue;
@@ -692,13 +760,65 @@ export class MidiStore {
       }
     }
 
+    const kindLabel =
+      kind === "cc"
+        ? "CC "
+        : kind === "pitchBend"
+          ? "PITCH BEND "
+          : kind === "channelPressure"
+            ? "PRESSURE "
+            : kind === "polyAftertouch"
+              ? "POLY AT "
+              : noteOn
+                ? "NOTE "
+                : "NOTE OFF ";
     this.lastMessage =
-      (kind === "cc" ? "CC " : noteOn ? "NOTE " : "NOTE OFF ") +
-      number +
+      kindLabel +
+      (kind === "pitchBend" || kind === "channelPressure" ? "" : number) +
       " · CH " +
       channel +
       " · " +
       Math.round(value * 127);
+    this.publish();
+  }
+
+  private handleClockPulse(nowSeconds: number): void {
+    const previous = this.lastClockSeconds;
+    this.lastClockSeconds = nowSeconds;
+    if (previous === undefined) return;
+
+    const interval = nowSeconds - previous;
+    if (interval < 0.001 || interval > 0.25) {
+      this.clockIntervals = [];
+      return;
+    }
+
+    this.clockIntervals.push(interval);
+    if (this.clockIntervals.length > 48) {
+      this.clockIntervals.shift();
+    }
+    if (this.clockIntervals.length < 12) return;
+
+    const sorted = [...this.clockIntervals].sort((a, b) => a - b);
+    const trim = Math.max(1, Math.floor(sorted.length * 0.12));
+    const core = sorted.slice(trim, sorted.length - trim);
+    const average =
+      core.reduce((sum, value) => sum + value, 0) /
+      Math.max(1, core.length);
+    const bpm = Math.max(
+      30,
+      Math.min(300, 60 / Math.max(0.0001, average * 24)),
+    );
+    this.externalClockBpm = bpm;
+
+    if (
+      nowSeconds - this.lastClockTempoApplySeconds >= 0.25 &&
+      Math.abs(audioTransport.getSnapshot().bpm - bpm) >= 0.25
+    ) {
+      this.lastClockTempoApplySeconds = nowSeconds;
+      audioTransport.setBpm(Math.round(bpm * 10) / 10);
+    }
+
     this.publish();
   }
 
@@ -777,12 +897,21 @@ export class MidiStore {
     }
 
     this.learn = undefined;
+    const sourceLabel =
+      messageKind === "cc"
+        ? "CC " + number
+        : messageKind === "pitchBend"
+          ? "PITCH BEND"
+          : messageKind === "channelPressure"
+            ? "CHANNEL PRESSURE"
+            : messageKind === "polyAftertouch"
+              ? "POLY AT " + number
+              : "NOTE " + number;
     this.lastMessage =
       "LEARNED / " +
       learn.label +
       " ← " +
-      (messageKind === "cc" ? "CC " : "NOTE ") +
-      number;
+      sourceLabel;
     this.publish();
   }
 
@@ -963,6 +1092,8 @@ export class MidiStore {
       recordingHitCount: this.recordedHits.length,
       recordQuantize: this.recordQuantize,
       overdub: this.overdub,
+      clockSync: this.clockSync,
+      externalClockBpm: this.externalClockBpm,
       lastMessage: this.lastMessage,
       lastError: this.lastError,
       revision: this.revision,
