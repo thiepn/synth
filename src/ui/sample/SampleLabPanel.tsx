@@ -106,6 +106,8 @@ function Pad({
   onTrigger: () => void;
   onSelect: () => void;
 }) {
+  const pointerTriggered = useRef(false);
+
   return (
     <button
       type="button"
@@ -115,8 +117,27 @@ function Pad({
         selected ? "is-selected" : "",
       ].join(" ")}
       disabled={!slice}
+      aria-pressed={selected}
+      aria-label={
+        slice
+          ? "Pad " +
+            (index + 1) +
+            ", " +
+            slice.label +
+            ". Activate to audition."
+          : "Pad " + (index + 1) + ", empty"
+      }
       onPointerDown={(event) => {
+        pointerTriggered.current = true;
         event.preventDefault();
+        onSelect();
+        onTrigger();
+      }}
+      onClick={() => {
+        if (pointerTriggered.current) {
+          pointerTriggered.current = false;
+          return;
+        }
         onSelect();
         onTrigger();
       }}
@@ -144,6 +165,7 @@ export function SampleLabPanel({
   const waveformRef = useRef<SVGSVGElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState(0);
+  const [manualCutPosition, setManualCutPosition] = useState(50);
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState("LOAD A SAMPLE TO OPEN THE LAB");
 
@@ -408,7 +430,10 @@ export function SampleLabPanel({
               viewBox="0 0 1000 320"
               preserveAspectRatio="none"
               role="img"
-              aria-label="Editable Sample Lab waveform"
+              aria-label={
+                "Sample Lab waveform. In Manual slice mode, pointer users can click to toggle cuts. " +
+                "Keyboard users can use the Manual Cut Position controls below."
+              }
               onPointerDown={(event) => {
                 if (lab.sliceMode !== "manual") return;
                 event.preventDefault();
@@ -813,8 +838,35 @@ export function SampleLabPanel({
 
               {lab.sliceMode === "manual" ? (
                 <div className="sample-lab-manual-note">
-                  <span>CLICK WAVEFORM TO TOGGLE CUTS</span>
+                  <span>POINTER: CLICK WAVEFORM · KEYBOARD: SET POSITION</span>
                   <strong>{lab.manualCuts.length} CUTS</strong>
+                  <label className="sample-lab-manual-cut">
+                    <span>CUT POSITION</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={manualCutPosition}
+                      onChange={(event) =>
+                        setManualCutPosition(
+                          Number(event.currentTarget.value),
+                        )
+                      }
+                    />
+                    <b>{Math.round(manualCutPosition)}%</b>
+                  </label>
+                  <MachineButton
+                    compact
+                    onClick={() =>
+                      sampleLabStore.toggleManualCut(
+                        region.startSeconds +
+                          (manualCutPosition / 100) *
+                            (region.endSeconds - region.startSeconds),
+                      )
+                    }
+                  >
+                    TOGGLE CUT
+                  </MachineButton>
                   <MachineButton
                     compact
                     disabled={lab.manualCuts.length === 0}
@@ -835,6 +887,7 @@ export function SampleLabPanel({
                         ? "is-selected"
                         : undefined
                     }
+                    aria-pressed={lab.selectedSliceId === slice.id}
                     onClick={() => sampleLabStore.selectSlice(slice.id)}
                     onDoubleClick={() =>
                       void playSpec(sampleLabStore.sliceSpec(slice))
