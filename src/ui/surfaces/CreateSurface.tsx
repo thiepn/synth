@@ -50,6 +50,7 @@ import { StyleDNAPanel } from "../style/StyleDNAPanel";
 import { BeatMorphPanel } from "../morph/BeatMorphPanel";
 import { ChaosPanel } from "../chaos/ChaosPanel";
 import { EvolutionPanel } from "../evolve/EvolutionPanel";
+import { SongArchitectPanel } from "../song/SongArchitectPanel";
 import {
   BeatReactor,
   GrooveField,
@@ -940,6 +941,8 @@ export function CreateSurface() {
         intent={intent()}
         bpm={transport.bpm}
       />
+
+      <SongArchitectPanel />
 
       <BeatFamilyPanel
         onGenerate={generateCurrentFamily}

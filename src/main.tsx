@@ -19,6 +19,7 @@ import "./chaos.css";
 import "./performance.css";
 import "./modulation.css";
 import "./evolve.css";
+import "./song.css";
 
 const root = document.getElementById("root");
 
