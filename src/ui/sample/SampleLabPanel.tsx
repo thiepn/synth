@@ -11,6 +11,7 @@ import { sampleAssetStore } from "../../audio/SampleAssetStore";
 import { useSampleAssetSnapshot } from "../../audio/useSampleAssets";
 import { useTransportSnapshot } from "../../audio/useTransport";
 import { drumSoundStore } from "../../audio/drumSoundModel";
+import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import {
   DRUM_PADS,
   type DrumVoiceId,
@@ -38,14 +39,6 @@ const MODES: ReadonlyArray<{
   { id: "beat", code: "BTS", label: "Beat" },
   { id: "manual", code: "MAN", label: "Manual" },
 ];
-
-function eventTargetIsInput(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      target.matches("input, textarea, select, button, [role='slider']"))
-  );
-}
 
 function seconds(value: number): string {
   return value.toFixed(value < 10 ? 3 : 2) + "s";
@@ -296,7 +289,7 @@ export function SampleLabPanel({
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (event.repeat || eventTargetIsInput(event.target)) return;
+      if (event.repeat || eventTargetConsumesKeyboard(event.target)) return;
       const index = Number(event.key) - 1;
       if (index < 0 || index >= SAMPLE_LAB_PAD_BANK_SIZE) return;
 
