@@ -408,14 +408,74 @@ export class LocalProjectDatabase {
     }
 
     const db = await this.open();
-    const transaction = db.transaction(
-      VERSION_STORE,
-      "readwrite",
-    );
-    transaction
-      .objectStore(VERSION_STORE)
-      .put(cloneVersion(version));
-    await transactionDone(transaction);
+
+    return new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(
+        [PROJECT_STORE, VERSION_STORE],
+        "readwrite",
+      );
+      const projectStore = transaction.objectStore(PROJECT_STORE);
+      const versionStore = transaction.objectStore(VERSION_STORE);
+      let settled = false;
+
+      const fail = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(
+          error instanceof Error
+            ? error
+            : new Error(String(error)),
+        );
+      };
+
+      transaction.oncomplete = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      transaction.onerror = () => {
+        fail(
+          transaction.error ??
+            new Error("IndexedDB version save failed."),
+        );
+      };
+      transaction.onabort = () => {
+        fail(
+          transaction.error ??
+            new Error("IndexedDB version save was aborted."),
+        );
+      };
+
+      const read = projectStore.get(version.projectId);
+      read.onerror = () => {
+        try {
+          transaction.abort();
+        } catch {
+          // Transaction may already be aborting.
+        }
+        fail(
+          read.error ??
+            new Error("Could not verify the version parent project."),
+        );
+      };
+      read.onsuccess = () => {
+        if (!read.result) {
+          try {
+            transaction.abort();
+          } catch {
+            // Transaction may already be aborting.
+          }
+          fail(
+            new Error(
+              "Cannot create a version for a project that no longer exists.",
+            ),
+          );
+          return;
+        }
+
+        versionStore.put(cloneVersion(version));
+      };
+    });
   }
 
   async getVersion(
@@ -512,27 +572,76 @@ export class LocalProjectDatabase {
 
   async deleteProject(projectId: string): Promise<void> {
     const activeId = await this.getActiveProjectId();
-    const versions = await this.listVersions(projectId);
-    const db = await this.open();
-    const transaction = db.transaction(
-      [PROJECT_STORE, VERSION_STORE, META_STORE],
-      "readwrite",
-    );
-    const done = transactionDone(transaction);
-
-    transaction.objectStore(PROJECT_STORE).delete(projectId);
-    const versionStore = transaction.objectStore(VERSION_STORE);
-    for (const version of versions) {
-      versionStore.delete(version.id);
-    }
-
     if (activeId === projectId) {
-      transaction
-        .objectStore(META_STORE)
-        .delete(ACTIVE_PROJECT_KEY);
+      throw new Error(
+        "This project is active in another tab or session. Open a different project there before deleting it.",
+      );
     }
 
-    await done;
+    const db = await this.open();
+
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(
+        [PROJECT_STORE, VERSION_STORE],
+        "readwrite",
+      );
+      const projectStore = transaction.objectStore(PROJECT_STORE);
+      const versionStore = transaction.objectStore(VERSION_STORE);
+      const versionIndex = versionStore.index("projectId");
+      let settled = false;
+
+      const fail = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(
+          error instanceof Error
+            ? error
+            : new Error(String(error)),
+        );
+      };
+
+      transaction.oncomplete = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      transaction.onerror = () => {
+        fail(
+          transaction.error ??
+            new Error("Project deletion failed."),
+        );
+      };
+      transaction.onabort = () => {
+        fail(
+          transaction.error ??
+            new Error("Project deletion was aborted."),
+        );
+      };
+
+      projectStore.delete(projectId);
+      const cursorRequest =
+        versionIndex.openKeyCursor(
+          IDBKeyRange.only(projectId),
+        );
+      cursorRequest.onerror = () => {
+        try {
+          transaction.abort();
+        } catch {
+          // Transaction may already be aborting.
+        }
+        fail(
+          cursorRequest.error ??
+            new Error("Could not enumerate project versions."),
+        );
+      };
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) return;
+        versionStore.delete(cursor.primaryKey);
+        cursor.continue();
+      };
+    });
+
     await this.garbageCollectAssets();
   }
 
