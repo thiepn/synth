@@ -105,44 +105,6 @@ function cloneFamilyResult(
   };
 }
 
-function cloneScene(scene: Scene): Scene {
-  return {
-    ...scene,
-    patternIds: [...scene.patternIds],
-    provenance: scene.provenance
-      ? {
-          ...scene.provenance,
-          style: { ...scene.provenance.style },
-          intent: { ...scene.provenance.intent },
-        }
-      : undefined,
-  };
-}
-
-function cloneSection(section: SectionBlueprint): SectionBlueprint {
-  return {
-    ...section,
-    patternSequence: [...section.patternSequence],
-  };
-}
-
-function cloneArrangementBlueprint(
-  blueprint: ArrangementBlueprint,
-): ArrangementBlueprint {
-  return {
-    ...blueprint,
-    scenes: blueprint.scenes.map(cloneScene),
-    sections: blueprint.sections.map(cloneSection),
-    provenance: blueprint.provenance
-      ? {
-          ...blueprint.provenance,
-          style: { ...blueprint.provenance.style },
-          intent: { ...blueprint.provenance.intent },
-        }
-      : undefined,
-  };
-}
-
 function cloneResult(
   result: SceneSectionGenerationResult,
 ): SceneSectionGenerationResult {
