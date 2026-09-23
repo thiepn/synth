@@ -279,6 +279,8 @@ function decorateSegmentPattern(
       Math.round(novelty * 100),
     styleDnaId: pattern.provenance?.styleDnaId ?? request.style,
     styleDnaVersion: pattern.provenance?.styleDnaVersion,
+    familyId: pattern.provenance?.familyId,
+    familyRole,
     style: { ...(pattern.provenance?.style ?? { [request.style]: 1 }) },
     intent: {
       ...(pattern.provenance?.intent ?? {
@@ -454,7 +456,17 @@ export function generateEvolutionPlan(
   );
 
   return {
-    id: "evolution-" + shortSeed(request.seed),
+    id:
+      "evolution-" +
+      shortSeed(
+        [
+          request.seed,
+          request.source.id,
+          request.arc,
+          request.bars,
+          request.intensity.toFixed(4),
+        ].join("|"),
+      ),
     name:
       "EVOLVE " +
       request.arc.toUpperCase() +
