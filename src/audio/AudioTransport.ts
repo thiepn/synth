@@ -62,6 +62,7 @@ const DEFAULT_BPM = 128;
 const DEFAULT_METER: Meter = { numerator: 4, denominator: 4 };
 const SCHEDULER_INTERVAL_MS = 25;
 const SCHEDULE_AHEAD_SECONDS = 0.1;
+const UI_FRAME_INTERVAL_MS = 1000 / 30;
 const SIXTEENTH_TICKS = PPQ / 4;
 
 function contextStateOf(context: AudioContext | null): AudioContextStatus {
@@ -97,7 +98,9 @@ export class AudioTransport {
   private pausedAbsoluteTick = 0;
 
   private schedulerTimer: number | null = null;
+  private schedulerWorker: Worker | undefined;
   private frameHandle: number | null = null;
+  private lastFramePublishMs = 0;
   private nextScheduledTick = 0;
   private schedulerEpoch = 0;
   private scheduledPulseCount = 0;
@@ -437,9 +440,49 @@ export class AudioTransport {
   }
 
   private startScheduler(): void {
-    if (this.schedulerTimer !== null) return;
+    if (
+      this.schedulerTimer !== null ||
+      this.schedulerWorker
+    ) {
+      return;
+    }
 
     this.scheduleWindow();
+
+    if (typeof Worker !== "undefined") {
+      try {
+        const worker = new Worker(
+          new URL(
+            "./transportScheduler.worker.ts",
+            import.meta.url,
+          ),
+          { type: "module" },
+        );
+        worker.onmessage = () => {
+          this.scheduleWindow();
+        };
+        worker.onerror = () => {
+          if (this.schedulerWorker !== worker) return;
+          worker.terminate();
+          this.schedulerWorker = undefined;
+          this.startFallbackScheduler();
+        };
+        worker.postMessage({
+          type: "start",
+          intervalMs: SCHEDULER_INTERVAL_MS,
+        });
+        this.schedulerWorker = worker;
+        return;
+      } catch {
+        // Fall through to the main-thread timer.
+      }
+    }
+
+    this.startFallbackScheduler();
+  }
+
+  private startFallbackScheduler(): void {
+    if (this.schedulerTimer !== null) return;
     this.schedulerTimer = globalThis.setInterval(
       () => this.scheduleWindow(),
       SCHEDULER_INTERVAL_MS,
@@ -447,9 +490,18 @@ export class AudioTransport {
   }
 
   private stopScheduler(): void {
-    if (this.schedulerTimer === null) return;
-    globalThis.clearInterval(this.schedulerTimer);
-    this.schedulerTimer = null;
+    if (this.schedulerWorker) {
+      this.schedulerWorker.postMessage({
+        type: "stop",
+      });
+      this.schedulerWorker.terminate();
+      this.schedulerWorker = undefined;
+    }
+
+    if (this.schedulerTimer !== null) {
+      globalThis.clearInterval(this.schedulerTimer);
+      this.schedulerTimer = null;
+    }
   }
 
   private scheduleWindow(): void {
@@ -514,13 +566,22 @@ export class AudioTransport {
       return;
     }
 
-    const frame = () => {
+    this.lastFramePublishMs = 0;
+
+    const frame = (timestamp: number) => {
       if (this.status !== "running" || !this.desiredPlaying) {
         this.frameHandle = null;
         return;
       }
 
-      this.publish();
+      if (
+        this.lastFramePublishMs === 0 ||
+        timestamp - this.lastFramePublishMs >= UI_FRAME_INTERVAL_MS
+      ) {
+        this.lastFramePublishMs = timestamp;
+        this.publish();
+      }
+
       this.frameHandle = requestAnimationFrame(frame);
     };
 
@@ -537,6 +598,7 @@ export class AudioTransport {
 
     cancelAnimationFrame(this.frameHandle);
     this.frameHandle = null;
+    this.lastFramePublishMs = 0;
   }
 
   private publish(): void {
@@ -594,6 +656,7 @@ export const TRANSPORT_SCHEDULER_CONFIG = Object.freeze({
   aheadSeconds: SCHEDULE_AHEAD_SECONDS,
   pulseTicks: SIXTEENTH_TICKS,
   ppq: PPQ,
+  uiFrameIntervalMs: UI_FRAME_INTERVAL_MS,
 });
 
 export function transportBeatTicks(snapshot: TransportSnapshot): number {

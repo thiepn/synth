@@ -9,6 +9,7 @@ import {
   type BeatMorphDimensions,
   type BeatMorphResult,
 } from "../generation/beatMorphEngine";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 export type MorphEndpointOrigin =
   | "capture"
@@ -246,3 +247,8 @@ export class BeatMorphStore {
 }
 
 export const beatMorphStore = new BeatMorphStore();
+
+registerProjectTransientReset(
+  "beatMorphStore",
+  () => beatMorphStore.clear(),
+);

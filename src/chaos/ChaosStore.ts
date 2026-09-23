@@ -11,6 +11,7 @@ import {
   type ChaosResult,
 } from "../generation/chaosEngine";
 import { shortSeed } from "../generation/prng";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 type StoreListener = () => void;
 
@@ -271,3 +272,8 @@ export const CHAOS_STORE_META = Object.freeze({
   engine: "chaos",
   domains: CHAOS_DOMAINS.map((domain) => domain.id),
 });
+
+registerProjectTransientReset(
+  "chaosStore",
+  () => chaosStore.reset(),
+);

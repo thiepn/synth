@@ -27,6 +27,7 @@ import "./midi.css";
 import "./project.css";
 import "./pwa.css";
 import "./interaction.css";
+import "./runtime-performance.css";
 import "./song.css";
 
 const root = document.getElementById("root");

@@ -6,6 +6,7 @@ const CACHE_PREFIX = "synth-shell-";
 const SCOPE_URL = new URL(self.registration.scope);
 const ROOT_URL = new URL("./", SCOPE_URL).href;
 const MANIFEST_URL = new URL("./manifest.webmanifest", SCOPE_URL).href;
+const ASSET_MANIFEST_URL = new URL("./asset-manifest.json", SCOPE_URL).href;
 const ICON_URLS = [
   "./icons/synth.svg",
   "./icons/synth-180.png",
@@ -42,7 +43,29 @@ async function precacheShell() {
 
   await cache.put(ROOT_URL, rootResponse.clone());
   const html = await rootResponse.text();
-  const urls = new Set([MANIFEST_URL, ...ICON_URLS]);
+  const urls = new Set([
+    MANIFEST_URL,
+    ASSET_MANIFEST_URL,
+    ...ICON_URLS,
+  ]);
+
+  try {
+    const manifestResponse = await fetch(
+      ASSET_MANIFEST_URL,
+      { cache: "reload" },
+    );
+    if (manifestResponse.ok) {
+      const manifest = await manifestResponse.json();
+      for (const asset of manifest.assets ?? []) {
+        const assetUrl = new URL(asset, ROOT_URL);
+        if (sameScope(assetUrl)) {
+          urls.add(assetUrl.href);
+        }
+      }
+    }
+  } catch {
+    // index.html discovery below remains a safe fallback.
+  }
   const pattern = /(?:src|href)=["']([^"'#]+)["']/g;
   let match;
 

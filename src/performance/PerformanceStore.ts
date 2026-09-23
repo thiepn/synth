@@ -1,5 +1,6 @@
 import { audioTransport } from "../audio/AudioTransport";
 import { ticksPerBeat } from "../audio/transportMath";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 export type PerformanceMacroId =
   | "energy"
@@ -447,3 +448,8 @@ export class PerformanceStore {
 }
 
 export const performanceStore = new PerformanceStore();
+
+registerProjectTransientReset(
+  "performanceStore",
+  () => performanceStore.resetProjectTransientState(),
+);

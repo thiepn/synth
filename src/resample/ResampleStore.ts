@@ -26,6 +26,7 @@ import { encodeWav } from "../render/wavEncoder";
 import { sampleLabStore } from "../sample/SampleLabStore";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { freezeStore } from "./FreezeStore";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 type Listener = () => void;
 
@@ -614,3 +615,8 @@ export class ResampleStore {
 }
 
 export const resampleStore = new ResampleStore();
+
+registerProjectTransientReset(
+  "resampleStore",
+  () => resampleStore.resetProjectTransientState(),
+);

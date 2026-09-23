@@ -1,33 +1,27 @@
 import { arrangementFoundationStore } from "../arrange/ArrangementFoundationStore";
-import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import { arrangementStore } from "../arrange/ArrangementStore";
 import { audioTransport } from "../audio/AudioTransport";
 import { drumEngine } from "../audio/DrumEngine";
 import { sampleAssetStore } from "../audio/SampleAssetStore";
 import { drumSoundStore } from "../audio/drumSoundModel";
-import { chaosStore } from "../chaos/ChaosStore";
-import { evolutionStore } from "../evolve/EvolutionStore";
 import { beatFamilyStore } from "../family/BeatFamilyStore";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
 import { masteringStore } from "../master/MasteringStore";
 import { midiStore } from "../midi/MidiStore";
 import { mixerStore } from "../mix/MixerStore";
 import { modulationStore } from "../modulation/ModulationStore";
-import { beatMorphStore } from "../morph/BeatMorphStore";
-import { performanceStore } from "../performance/PerformanceStore";
 import {
   localProjectDatabase,
   ProjectRevisionConflictError,
 } from "../persistence/LocalProjectDatabase";
-import { renderStore } from "../render/RenderStore";
-import { resampleStore } from "../resample/ResampleStore";
-import { sampleLabStore } from "../sample/SampleLabStore";
 import { sequencerStore } from "../sequencer/SequencerStore";
-import { songArchitectStore } from "../song/SongArchitectStore";
 import {
   createProjectBackup,
   readProjectBackup,
 } from "./projectBackup";
+import {
+  resetLoadedProjectTransientState,
+} from "./transientResetRegistry";
 import {
   SYNTH_PROJECT_DOCUMENT_VERSION,
   assertProjectDocument,
@@ -129,7 +123,9 @@ export class ProjectStore {
     "instance-" + Date.now().toString(36);
   private applying = false;
   private changeSerial = 0;
+  private persistedAssetIds = new Set<string>();
   private autosaveTimer: number | undefined;
+  private autosaveIdleHandle: number | undefined;
   private savePromise: Promise<void> | undefined;
   private unsubscribers: Array<() => void> = [];
   private lifecycleInstalled = false;
@@ -675,7 +671,10 @@ export class ProjectStore {
         nextRevision,
         now,
       );
-      const assets = this.captureAssets(now);
+      const assets = this.captureAssets(
+        now,
+        true,
+      );
 
       await localProjectDatabase.saveProject(
         document,
@@ -687,6 +686,9 @@ export class ProjectStore {
       this.documentRevision = nextRevision;
       this.lastSavedAt = now;
       this.conflict = undefined;
+      for (const assetId of document.assetIds) {
+        this.persistedAssetIds.add(assetId);
+      }
 
       if (serialAtStart === this.changeSerial) {
         this.dirty = false;
@@ -727,7 +729,7 @@ export class ProjectStore {
     );
     return {
       document,
-      assets: this.captureAssets(now),
+      assets: this.captureAssets(now, false),
     };
   }
 
@@ -806,10 +808,19 @@ export class ProjectStore {
 
   private captureAssets(
     updatedAt: string,
+    onlyUnpersisted = false,
   ): PersistedAudioAsset[] {
     return sampleAssetStore
       .getSnapshot()
-      .assets.map((state) => {
+      .assets
+      .filter(
+        (state) =>
+          !onlyUnpersisted ||
+          !this.persistedAssetIds.has(
+            state.reference.id,
+          ),
+      )
+      .map((state) => {
         const bytes = sampleAssetStore.getRawBytes(
           state.reference.id,
         );
@@ -838,18 +849,8 @@ export class ProjectStore {
     this.clearAutosaveTimer();
 
     try {
-      arrangementPlaybackStore.stop();
       audioTransport.stop();
-
-      beatMorphStore.clear();
-      chaosStore.reset();
-      evolutionStore.clear();
-      songArchitectStore.clear();
-      performanceStore.resetProjectTransientState();
-      sampleLabStore.resetProjectTransientState();
-      renderStore.cancel();
-      renderStore.resetStatus();
-      resampleStore.resetProjectTransientState();
+      resetLoadedProjectTransientState();
 
       sampleAssetStore.clearProjectAssets();
       for (const asset of bundle.assets) {
@@ -860,6 +861,9 @@ export class ProjectStore {
       }
 
       const document = bundle.document;
+      this.persistedAssetIds = new Set(
+        document.assetIds,
+      );
 
       audioTransport.setBpm(document.transport.bpm);
       audioTransport.setMeter(document.transport.meter);
@@ -948,14 +952,44 @@ export class ProjectStore {
     this.clearAutosaveTimer();
     this.autosaveTimer = globalThis.setTimeout(() => {
       this.autosaveTimer = undefined;
-      void this.saveNow();
+
+      const idleHost = globalThis as typeof globalThis & {
+        requestIdleCallback?: (
+          callback: () => void,
+          options?: { timeout?: number },
+        ) => number;
+      };
+
+      if (idleHost.requestIdleCallback) {
+        this.autosaveIdleHandle =
+          idleHost.requestIdleCallback(
+            () => {
+              this.autosaveIdleHandle = undefined;
+              void this.saveNow();
+            },
+            { timeout: 1_000 },
+          );
+      } else {
+        void this.saveNow();
+      }
     }, AUTOSAVE_DELAY_MS);
   }
 
   private clearAutosaveTimer(): void {
-    if (this.autosaveTimer === undefined) return;
-    globalThis.clearTimeout(this.autosaveTimer);
-    this.autosaveTimer = undefined;
+    if (this.autosaveTimer !== undefined) {
+      globalThis.clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = undefined;
+    }
+
+    if (this.autosaveIdleHandle !== undefined) {
+      const idleHost = globalThis as typeof globalThis & {
+        cancelIdleCallback?: (handle: number) => void;
+      };
+      idleHost.cancelIdleCallback?.(
+        this.autosaveIdleHandle,
+      );
+      this.autosaveIdleHandle = undefined;
+    }
   }
 
   private installSubscriptions(): void {

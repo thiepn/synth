@@ -44,7 +44,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 33 — Project Library, Version History, Backup & Data Resilience:** complete
 - **Phase 34 — PWA, Offline Runtime & Installability Hardening:** complete
 - **Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening:** complete
-- **Next: Phase 36 — Performance, Battery & Scale Hardening**
+- **Phase 36 — Performance, Battery & Scale Hardening:** complete
+- **Next: Phase 37 — Architecture Consolidation & Product Simplification**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -794,6 +795,26 @@ See [Phase 34 implementation notes](docs/phase-34/PHASE_34.md).
 - production interaction regression contract checks
 
 See [Phase 35 implementation notes](docs/phase-35/PHASE_35.md).
+
+### Phase 36 — Performance, Battery & Scale Hardening
+
+- visual transport publication capped at 30 Hz while audio scheduling stays at 25 ms / 100 ms look-ahead
+- Worker-backed transport scheduler wakeups with timer fallback
+- Worker-backed long-sample waveform/transient analysis with synchronous short-sample fallback
+- stale Sample Lab analysis rejection + idle Worker shutdown
+- seven mode workspaces lazy-loaded with navigation-intent preloading
+- build asset manifest + Service Worker precache keeps every lazy chunk offline-safe
+- ProjectStore no longer statically imports transient feature workspaces
+- loaded transient modules self-register project-reset callbacks
+- routine autosave writes only newly introduced immutable sample bytes
+- routine autosave prefers browser idle time after debounce
+- Generation History bounded to 512 nodes with protected leaf pruning
+- production bundle/code-splitting budgets enforced after Vite
+- runtime performance architecture contracts enforced before TypeScript build
+- measured entry JS reduced from about 795 KB to 478.6 KB across 16 JS chunks
+- CI action runtimes updated to current checkout/setup-node majors
+
+See [Phase 36 implementation notes](docs/phase-36/PHASE_36.md).
 
 ## Phase 0 architecture
 

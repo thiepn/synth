@@ -4,6 +4,7 @@ import {
 } from "../audio/AudioTransport";
 import { ticksPerBeat } from "../audio/transportMath";
 import { arrangementStore } from "./ArrangementStore";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 export interface ArrangementPlaybackSnapshot {
   engaged: boolean;
@@ -375,3 +376,8 @@ export class ArrangementPlaybackStore {
 
 export const arrangementPlaybackStore =
   new ArrangementPlaybackStore();
+
+registerProjectTransientReset(
+  "arrangementPlaybackStore",
+  () => arrangementPlaybackStore.stop(),
+);

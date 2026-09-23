@@ -7,6 +7,7 @@ import {
   type SongArchitectSourceMode,
 } from "../generation/songArchitect";
 import { shortSeed } from "../generation/prng";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 type Listener = () => void;
 
@@ -413,3 +414,8 @@ export class SongArchitectStore {
 }
 
 export const songArchitectStore = new SongArchitectStore();
+
+registerProjectTransientReset(
+  "songArchitectStore",
+  () => songArchitectStore.clear(),
+);
