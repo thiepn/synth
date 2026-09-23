@@ -9,7 +9,9 @@
     "prebuild": "node scripts/generate-pwa-icons.mjs",
     "build": "npm run check:interaction && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check:interaction": "node scripts/check-interaction-contracts.mjs"
+    "check:interaction": "node scripts/check-interaction-contracts.mjs",
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "postbuild": "npm run check:bundle"
   },
   "dependencies": {
     "react": "19.3.0",
