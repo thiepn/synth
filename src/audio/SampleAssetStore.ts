@@ -98,6 +98,7 @@ export class SampleAssetStore {
     AudioContext,
     Map<string, Promise<AudioBuffer>>
   >();
+  private knownContexts = new Set<AudioContext>();
   private revision = 0;
   private snapshot: SampleAssetSnapshot = this.buildSnapshot();
 
@@ -115,6 +116,7 @@ export class SampleAssetStore {
     this.decoded = new WeakMap();
     this.reversed = new WeakMap();
     this.decodePromises = new WeakMap();
+    this.knownContexts.clear();
     this.publish();
   }
 
@@ -218,6 +220,8 @@ export class SampleAssetStore {
     context: AudioContext,
     assetId: string,
   ): Promise<AudioBuffer> {
+    this.knownContexts.add(context);
+
     const cached = this.decoded.get(context)?.get(assetId);
     if (cached) return cached;
 
@@ -283,6 +287,8 @@ export class SampleAssetStore {
     assetId: string,
     reverse: boolean,
   ): AudioBuffer | undefined {
+    this.knownContexts.add(context);
+
     const decoded = this.decoded.get(context)?.get(assetId);
     if (!decoded) return undefined;
     if (!reverse) return decoded;
@@ -321,8 +327,16 @@ export class SampleAssetStore {
 
   remove(assetId: string): void {
     if (!this.states.has(assetId)) return;
+
     this.states.delete(assetId);
     this.bytes.delete(assetId);
+
+    for (const context of this.knownContexts) {
+      this.decoded.get(context)?.delete(assetId);
+      this.reversed.get(context)?.delete(assetId);
+      this.decodePromises.get(context)?.delete(assetId);
+    }
+
     this.publish();
   }
 
