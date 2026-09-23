@@ -205,6 +205,8 @@ export class ProjectStore {
       await this.applyBundle(bundle);
       await localProjectDatabase.setActiveProjectId(projectId);
       await this.refreshSummaries();
+      await this.refreshVersions();
+      await this.refreshStorageEstimate();
       return true;
     } catch (error) {
       try {
@@ -378,6 +380,7 @@ export class ProjectStore {
     if (!this.initialized || this.applying) return;
     await localProjectDatabase.deleteVersion(versionId);
     await this.refreshVersions();
+    await this.refreshStorageEstimate();
     this.publish();
   }
 
@@ -476,8 +479,16 @@ export class ProjectStore {
     try {
       if (
         projectId === this.projectId &&
-        this.dirty &&
-        this.saveStatus !== "conflict"
+        this.saveStatus === "conflict" &&
+        this.dirty
+      ) {
+        throw new Error(
+          "Save As or reload the conflicted project before exporting a backup.",
+        );
+      }
+      if (
+        projectId === this.projectId &&
+        this.dirty
       ) {
         await this.saveNow();
       }
@@ -891,6 +902,13 @@ export class ProjectStore {
     if (this.applying || !this.initialized) return;
     this.changeSerial += 1;
     this.dirty = true;
+
+    if (this.conflict) {
+      this.saveStatus = "conflict";
+      this.publish();
+      return;
+    }
+
     this.saveStatus = "dirty";
     this.publish();
     this.scheduleAutosave();
@@ -1149,7 +1167,6 @@ export class ProjectStore {
           "A newer revision was saved in another tab.",
       };
       this.saveStatus = "conflict";
-      this.dirty = true;
       this.clearAutosaveTimer();
       this.publish();
     };
