@@ -282,7 +282,15 @@ export function ArrangeSurface() {
           <span>SELECT → EDIT → PLAY</span>
         </div>
 
-        <div className="arrange-timeline__scroll">
+        <p className="sr-only" id="arrange-reorder-help">
+          Sections can be reordered by drag and drop. Keyboard and touch users
+          can select a section and use the Move Left and Move Right controls in
+          Section Edit.
+        </p>
+        <div
+          className="arrange-timeline__scroll"
+          aria-describedby="arrange-reorder-help"
+        >
           <div className="arrange-timeline__track">
             {arrangement.blueprint.sections.map((section, index) => {
               const active =
@@ -345,6 +353,15 @@ export function ArrangeSurface() {
                     flexGrow: section.lengthTicks,
                   }}
                   onClick={() => arrangementStore.selectSection(section.id)}
+                  aria-pressed={selected}
+                  aria-label={
+                    section.label +
+                    ", section " +
+                    (index + 1) +
+                    " of " +
+                    arrangement.blueprint.sections.length +
+                    ". Select to edit. Reorder controls are available in Section Edit."
+                  }
                 >
                   <span className="arrange-section-block__ordinal">
                     {String(index + 1).padStart(2, "0")}
