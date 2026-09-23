@@ -126,6 +126,8 @@ export function ModulationPanel({
   const engine = useDrumEngineSnapshot();
   const laneRef = useRef<HTMLDivElement | null>(null);
   const [curve, setCurve] = useState<AutomationCurve>("smooth");
+  const [keyboardPointPosition, setKeyboardPointPosition] = useState(50);
+  const [keyboardPointValue, setKeyboardPointValue] = useState(50);
 
   const selectedSource =
     modulation.sources.find(
@@ -566,6 +568,63 @@ export function ModulationPanel({
             </button>
           </div>
 
+          <div className="automation-keyboard-editor">
+            <label>
+              <span>POSITION</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={keyboardPointPosition}
+                onChange={(event) =>
+                  setKeyboardPointPosition(
+                    Number(event.currentTarget.value),
+                  )
+                }
+                aria-label="Automation point position in the loop"
+              />
+              <b>{Math.round(keyboardPointPosition)}%</b>
+            </label>
+            <label>
+              <span>VALUE</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={keyboardPointValue}
+                onChange={(event) =>
+                  setKeyboardPointValue(
+                    Number(event.currentTarget.value),
+                  )
+                }
+                aria-label="Automation point value"
+              />
+              <b>{Math.round(keyboardPointValue)}%</b>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                if (!lane?.loopLengthTicks) {
+                  modulationStore.setAutomationLoopLength(
+                    targetId,
+                    loopTicks,
+                  );
+                }
+                modulationStore.addAutomationPoint(
+                  targetId,
+                  Math.round(
+                    (keyboardPointPosition / 100) * loopTicks,
+                  ),
+                  keyboardPointValue / 100,
+                  curve,
+                  Math.max(1, Math.round(loopTicks / 64)),
+                );
+              }}
+            >
+              WRITE POINT
+            </button>
+          </div>
+
           <div
             ref={laneRef}
             className={
@@ -573,8 +632,12 @@ export function ModulationPanel({
                 ? "automation-lane is-disabled"
                 : "automation-lane"
             }
-            role="application"
-            aria-label={"Draw automation for " + (target?.label ?? targetId)}
+            role="group"
+            aria-label={
+              "Pointer automation canvas for " +
+              (target?.label ?? targetId) +
+              ". Keyboard users can use the Position, Value, and Write Point controls above."
+            }
             onPointerDown={(event) => {
               event.preventDefault();
               event.currentTarget.setPointerCapture(event.pointerId);
@@ -655,8 +718,9 @@ export function ModulationPanel({
           </div>
 
           <p className="modulation-empty">
-            Drag across the lane to write automation. Nearby points coalesce
-            automatically; click an existing point to remove it.
+            Drag across the lane to write automation, or use Position / Value /
+            Write Point with a keyboard. Nearby points coalesce automatically;
+            activate an existing point to remove it.
           </p>
         </div>
       </div>
