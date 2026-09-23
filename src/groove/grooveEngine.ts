@@ -5,7 +5,8 @@ import type {
   PatternLane,
   StepEvent,
 } from "../domain/contracts";
-import { FOUNDATION_STEP_TICKS } from "../music/foundationPattern";
+
+import { clonePattern } from "../domain/patternClone";import { FOUNDATION_STEP_TICKS } from "../music/foundationPattern";
 import { SeededRandom, deriveSeed } from "../generation/prng";
 
 export const GROOVE_ENGINE_VERSION = 1;
@@ -55,46 +56,6 @@ const MAX_GROUP_DRIFT_MS = 5.5;
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));
-}
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags ? [...event.generatorTags] : undefined,
-    grooveBase: event.grooveBase ? { ...event.grooveBase } : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
 }
 
 function profile(id: GroovePersonalityId): GroovePersonalityDefinition {
