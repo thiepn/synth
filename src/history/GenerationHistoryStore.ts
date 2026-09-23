@@ -34,6 +34,8 @@ export interface PreparedHistoryCommit {
 
 type StoreListener = () => void;
 
+const HISTORY_NODE_LIMIT = 512;
+
 function cloneEvent(event: StepEvent): StepEvent {
   return {
     ...event,
@@ -353,7 +355,77 @@ export class GenerationHistoryStore {
     };
 
     this.nodes.set(id, node);
+    this.pruneHistory(new Set([id]));
     return node;
+  }
+
+  private pruneHistory(
+    extraProtected: ReadonlySet<string> = new Set(),
+  ): void {
+    if (this.nodes.size <= HISTORY_NODE_LIMIT) return;
+
+    const protectedIds = new Set<string>([
+      this.rootNodeId,
+      this.activeNodeId,
+      this.selectedNodeId,
+      ...extraProtected,
+    ]);
+
+    const protectLineage = (nodeId: string) => {
+      let currentId: string | undefined = nodeId;
+      const seen = new Set<string>();
+
+      while (currentId && !seen.has(currentId)) {
+        seen.add(currentId);
+        protectedIds.add(currentId);
+        currentId = this.nodes.get(currentId)?.parentId;
+      }
+    };
+
+    protectLineage(this.activeNodeId);
+    protectLineage(this.selectedNodeId);
+    for (const node of this.nodes.values()) {
+      if (node.favorite) {
+        protectLineage(node.id);
+      }
+    }
+
+    const childCount = new Map<string, number>();
+    for (const node of this.nodes.values()) {
+      childCount.set(node.id, 0);
+    }
+    for (const node of this.nodes.values()) {
+      if (!node.parentId) continue;
+      childCount.set(
+        node.parentId,
+        (childCount.get(node.parentId) ?? 0) + 1,
+      );
+    }
+
+    while (this.nodes.size > HISTORY_NODE_LIMIT) {
+      const candidate = [...this.nodes.values()]
+        .filter(
+          (node) =>
+            !protectedIds.has(node.id) &&
+            (childCount.get(node.id) ?? 0) === 0,
+        )
+        .sort((a, b) => a.ordinal - b.ordinal)[0];
+
+      if (!candidate) break;
+
+      this.nodes.delete(candidate.id);
+      childCount.delete(candidate.id);
+
+      if (candidate.parentId) {
+        childCount.set(
+          candidate.parentId,
+          Math.max(
+            0,
+            (childCount.get(candidate.parentId) ?? 1) - 1,
+          ),
+        );
+      }
+    }
   }
 
   private collectDescendants(nodeId: string): Set<string> {
