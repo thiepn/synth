@@ -1,3 +1,5 @@
+import { errorMessage } from "../runtime/errors";
+
 type Listener = () => void;
 
 interface BeforeInstallPromptEvent extends Event {
@@ -139,7 +141,7 @@ export class PwaStore {
       this.lastError = undefined;
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
     }
 
     this.initialized = true;
@@ -160,7 +162,7 @@ export class PwaStore {
       return choice.outcome === "accepted";
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return false;
     }
@@ -171,7 +173,7 @@ export class PwaStore {
       await this.registration?.update();
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
     }
   }

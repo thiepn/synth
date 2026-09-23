@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   masteringStore,
   type MasteringSnapshot,
 } from "./MasteringStore";
 
 export function useMasteringSnapshot(): MasteringSnapshot {
-  return useSyncExternalStore(
-    masteringStore.subscribe,
-    masteringStore.getSnapshot,
-    masteringStore.getSnapshot,
-  );
+  return useStoreSnapshot(masteringStore);
 }

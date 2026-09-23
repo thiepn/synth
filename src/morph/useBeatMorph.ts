@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   beatMorphStore,
   type BeatMorphSnapshot,
 } from "./BeatMorphStore";
 
 export function useBeatMorphSnapshot(): BeatMorphSnapshot {
-  return useSyncExternalStore(
-    beatMorphStore.subscribe,
-    beatMorphStore.getSnapshot,
-    beatMorphStore.getSnapshot,
-  );
+  return useStoreSnapshot(beatMorphStore);
 }

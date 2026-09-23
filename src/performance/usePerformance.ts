@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   performanceStore,
   type PerformanceSnapshot,
 } from "./PerformanceStore";
 
 export function usePerformanceSnapshot(): PerformanceSnapshot {
-  return useSyncExternalStore(
-    performanceStore.subscribe,
-    performanceStore.getSnapshot,
-    performanceStore.getSnapshot,
-  );
+  return useStoreSnapshot(performanceStore);
 }

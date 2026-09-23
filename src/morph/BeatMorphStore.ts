@@ -1,8 +1,9 @@
 import type {
   Pattern,
-  PatternLane,
-  StepEvent,
 } from "../domain/contracts";
+import {
+  clonePattern,
+} from "../domain/patternClone";
 import {
   assertMorphCompatible,
   morphPatterns,
@@ -34,50 +35,6 @@ const DEFAULT_DIMENSIONS: BeatMorphDimensions = {
   groove: 0.5,
   styleDNA: 0.5,
 };
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function cloneResult(
   result: BeatMorphResult | undefined,

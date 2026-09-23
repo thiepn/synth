@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   midiStore,
   type MidiSnapshot,
 } from "./MidiStore";
 
 export function useMidiSnapshot(): MidiSnapshot {
-  return useSyncExternalStore(
-    midiStore.subscribe,
-    midiStore.getSnapshot,
-    midiStore.getSnapshot,
-  );
+  return useStoreSnapshot(midiStore);
 }

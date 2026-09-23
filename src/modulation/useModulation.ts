@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   modulationStore,
   type ModulationSnapshot,
 } from "./ModulationStore";
 
 export function useModulationSnapshot(): ModulationSnapshot {
-  return useSyncExternalStore(
-    modulationStore.subscribe,
-    modulationStore.getSnapshot,
-    modulationStore.getSnapshot,
-  );
+  return useStoreSnapshot(modulationStore);
 }

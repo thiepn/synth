@@ -4,6 +4,10 @@ import type {
   StepEvent,
 } from "../domain/contracts";
 import {
+  clonePattern,
+  cloneStepEvent,
+} from "../domain/patternClone";
+import {
   FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
   createFoundationPattern,
@@ -42,50 +46,6 @@ type StoreListener = () => void;
 
 const HISTORY_LIMIT = 100;
 const DEFAULT_STEP_VELOCITY = 0.76;
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function normalizeVelocity(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_STEP_VELOCITY;
@@ -149,7 +109,6 @@ function laneDefaultVelocity(
 
 export class SequencerStore {
   private pattern = createFoundationPattern();
-  private runtimePreview: Pattern | undefined;
   private undoStack: Pattern[] = [];
   private redoStack: Pattern[] = [];
   private revision = 0;
@@ -244,48 +203,9 @@ export class SequencerStore {
 
   getHitsForStep(stepIndex: number): SequencerHit[] {
     return getPatternHitsForAbsoluteStep(
-      this.runtimePreview ?? this.pattern,
+      this.pattern,
       stepIndex,
     );
-  }
-
-  setRuntimePreview(nextPattern: Pattern | undefined): void {
-    if (!nextPattern) {
-      if (!this.runtimePreview) return;
-      this.runtimePreview = undefined;
-      this.publish();
-      return;
-    }
-
-    if (
-      nextPattern.ppq !== this.pattern.ppq ||
-      nextPattern.lengthTicks !== this.pattern.lengthTicks
-    ) {
-      throw new Error(
-        "Runtime preview must match the current Pattern timing contract.",
-      );
-    }
-
-    const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
-    const missingLane = SEQUENCER_LANES.find(
-      (definition) => !nextLaneIds.has(definition.id),
-    );
-    if (missingLane) {
-      throw new Error(
-        "Runtime preview is missing lane " + missingLane.id + ".",
-      );
-    }
-
-    const next = clonePattern(nextPattern);
-    if (
-      this.runtimePreview &&
-      JSON.stringify(this.runtimePreview) === JSON.stringify(next)
-    ) {
-      return;
-    }
-
-    this.runtimePreview = next;
-    this.publish();
   }
 
   toggleStep(laneId: string, stepIndex: number): void {
@@ -492,7 +412,7 @@ export class SequencerStore {
         if (!decision.event) return;
 
         const next: StepEvent = {
-          ...(existing ? cloneEvent(existing) : createStepEvent(
+          ...(existing ? cloneStepEvent(existing) : createStepEvent(
             decision.targetLaneId,
             stepIndex,
             decision.event.velocity,
@@ -594,10 +514,10 @@ export class SequencerStore {
           (event) =>
             event.tick >= laneLength * FOUNDATION_STEP_TICKS,
         )
-        .map(cloneEvent);
+        .map(cloneStepEvent);
 
       lane.events = [
-        ...nextActive.map(cloneEvent),
+        ...nextActive.map(cloneStepEvent),
         ...dormant,
       ].sort((a, b) => a.tick - b.tick);
     });
@@ -661,7 +581,6 @@ export class SequencerStore {
     if (JSON.stringify(next) === JSON.stringify(this.pattern)) return;
 
     this.pushUndo();
-    this.runtimePreview = undefined;
     this.pattern = next;
     this.redoStack = [];
     this.lastCoalesceKey = null;
@@ -712,7 +631,6 @@ export class SequencerStore {
     });
 
     this.pushUndo();
-    this.runtimePreview = undefined;
     this.pattern = generated;
     this.redoStack = [];
     this.lastCoalesceKey = null;
@@ -731,7 +649,6 @@ export class SequencerStore {
   restoreProjectPattern(nextPattern: Pattern): void {
     const restored = clonePattern(nextPattern);
     this.validatePatternShape(restored, "Project");
-    this.runtimePreview = undefined;
     this.pattern = restored;
     this.undoStack = [];
     this.redoStack = [];
@@ -766,7 +683,6 @@ export class SequencerStore {
     });
 
     this.pushUndo();
-    this.runtimePreview = undefined;
     this.pattern = restored;
     this.redoStack = [];
     this.lastCoalesceKey = null;
@@ -827,7 +743,7 @@ export class SequencerStore {
           if (targetStep >= nextLength) continue;
 
           lane.events.push({
-            ...cloneEvent(source),
+            ...cloneStepEvent(source),
             id: eventId(lane.id, targetStep),
             tick: targetStep * FOUNDATION_STEP_TICKS,
           });
@@ -843,7 +759,6 @@ export class SequencerStore {
     if (!previous) return;
 
     this.redoStack.push(clonePattern(this.pattern));
-    this.runtimePreview = undefined;
     this.pattern = previous;
     this.lastCoalesceKey = null;
     this.lastCoalesceAt = 0;
@@ -856,7 +771,6 @@ export class SequencerStore {
     if (!next) return;
 
     this.undoStack.push(clonePattern(this.pattern));
-    this.runtimePreview = undefined;
     this.pattern = next;
     this.lastCoalesceKey = null;
     this.lastCoalesceAt = 0;
@@ -940,7 +854,6 @@ export class SequencerStore {
     }
 
     this.redoStack = [];
-    this.runtimePreview = undefined;
     this.pattern = draft;
     this.lastCoalesceKey = coalesceKey;
     this.lastCoalesceAt = coalesceKey === null ? 0 : now;

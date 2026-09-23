@@ -5,22 +5,23 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentType,
   type KeyboardEvent as ReactKeyboardEvent,
+  type LazyExoticComponent,
 } from "react";
-import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
-import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { projectStore } from "./project/ProjectStore";
 import { pwaStore } from "./pwa/PwaStore";
 import { ProjectControl } from "./ui/project/ProjectControl";
 import { PwaControl } from "./ui/pwa/PwaControl";
 import { AccessibilityBridge } from "./accessibility/AccessibilityBridge";
-import { audioTransport } from "./audio/AudioTransport";
-import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
   MODES,
   type ModeDefinition,
   type ModeId,
-} from "./ui/pulse/Primitives";
+} from "./app/modeModel";
+import {
+  playbackCoordinator,
+} from "./playback/PlaybackCoordinator";
 import {
   TransportControls,
   TransportLifecycle,
@@ -63,6 +64,19 @@ const PerformanceSurface = lazy(loadPerformanceSurface);
 const MixSurface = lazy(loadMixSurface);
 const MasterExportSurface = lazy(loadMasterExportSurface);
 
+const MODE_SURFACES: Record<
+  ModeId,
+  LazyExoticComponent<ComponentType>
+> = {
+  create: CreateSurface,
+  sequence: SequenceSurface,
+  sound: SoundSurface,
+  arrange: ArrangeSurface,
+  live: PerformanceSurface,
+  mix: MixSurface,
+  archive: MasterExportSurface,
+};
+
 const MODE_PRELOADERS: Partial<Record<ModeId, () => Promise<unknown>>> = {
   create: loadCreateSurface,
   sequence: loadSequenceSurface,
@@ -102,6 +116,7 @@ export function App() {
     () => MODES.find((entry) => entry.id === modeId) ?? MODES[0],
     [modeId],
   );
+  const ActiveSurface = MODE_SURFACES[modeId];
 
   return (
     <div className="synth-app">
@@ -110,7 +125,6 @@ export function App() {
       </a>
       <AccessibilityBridge modeLabel={mode.label} />
       <TransportLifecycle mode={mode} />
-      <CreativePlaybackBridge mode={modeId} />
       <UtilityRail mode={mode} />
 
       <main
@@ -119,23 +133,7 @@ export function App() {
         tabIndex={-1}
       >
         <Suspense fallback={<WorkspaceLoading mode={mode} />}>
-          {modeId === "create" ? (
-            <CreateSurface />
-          ) : modeId === "sequence" ? (
-            <SequenceSurface />
-          ) : modeId === "sound" ? (
-            <SoundSurface />
-          ) : modeId === "arrange" ? (
-            <ArrangeSurface />
-          ) : modeId === "live" ? (
-            <PerformanceSurface />
-          ) : modeId === "mix" ? (
-            <MixSurface />
-          ) : modeId === "archive" ? (
-            <MasterExportSurface />
-          ) : (
-            <ModePlaceholder mode={mode} />
-          )}
+          <ActiveSurface />
         </Suspense>
       </main>
 
@@ -144,21 +142,10 @@ export function App() {
         onChange={(next) => {
           if (next === modeId) return;
 
-          if (
-            modeId === "arrange" ||
-            modeId === "live" ||
-            modeId === "mix" ||
-            modeId === "archive"
-          ) {
-            arrangementPlaybackStore.stop();
-          } else if (
-            next === "arrange" ||
-            next === "mix" ||
-            next === "archive"
-          ) {
-            audioTransport.stop();
-          }
-
+          playbackCoordinator.prepareModeChange(
+            modeId,
+            next,
+          );
           setModeId(next);
         }}
       />
@@ -250,7 +237,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system" aria-hidden="true">
         <span className="status-lamp" />
-        <span>PHASE 36</span>
+        <span>PHASE 37</span>
       </div>
     </nav>
   );

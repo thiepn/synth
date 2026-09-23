@@ -2,6 +2,7 @@ import { audioTransport } from "../audio/AudioTransport";
 import { drumSoundStore } from "../audio/drumSoundModel";
 import { sampleAssetStore } from "../audio/SampleAssetStore";
 import type { Pattern, SampleSoundSpec, StepEvent } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
 import {
   DRUM_PADS,
@@ -137,42 +138,6 @@ function slicesFromRanges(
     startSeconds: range.startSeconds,
     endSeconds: range.endSeconds,
   }));
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
 }
 
 export class SampleLabStore {

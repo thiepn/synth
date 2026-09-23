@@ -11,6 +11,7 @@ import type {
   SynthSoundSpec,
   HybridSoundSpec,
 } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
 import { masteringStore } from "../master/MasteringStore";
 import { mixerStore } from "../mix/MixerStore";
 import {
@@ -26,42 +27,6 @@ import type {
   RenderSnapshot,
   RenderSnapshotRequest,
 } from "./renderTypes";
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((region) => ({ ...region })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function cloneSampleSpec(spec: SampleSoundSpec): SampleSoundSpec {
   return { ...spec };

@@ -1,9 +1,9 @@
 import type {
   ArrangementBlueprint,
-  GenerationProvenance,
-  Scene,
-  SectionBlueprint,
 } from "../domain/contracts";
+import {
+  cloneArrangementBlueprint,
+} from "../domain/arrangementClone";
 import type {
   SceneSectionGenerationResult,
 } from "../generation/sceneSectionGenerator";
@@ -18,44 +18,6 @@ export interface ArrangementFoundationSnapshot {
 }
 
 type Listener = () => void;
-
-function cloneProvenance(
-  provenance: GenerationProvenance | undefined,
-): GenerationProvenance | undefined {
-  if (!provenance) return undefined;
-
-  return {
-    ...provenance,
-    style: { ...provenance.style },
-    intent: { ...provenance.intent },
-  };
-}
-
-function cloneScene(scene: Scene): Scene {
-  return {
-    ...scene,
-    patternIds: [...scene.patternIds],
-    provenance: cloneProvenance(scene.provenance),
-  };
-}
-
-function cloneSection(section: SectionBlueprint): SectionBlueprint {
-  return {
-    ...section,
-    patternSequence: [...section.patternSequence],
-  };
-}
-
-function cloneBlueprint(
-  blueprint: ArrangementBlueprint,
-): ArrangementBlueprint {
-  return {
-    ...blueprint,
-    scenes: blueprint.scenes.map(cloneScene),
-    sections: blueprint.sections.map(cloneSection),
-    provenance: cloneProvenance(blueprint.provenance),
-  };
-}
 
 export class ArrangementFoundationStore {
   private listeners = new Set<Listener>();
@@ -78,7 +40,7 @@ export class ArrangementFoundationStore {
     state: Omit<ArrangementFoundationSnapshot, "revision">,
   ): void {
     this.blueprint = state.blueprint
-      ? cloneBlueprint(state.blueprint)
+      ? cloneArrangementBlueprint(state.blueprint)
       : undefined;
     this.selectedSectionId =
       state.selectedSectionId &&
@@ -94,7 +56,7 @@ export class ArrangementFoundationStore {
   }
 
   apply(result: SceneSectionGenerationResult): void {
-    this.blueprint = cloneBlueprint(result.blueprint);
+    this.blueprint = cloneArrangementBlueprint(result.blueprint);
     this.selectedSectionId = result.blueprint.sections[0]?.id;
     this.coherenceScore = result.coherenceScore;
     this.displaySeed = result.displaySeed;
@@ -130,7 +92,7 @@ export class ArrangementFoundationStore {
   private buildSnapshot(): ArrangementFoundationSnapshot {
     return {
       blueprint: this.blueprint
-        ? cloneBlueprint(this.blueprint)
+        ? cloneArrangementBlueprint(this.blueprint)
         : undefined,
       selectedSectionId: this.selectedSectionId,
       coherenceScore: this.coherenceScore,

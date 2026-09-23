@@ -1,15 +1,13 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
+import { eventTargetConsumesKeyboard } from "../input/domInputGuards";
 import {
   audioTransport,
   type TransportSnapshot,
 } from "./AudioTransport";
 
 export function useTransportSnapshot(): TransportSnapshot {
-  return useSyncExternalStore(
-    audioTransport.subscribe,
-    audioTransport.getSnapshot,
-    audioTransport.getSnapshot,
-  );
+  return useStoreSnapshot(audioTransport);
 }
 
 export function useTransportLifecycle(
@@ -25,12 +23,7 @@ export function useTransportLifecycle(
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Space" || event.repeat) return;
 
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.matches("input, textarea, select, button, [role='slider']"))
-      ) {
+      if (eventTargetConsumesKeyboard(event.target)) {
         return;
       }
 

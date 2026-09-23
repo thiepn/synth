@@ -1,9 +1,10 @@
 import type {
   HistoryOperation,
   Pattern,
-  PatternLane,
-  StepEvent,
 } from "../domain/contracts";
+import {
+  clonePattern,
+} from "../domain/patternClone";
 import { createFoundationPattern } from "../music/foundationPattern";
 import { deriveRhythmGlyph } from "../visual/rhythmGlyph";
 
@@ -35,50 +36,6 @@ export interface PreparedHistoryCommit {
 type StoreListener = () => void;
 
 const HISTORY_NODE_LIMIT = 512;
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function creativeSignature(pattern: Pattern): string {
   return JSON.stringify({

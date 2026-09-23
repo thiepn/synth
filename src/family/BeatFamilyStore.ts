@@ -2,9 +2,13 @@ import type {
   BeatFamily,
   BeatFamilyRole,
   Pattern,
-  PatternLane,
-  StepEvent,
 } from "../domain/contracts";
+import {
+  clonePattern,
+} from "../domain/patternClone";
+import {
+  cloneBeatFamily,
+} from "../domain/familyClone";
 import type {
   BeatFamilyGenerationResult,
   BeatFamilyPattern,
@@ -20,46 +24,6 @@ export interface BeatFamilySnapshot {
 }
 
 type Listener = () => void;
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags ? [...event.generatorTags] : undefined,
-    grooveBase: event.grooveBase ? { ...event.grooveBase } : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function cloneEntry(entry: BeatFamilyPattern): BeatFamilyPattern {
   return {
@@ -94,17 +58,7 @@ export class BeatFamilyStore {
     state: Omit<BeatFamilySnapshot, "revision">,
   ): void {
     this.family = state.family
-      ? {
-          ...state.family,
-          members: state.family.members.map((member) => ({ ...member })),
-          provenance: state.family.provenance
-            ? {
-                ...state.family.provenance,
-                style: { ...state.family.provenance.style },
-                intent: { ...state.family.provenance.intent },
-              }
-            : undefined,
-        }
+      ? cloneBeatFamily(state.family)
       : undefined;
     this.patterns = state.patterns.map(cloneEntry);
     this.selectedRole =
@@ -118,17 +72,7 @@ export class BeatFamilyStore {
   }
 
   apply(result: BeatFamilyGenerationResult): void {
-    this.family = {
-      ...result.family,
-      members: result.family.members.map((member) => ({ ...member })),
-      provenance: result.family.provenance
-        ? {
-            ...result.family.provenance,
-            style: { ...result.family.provenance.style },
-            intent: { ...result.family.provenance.intent },
-          }
-        : undefined,
-    };
+    this.family = cloneBeatFamily(result.family);
     this.patterns = result.patterns.map(cloneEntry);
     this.selectedRole = "core";
     this.coherenceScore = result.coherenceScore;
@@ -166,17 +110,7 @@ export class BeatFamilyStore {
   private buildSnapshot(): BeatFamilySnapshot {
     return {
       family: this.family
-        ? {
-            ...this.family,
-            members: this.family.members.map((member) => ({ ...member })),
-            provenance: this.family.provenance
-              ? {
-                  ...this.family.provenance,
-                  style: { ...this.family.provenance.style },
-                  intent: { ...this.family.provenance.intent },
-                }
-              : undefined,
-          }
+        ? cloneBeatFamily(this.family)
         : undefined,
       patterns: this.patterns.map(cloneEntry),
       selectedRole: this.selectedRole,

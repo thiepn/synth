@@ -1,4 +1,10 @@
 import type { Pattern } from "../domain/contracts";
+import {
+  clonePattern,
+} from "../domain/patternClone";
+import {
+  cloneBeatFamily,
+} from "../domain/familyClone";
 import type {
   BeatGenerationIntent,
   BeatStyleId,
@@ -31,42 +37,6 @@ export interface EvolutionSnapshot {
   revision: number;
 }
 
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
-
 function cloneSegment(segment: EvolutionSegment): EvolutionSegment {
   return {
     ...segment,
@@ -86,17 +56,9 @@ function clonePlan(plan: EvolutionPlan | undefined): EvolutionPlan | undefined {
     ...plan,
     family: {
       ...plan.family,
-      family: {
-        ...plan.family.family,
-        members: plan.family.family.members.map((member) => ({ ...member })),
-        provenance: plan.family.family.provenance
-          ? {
-              ...plan.family.family.provenance,
-              style: { ...plan.family.family.provenance.style },
-              intent: { ...plan.family.family.provenance.intent },
-            }
-          : undefined,
-      },
+      family: cloneBeatFamily(
+        plan.family.family,
+      ),
       patterns: plan.family.patterns.map((entry) => ({
         ...entry,
         pattern: clonePattern(entry.pattern),

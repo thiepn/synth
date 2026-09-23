@@ -1,4 +1,5 @@
 import { PPQ, type Meter } from "../domain/contracts";
+import { errorMessage } from "../runtime/errors";
 import {
   DEFAULT_LOOP_BARS,
   clampBpm,
@@ -160,7 +161,7 @@ export class AudioTransport {
       this.publish();
       return context;
     } catch (error) {
-      this.lastError = this.errorMessage(error);
+      this.lastError = errorMessage(error);
       this.status = "error";
       this.publish();
       throw error;
@@ -209,7 +210,7 @@ export class AudioTransport {
     } catch (error) {
       this.desiredPlaying = false;
       this.status = "error";
-      this.lastError = this.errorMessage(error);
+      this.lastError = errorMessage(error);
       this.stopScheduler();
       this.stopFramePump();
       this.publish();
@@ -314,7 +315,7 @@ export class AudioTransport {
       try {
         await this.context.resume();
       } catch (error) {
-        this.lastError = this.errorMessage(error);
+        this.lastError = errorMessage(error);
         this.status = "suspended";
         this.publish();
       }
@@ -643,10 +644,6 @@ export class AudioTransport {
     };
   }
 
-  private errorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    return String(error);
-  }
 }
 
 export const audioTransport = new AudioTransport();

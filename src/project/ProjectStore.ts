@@ -1,4 +1,5 @@
 import { arrangementFoundationStore } from "../arrange/ArrangementFoundationStore";
+import { errorMessage } from "../runtime/errors";
 import { arrangementStore } from "../arrange/ArrangementStore";
 import { audioTransport } from "../audio/AudioTransport";
 import { drumEngine } from "../audio/DrumEngine";
@@ -222,7 +223,7 @@ export class ProjectStore {
       }
       this.saveStatus = "error";
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return false;
     }
@@ -265,7 +266,7 @@ export class ProjectStore {
       this.saveStatus = previousStatus;
       this.conflict = previousConflict;
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return undefined;
     }
@@ -313,7 +314,7 @@ export class ProjectStore {
       );
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.saveStatus =
         error instanceof ProjectRevisionConflictError
           ? "conflict"
@@ -381,7 +382,7 @@ export class ProjectStore {
       }
       this.saveStatus = "error";
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return false;
     }
@@ -431,7 +432,7 @@ export class ProjectStore {
       return newId;
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return undefined;
     }
@@ -454,7 +455,7 @@ export class ProjectStore {
       return true;
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return false;
     }
@@ -476,7 +477,7 @@ export class ProjectStore {
     } catch (error) {
       this.saveStatus = "error";
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return false;
     }
@@ -524,7 +525,7 @@ export class ProjectStore {
       };
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return undefined;
     }
@@ -563,7 +564,7 @@ export class ProjectStore {
       return newId;
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return undefined;
     }
@@ -579,7 +580,7 @@ export class ProjectStore {
       return persisted;
     } catch (error) {
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       return false;
     }
@@ -636,7 +637,7 @@ export class ProjectStore {
       this.installLifecycle();
       this.saveStatus = "error";
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
     }
   }
@@ -715,7 +716,7 @@ export class ProjectStore {
         this.saveStatus = "error";
       }
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
       throw error;
     }

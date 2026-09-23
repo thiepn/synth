@@ -1,4 +1,5 @@
 import type { AssetReference } from "../domain/contracts";
+import { errorMessage } from "../runtime/errors";
 
 export type SampleDecodeStatus =
   | "raw"
@@ -265,7 +266,7 @@ export class SampleAssetStore {
       .catch((error: unknown) => {
         state.decodeStatus = "error";
         state.lastError =
-          error instanceof Error ? error.message : String(error);
+          errorMessage(error);
         this.publish();
         throw error;
       })

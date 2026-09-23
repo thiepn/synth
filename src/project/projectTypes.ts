@@ -1,6 +1,7 @@
-import type {
-  Meter,
-  Pattern,
+import {
+  PROJECT_SCHEMA_VERSION,
+  type Meter,
+  type Pattern,
 } from "../domain/contracts";
 import type {
   ArrangementFoundationSnapshot,
@@ -39,7 +40,8 @@ import type {
   ModulationSource,
 } from "../modulation/modulationEngine";
 
-export const SYNTH_PROJECT_DOCUMENT_VERSION = 1 as const;
+export const SYNTH_PROJECT_DOCUMENT_VERSION =
+  PROJECT_SCHEMA_VERSION;
 
 export interface ProjectTransportState {
   bpm: number;

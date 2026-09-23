@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   freezeStore,
   type FreezeSnapshot,
 } from "./FreezeStore";
 
 export function useFreezeSnapshot(): FreezeSnapshot {
-  return useSyncExternalStore(
-    freezeStore.subscribe,
-    freezeStore.getSnapshot,
-    freezeStore.getSnapshot,
-  );
+  return useStoreSnapshot(freezeStore);
 }

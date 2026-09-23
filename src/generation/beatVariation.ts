@@ -5,7 +5,12 @@ import {
   type StepEvent,
   type StyleVector,
 } from "../domain/contracts";
-import { FOUNDATION_STEP_TICKS } from "../music/foundationPattern";
+
+import {
+  clonePattern,
+  clonePatternLane,
+  cloneStepEvent,
+} from "../domain/patternClone";import { FOUNDATION_STEP_TICKS } from "../music/foundationPattern";
 import {
   BEAT_GENERATOR_VERSION,
   generateBeat,
@@ -58,50 +63,6 @@ function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
-
 function styleVector(style: BeatStyleId): StyleVector {
   return { [style]: 1 };
 }
@@ -149,12 +110,12 @@ function mergeLane(
   seedCode: string,
 ): PatternLane {
   if (distance <= 0.001) {
-    return cloneLane(source);
+    return clonePatternLane(source);
   }
 
   if (distance >= 0.999) {
     return {
-      ...cloneLane(candidate),
+      ...clonePatternLane(candidate),
       muted: source.muted,
       solo: source.solo,
       lock: { ...source.lock },
@@ -194,7 +155,7 @@ function mergeLane(
       );
 
       mergedEvents.push({
-        ...cloneEvent(sourceEvent),
+        ...cloneStepEvent(sourceEvent),
         id: sourceEvent.id,
         velocity,
         timingOffsetUs,
@@ -218,14 +179,14 @@ function mergeLane(
 
     if (sourceEvent && !candidateEvent) {
       if (!random.chance(structuralChance)) {
-        mergedEvents.push(cloneEvent(sourceEvent));
+        mergedEvents.push(cloneStepEvent(sourceEvent));
       }
       continue;
     }
 
     if (!sourceEvent && candidateEvent && random.chance(structuralChance)) {
       mergedEvents.push({
-        ...cloneEvent(candidateEvent),
+        ...cloneStepEvent(candidateEvent),
         id:
           "evt-var-" +
           seedCode +
@@ -243,7 +204,7 @@ function mergeLane(
   }
 
   return {
-    ...cloneLane(source),
+    ...clonePatternLane(source),
     events: mergedEvents.sort((a, b) => a.tick - b.tick),
   };
 }
@@ -364,7 +325,7 @@ function forceOneChangeIfPossible(
 
       if (candidateEvent) {
         resultLane.events.push({
-          ...cloneEvent(candidateEvent),
+          ...cloneStepEvent(candidateEvent),
           id:
             sourceEvent?.id ??
             "evt-var-" +
@@ -466,13 +427,13 @@ export function rerollBeat(
       const candidateLane = candidateResult.pattern.lanes.find(
         (lane) => lane.id === sourceLane.id,
       );
-      if (!candidateLane) return cloneLane(sourceLane);
+      if (!candidateLane) return clonePatternLane(sourceLane);
 
       const targeted =
         !targetLaneIds || targetLaneIds.has(sourceLane.id);
 
       if (!targeted || sourceLane.lock.rhythm) {
-        return cloneLane(sourceLane);
+        return clonePatternLane(sourceLane);
       }
 
       return mergeLane(

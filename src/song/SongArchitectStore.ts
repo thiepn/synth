@@ -1,4 +1,13 @@
 import type { ArrangementShapeId, Pattern } from "../domain/contracts";
+import {
+  clonePattern,
+} from "../domain/patternClone";
+import {
+  cloneArrangementBlueprint,
+} from "../domain/arrangementClone";
+import {
+  cloneBeatFamily,
+} from "../domain/familyClone";
 import type { BeatFamilyGenerationResult } from "../generation/beatFamilyGenerator";
 import type { EvolutionPlan } from "../generation/evolutionEngine";
 import {
@@ -35,19 +44,9 @@ function cloneCandidate(
     ...candidate,
     family: {
       ...candidate.family,
-      family: {
-        ...candidate.family.family,
-        members: candidate.family.family.members.map((member) => ({
-          ...member,
-        })),
-        provenance: candidate.family.family.provenance
-          ? {
-              ...candidate.family.family.provenance,
-              style: { ...candidate.family.family.provenance.style },
-              intent: { ...candidate.family.family.provenance.intent },
-            }
-          : undefined,
-      },
+      family: cloneBeatFamily(
+        candidate.family.family,
+      ),
       patterns: candidate.family.patterns.map((entry) => ({
         ...entry,
         pattern: clonePattern(entry.pattern),
@@ -61,73 +60,15 @@ function cloneCandidate(
     },
     result: {
       ...candidate.result,
-      blueprint: {
-        ...candidate.result.blueprint,
-        scenes: candidate.result.blueprint.scenes.map((scene) => ({
-          ...scene,
-          patternIds: [...scene.patternIds],
-          provenance: scene.provenance
-            ? {
-                ...scene.provenance,
-                style: { ...scene.provenance.style },
-                intent: { ...scene.provenance.intent },
-              }
-            : undefined,
-        })),
-        sections: candidate.result.blueprint.sections.map((section) => ({
-          ...section,
-          patternSequence: [...section.patternSequence],
-        })),
-        provenance: candidate.result.blueprint.provenance
-          ? {
-              ...candidate.result.blueprint.provenance,
-              style: { ...candidate.result.blueprint.provenance.style },
-              intent: { ...candidate.result.blueprint.provenance.intent },
-            }
-          : undefined,
-      },
+      blueprint: cloneArrangementBlueprint(
+        candidate.result.blueprint,
+      ),
       reasons: [...candidate.result.reasons],
     },
     occurrences: candidate.occurrences.map((occurrence) => ({
       ...occurrence,
     })),
     lockedSectionIndexes: [...candidate.lockedSectionIndexes],
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
   };
 }
 

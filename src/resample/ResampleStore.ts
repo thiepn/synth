@@ -1,4 +1,5 @@
 import { audioTransport } from "../audio/AudioTransport";
+import { errorMessage } from "../runtime/errors";
 import {
   drumSoundStore,
   type DrumVoiceSourceState,
@@ -9,6 +10,7 @@ import type {
   SampleSoundSpec,
   StepEvent,
 } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
 import { mixerStore } from "../mix/MixerStore";
 import {
   SEQUENCER_LANES,
@@ -98,42 +100,6 @@ type SourceMutationReason =
   | "Modulation or automation changed.";
 
 const ARTIFACT_LIMIT = 24;
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function cloneAnalysis(value: RenderAnalysis): RenderAnalysis {
   return { ...value };
@@ -592,7 +558,7 @@ export class ResampleStore {
     this.status = "error";
     this.phaseLabel = "RESAMPLE ERROR";
     this.lastError =
-      error instanceof Error ? error.message : String(error);
+      errorMessage(error);
     this.publish();
   }
 
