@@ -31,9 +31,10 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 20 — Style DNA & Genre Expansion:** complete
 - **Phase 21 — Beat Morph & Remix Engine:** complete
 - **Phase 22 — Chaos Engine & Controlled Randomness:** complete
-- **Next: Phase 23 — Performance Engine, Live Macros & Jam Capture**
+- **Phase 23 — Performance Engine, Live Macros & Jam Capture:** complete
+- **Next: Phase 24 — Modulation, Automation & Parameter Routing**
 
-Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
+Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
 ## Run locally
 
@@ -523,6 +524,25 @@ See [Phase 21 implementation notes](docs/phase-21/PHASE_21.md).
 - zero-intensity identity and bounded event validation
 
 See [Phase 22 implementation notes](docs/phase-22/PHASE_22.md).
+
+### Phase 23 — Performance Engine, Live Macros & Jam Capture
+
+- real LIVE performance mode replacing the placeholder
+- quantized ARRANGE section launching
+- transient Energy / Density / Filter / Space / Drive / Morph / Chaos macros
+- touch/pointer Chaos × Energy XY surface
+- Fill / Drop / Break / Build / Repeat / Stutter performance actions
+- temporary performance lane mutes
+- Morph → Chaos → Performance composition without Pattern mutation
+- transient processing in the existing DrumEngine path
+- arrangement-aware LIVE transport
+- bounded session Performance Take capture
+- recorded macros, actions, fills, mutes and section launches
+- keyboard and pointer-safe momentary control behavior
+- LIVE exit clears temporary performance state and active recording
+- no Sequencer Undo pollution from performance overlays
+
+See [Phase 23 implementation notes](docs/phase-23/PHASE_23.md).
 
 ## Phase 0 architecture
 
