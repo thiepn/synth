@@ -1,8 +1,10 @@
 import type { Pattern } from "../domain/contracts";
 import {
-  cloneGenerationProvenance,
   clonePattern,
 } from "../domain/patternClone";
+import {
+  cloneBeatFamily,
+} from "../domain/familyClone";
 import type {
   BeatGenerationIntent,
   BeatStyleId,
@@ -54,13 +56,9 @@ function clonePlan(plan: EvolutionPlan | undefined): EvolutionPlan | undefined {
     ...plan,
     family: {
       ...plan.family,
-      family: {
-        ...plan.family.family,
-        members: plan.family.family.members.map((member) => ({ ...member })),
-        provenance: cloneGenerationProvenance(
-          plan.family.family.provenance,
-        ),
-      },
+      family: cloneBeatFamily(
+        plan.family.family,
+      ),
       patterns: plan.family.patterns.map((entry) => ({
         ...entry,
         pattern: clonePattern(entry.pattern),
