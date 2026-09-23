@@ -51,6 +51,7 @@ import { songArchitectStore } from "../song/SongArchitectStore";
 import { mixerStore } from "../mix/MixerStore";
 import { dbToMixerGain } from "../mix/mixerModel";
 import { masteringStore } from "../master/MasteringStore";
+import { freezeStore } from "../resample/FreezeStore";
 
 export interface DrumMacros {
   punch: number;
@@ -112,6 +113,12 @@ interface MasterGraph {
   limiter: DynamicsCompressorNode;
   masterMeter: AnalyserNode;
   masterMeterBuffer: Float32Array<ArrayBuffer>;
+}
+
+interface ActiveFreezeClip {
+  source: AudioBufferSourceNode;
+  endTime: number;
+  epoch: number;
 }
 
 interface ActiveVoice {
@@ -188,6 +195,7 @@ export class DrumEngine {
   private graph: MasterGraph | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   private activeVoices: ActiveVoice[] = [];
+  private activeFreezeClips: ActiveFreezeClip[] = [];
   private auditionVoiceIds = new Set<number>();
   private sequencerEditTimer: number | null = null;
   private soundEditTimer: number | null = null;
@@ -294,6 +302,10 @@ export class DrumEngine {
 
     masteringStore.subscribe(() => {
       this.applyGraphMacros();
+    });
+
+    freezeStore.subscribe(() => {
+      audioTransport.invalidateScheduledEvents();
     });
   }
 
@@ -461,16 +473,22 @@ export class DrumEngine {
   }
 
   setMaster(value: number): void {
-    this.master = clamp01(value);
+    const next = clamp01(value);
+    if (Math.abs(this.master - next) < 0.0001) return;
+    this.master = next;
+    freezeStore.invalidate("Engine master changed.");
     this.applyGraphMacros();
     this.publish();
   }
 
   setMacro(name: keyof DrumMacros, value: number): void {
+    const next = clamp01(value);
+    if (Math.abs(this.macros[name] - next) < 0.0001) return;
     this.macros = {
       ...this.macros,
-      [name]: clamp01(value),
+      [name]: next,
     };
+    freezeStore.invalidate("Engine macro changed.");
     this.applyGraphMacros();
     this.publish();
   }
@@ -503,6 +521,43 @@ export class DrumEngine {
         !arrangementPlayback.engaged && !songResolved
           ? evolutionStore.resolveAtTick(pulse.absoluteTick)
           : null;
+
+      const freeze = freezeStore.getSnapshot().active;
+      const performanceActive = performanceStore.getSnapshot().active;
+      if (
+        freeze &&
+        !arrangementPlayback.engaged &&
+        !songResolved &&
+        !evolutionResolved &&
+        !performanceActive
+      ) {
+        const pattern = sequencerStore.getSnapshot().pattern;
+        const meterMatches =
+          freeze.meter.numerator === transport.meter.numerator &&
+          freeze.meter.denominator === transport.meter.denominator;
+        const valid =
+          freeze.patternId === pattern.id &&
+          freeze.lengthTicks === pattern.lengthTicks &&
+          Math.abs(freeze.bpm - transport.bpm) < 0.0001 &&
+          meterMatches;
+
+        if (!valid) {
+          freezeStore.invalidate(
+            "Pattern, tempo, or meter changed after Freeze.",
+          );
+        } else {
+          if (
+            freeze.lengthTicks > 0 &&
+            pulse.absoluteTick % freeze.lengthTicks === 0
+          ) {
+            this.scheduleFrozenPattern(
+              pulse.audioTime,
+              pulse.epoch,
+            );
+          }
+          return;
+        }
+      }
 
       let stepIndex: number;
       let hits: PatternPlaybackHit[];
@@ -725,6 +780,7 @@ export class DrumEngine {
         snapshot.schedulerEpoch,
         context.currentTime,
       );
+      this.cancelFreezeClips(context.currentTime);
       this.currentTransportEpoch = snapshot.schedulerEpoch;
     }
 
@@ -732,8 +788,57 @@ export class DrumEngine {
       this.cancelAuditionVoices(context.currentTime);
     } else {
       this.cancelTransportVoices(context.currentTime, true);
+      this.cancelFreezeClips(context.currentTime);
       this.repeatSourceHits = [];
     }
+  }
+
+  private scheduleFrozenPattern(
+    audioTime: number,
+    epoch: number,
+  ): void {
+    const graph = this.graph;
+    const buffer = freezeStore.getBuffer();
+    if (!graph || !buffer) return;
+
+    const now = graph.context.currentTime;
+    this.pruneFreezeClips(now);
+
+    const at = Math.max(audioTime, now + 0.001);
+    const source = graph.context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(graph.masterInputTrim);
+    source.start(at);
+    source.stop(at + buffer.duration + 0.02);
+
+    const clip: ActiveFreezeClip = {
+      source,
+      endTime: at + buffer.duration + 0.02,
+      epoch,
+    };
+    source.onended = () => {
+      this.activeFreezeClips = this.activeFreezeClips.filter(
+        (entry) => entry !== clip,
+      );
+    };
+    this.activeFreezeClips.push(clip);
+  }
+
+  private pruneFreezeClips(now: number): void {
+    this.activeFreezeClips = this.activeFreezeClips.filter(
+      (clip) => clip.endTime > now - 0.02,
+    );
+  }
+
+  private cancelFreezeClips(now: number): void {
+    for (const clip of this.activeFreezeClips) {
+      try {
+        clip.source.stop(now + 0.006);
+      } catch {
+        // Source may already have ended.
+      }
+    }
+    this.activeFreezeClips = [];
   }
 
   private ensureGraph(context: AudioContext): MasterGraph {
@@ -1466,7 +1571,11 @@ export class DrumEngine {
 
     source.connect(sampleGain);
     sampleGain.connect(kill);
-    kill.connect(this.channelInput(voice));
+    kill.connect(
+      spec.renderedClip
+        ? graph.masterInputTrim
+        : this.channelInput(voice),
+    );
 
     source.start(at, start, sourceDuration);
     source.stop(stopAt + 0.012);

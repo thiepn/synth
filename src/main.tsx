@@ -22,6 +22,7 @@ import "./evolve.css";
 import "./mix.css";
 import "./master-export.css";
 import "./sample-lab.css";
+import "./resample.css";
 import "./song.css";
 
 const root = document.getElementById("root");

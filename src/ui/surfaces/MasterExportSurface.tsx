@@ -30,6 +30,7 @@ import {
   MachineButton,
   SignalRail,
 } from "../pulse/Primitives";
+import { ResamplePanel } from "../resample/ResamplePanel";
 import {
   TransportPulseSpine,
   TransportStatusLabel,
@@ -827,6 +828,8 @@ export function MasterExportSurface() {
           </div>
         ) : null}
       </section>
+
+      <ResamplePanel />
 
       <p className="master-export-status" aria-live="polite">
         {busy ? renderTask.phaseLabel : status}

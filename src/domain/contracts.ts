@@ -230,6 +230,11 @@ export interface SampleSoundSpec {
   /** Non-destructive fade durations in audible/output seconds. */
   fadeInSeconds?: number;
   fadeOutSeconds?: number;
+  /**
+   * Pre-mixed internal clip. Playback bypasses per-voice mixer/engine stages
+   * and enters at the pre-master boundary.
+   */
+  renderedClip?: boolean;
   reversed: boolean;
 }
 
