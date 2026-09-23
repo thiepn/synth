@@ -4,6 +4,7 @@ import type {
   Pattern,
 } from "../domain/contracts";
 import {
+  cloneGenerationProvenance,
   clonePattern,
 } from "../domain/patternClone";
 import type {
@@ -58,13 +59,9 @@ export class BeatFamilyStore {
       ? {
           ...state.family,
           members: state.family.members.map((member) => ({ ...member })),
-          provenance: state.family.provenance
-            ? {
-                ...state.family.provenance,
-                style: { ...state.family.provenance.style },
-                intent: { ...state.family.provenance.intent },
-              }
-            : undefined,
+          provenance: cloneGenerationProvenance(
+            state.family.provenance,
+          ),
         }
       : undefined;
     this.patterns = state.patterns.map(cloneEntry);
@@ -82,13 +79,9 @@ export class BeatFamilyStore {
     this.family = {
       ...result.family,
       members: result.family.members.map((member) => ({ ...member })),
-      provenance: result.family.provenance
-        ? {
-            ...result.family.provenance,
-            style: { ...result.family.provenance.style },
-            intent: { ...result.family.provenance.intent },
-          }
-        : undefined,
+      provenance: cloneGenerationProvenance(
+        result.family.provenance,
+      ),
     };
     this.patterns = result.patterns.map(cloneEntry);
     this.selectedRole = "core";
@@ -130,13 +123,9 @@ export class BeatFamilyStore {
         ? {
             ...this.family,
             members: this.family.members.map((member) => ({ ...member })),
-            provenance: this.family.provenance
-              ? {
-                  ...this.family.provenance,
-                  style: { ...this.family.provenance.style },
-                  intent: { ...this.family.provenance.intent },
-                }
-              : undefined,
+            provenance: cloneGenerationProvenance(
+              this.family.provenance,
+            ),
           }
         : undefined,
       patterns: this.patterns.map(cloneEntry),
