@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   generationHistoryStore,
   type GenerationHistorySnapshot,
 } from "./GenerationHistoryStore";
 
 export function useGenerationHistorySnapshot(): GenerationHistorySnapshot {
-  return useSyncExternalStore(
-    generationHistoryStore.subscribe,
-    generationHistoryStore.getSnapshot,
-    generationHistoryStore.getSnapshot,
-  );
+  return useStoreSnapshot(generationHistoryStore);
 }
