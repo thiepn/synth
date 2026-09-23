@@ -12,7 +12,10 @@ import { PPQ, type Meter } from "../../domain/contracts";
 import {
   arrangementPlaybackStore,
 } from "../../arrange/ArrangementPlaybackStore";
-import { useArrangementPlaybackSnapshot } from "../../arrange/useArrangement";
+import {
+  useArrangementPlaybackSnapshot,
+  useArrangementSnapshot,
+} from "../../arrange/useArrangement";
 import type { ModeDefinition } from "../pulse/Primitives";
 import { PulseSpine } from "../pulse/Primitives";
 
@@ -53,8 +56,10 @@ export function TransportLifecycle({
   mode: ModeDefinition;
 }): null {
   const arrangementPlayback = useArrangementPlaybackSnapshot();
+  const arrangement = useArrangementSnapshot();
   const arrangementTransport =
     mode.id === "arrange" ||
+    (mode.id === "mix" && Boolean(arrangement.blueprint)) ||
     (mode.id === "live" && arrangementPlayback.engaged);
 
   useTransportLifecycle(
@@ -68,9 +73,13 @@ export function TransportLifecycle({
 export function TransportControls({ mode }: { mode: ModeDefinition }) {
   const snapshot = useTransportSnapshot();
   const arrangementPlayback = useArrangementPlaybackSnapshot();
+  const arrangement = useArrangementSnapshot();
   const arrangeMode = mode.id === "arrange";
+  const mixArrangementMode =
+    mode.id === "mix" && Boolean(arrangement.blueprint);
   const arrangementTransport =
     arrangeMode ||
+    mixArrangementMode ||
     (mode.id === "live" && arrangementPlayback.engaged);
   const transportPlaying = arrangementTransport
     ? arrangementPlayback.engaged && snapshot.status === "running"
@@ -156,16 +165,16 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
       <button
         type="button"
         className="transport-console__loop"
-        onClick={arrangeMode ? undefined : cycleLoopBars}
-        disabled={arrangeMode}
+        onClick={arrangementTransport ? undefined : cycleLoopBars}
+        disabled={arrangementTransport}
         aria-label={
-          arrangeMode
+          arrangementTransport
             ? "Arrangement playback does not use transport loop bars."
             : `Loop length ${snapshot.loopBars} bars. Activate to cycle loop length.`
         }
       >
-        <span>{arrangeMode ? "ARR" : "LOOP"}</span>
-        <b>{arrangeMode ? "FULL" : snapshot.loopBars + "B"}</b>
+        <span>{arrangementTransport ? "ARR" : "LOOP"}</span>
+        <b>{arrangementTransport ? "FULL" : snapshot.loopBars + "B"}</b>
       </button>
 
       <output
@@ -174,7 +183,7 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
       >
         <span>BAR:BEAT:TICK</span>
         <b>
-          {arrangeMode && arrangementPlayback.engaged
+          {arrangementTransport && arrangementPlayback.engaged
             ? "A:" +
               String(
                 Math.floor(arrangementPlayback.playheadTick / PPQ) + 1,
