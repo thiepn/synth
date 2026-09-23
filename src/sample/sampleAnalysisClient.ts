@@ -16,11 +16,13 @@ interface PendingRequest {
 }
 
 const WORKER_THRESHOLD_SECONDS = 4;
+const WORKER_IDLE_MS = 30_000;
 
 class SampleAnalysisWorkerClient {
   private worker: Worker | undefined;
   private serial = 1;
   private pending = new Map<number, PendingRequest>();
+  private idleTimer: number | undefined;
   private disabled = false;
 
   async analyze(
@@ -39,6 +41,7 @@ class SampleAnalysisWorkerClient {
     }
 
     try {
+      this.clearIdleTimer();
       const worker = this.ensureWorker();
       const id = this.serial++;
       const channels: ArrayBuffer[] = [];
@@ -81,6 +84,7 @@ class SampleAnalysisWorkerClient {
   }
 
   dispose(): void {
+    this.clearIdleTimer();
     this.worker?.terminate();
     this.worker = undefined;
     for (const pending of this.pending.values()) {
@@ -89,6 +93,22 @@ class SampleAnalysisWorkerClient {
       );
     }
     this.pending.clear();
+  }
+
+  private scheduleIdleShutdown(): void {
+    this.clearIdleTimer();
+    this.idleTimer = globalThis.setTimeout(() => {
+      this.idleTimer = undefined;
+      if (this.pending.size > 0) return;
+      this.worker?.terminate();
+      this.worker = undefined;
+    }, WORKER_IDLE_MS);
+  }
+
+  private clearIdleTimer(): void {
+    if (this.idleTimer === undefined) return;
+    globalThis.clearTimeout(this.idleTimer);
+    this.idleTimer = undefined;
   }
 
   private ensureWorker(): Worker {
@@ -119,6 +139,10 @@ class SampleAnalysisWorkerClient {
               "Sample analysis worker failed.",
           ),
         );
+      }
+
+      if (this.pending.size === 0) {
+        this.scheduleIdleShutdown();
       }
     };
 
