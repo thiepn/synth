@@ -13,7 +13,9 @@
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "postbuild": "npm run check:bundle",
     "check:performance": "node scripts/check-performance-contracts.mjs",
-    "check:architecture": "node scripts/check-architecture-contracts.mjs"
+    "check:architecture": "node scripts/check-architecture-contracts.mjs",
+    "qa:e2e": "playwright test",
+    "qa:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "react": "19.3.0",
@@ -24,6 +26,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "typescript": "7.0.2",
-    "vite": "8.3.0"
+    "vite": "8.3.0",
+    "@playwright/test": "1.63.0"
   }
 }
