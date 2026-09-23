@@ -152,7 +152,7 @@ export function clonePatternForChaos(pattern: Pattern): Pattern {
 export function createDefaultChaosConfig(seed = "CHAOS-0001"): ChaosConfig {
   return {
     seed,
-    intensity: 0.34,
+    intensity: 0,
     domains: {
       rhythm: { ...DEFAULT_DOMAIN },
       dynamics: { ...DEFAULT_DOMAIN },
