@@ -1,5 +1,6 @@
 import {
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useMemo,
@@ -80,6 +81,9 @@ export function SequenceSurface() {
   const [laneActionStatus, setLaneActionStatus] = useState("READY");
   const strokeCounterRef = useRef(0);
   const laneActionCounterRef = useRef(0);
+  const stepButtonRefs = useRef(
+    new Map<string, HTMLButtonElement>(),
+  );
   const paintGestureRef = useRef<{
     id: string;
     brush: PatternBrushId;
@@ -302,6 +306,92 @@ export function SequenceSurface() {
     );
   };
 
+  const applyKeyboardBrush = (
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    if (!activeBrush) return;
+
+    strokeCounterRef.current += 1;
+    const id = "key-stroke-" + strokeCounterRef.current;
+    const seed = [
+      sequencer.pattern.id,
+      sequencer.revision,
+      activeBrush,
+      laneId,
+      stepIndex,
+      "keyboard",
+    ].join(":");
+
+    setSelection({ laneId, stepIndex });
+    sequencerStore.beginPaintGesture(id);
+    try {
+      sequencerStore.paintBrushStep(
+        id,
+        activeBrush,
+        laneId,
+        stepIndex,
+        brushDensity / 100,
+        seed,
+      );
+    } finally {
+      sequencerStore.endPaintGesture(id);
+    }
+  };
+
+  const focusMatrixStep = (
+    laneIndex: number,
+    stepIndex: number,
+  ) => {
+    const boundedLane = Math.max(
+      0,
+      Math.min(SEQUENCER_LANES.length - 1, laneIndex),
+    );
+    const boundedStep = Math.max(
+      0,
+      Math.min(sequencer.lengthSteps - 1, stepIndex),
+    );
+    const definition = SEQUENCER_LANES[boundedLane];
+    if (!definition) return;
+
+    setSelection({
+      laneId: definition.id,
+      stepIndex: boundedStep,
+    });
+
+    window.requestAnimationFrame(() => {
+      stepButtonRefs.current
+        .get(definition.id + ":" + boundedStep)
+        ?.focus();
+    });
+  };
+
+  const handleMatrixKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    laneIndex: number,
+    stepIndex: number,
+  ) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusMatrixStep(laneIndex, stepIndex - 1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      focusMatrixStep(laneIndex, stepIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusMatrixStep(laneIndex - 1, stepIndex);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusMatrixStep(laneIndex + 1, stepIndex);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      focusMatrixStep(laneIndex, 0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      focusMatrixStep(laneIndex, sequencer.lengthSteps - 1);
+    }
+  };
+
   const runLaneAction = (action: LaneActionId) => {
     const lane = sequencer.pattern.lanes.find(
       (entry) => entry.id === selection.laneId,
@@ -515,6 +605,11 @@ export function SequenceSurface() {
             ? "rhythm-matrix-shell is-paint-mode"
             : "rhythm-matrix-shell"
         }
+        role="region"
+        aria-label={
+          "Rhythm matrix. Tab enters the selected step. " +
+          "Use arrow keys to move between steps, Home and End to move within a lane."
+        }
       >
         <div
           className="rhythm-matrix"
@@ -542,7 +637,7 @@ export function SequenceSurface() {
             ))}
           </div>
 
-          {SEQUENCER_LANES.map((definition) => {
+          {SEQUENCER_LANES.map((definition, laneIndex) => {
             const lane = sequencer.pattern.lanes.find(
               (entry) => entry.id === definition.id,
             );
@@ -675,8 +770,24 @@ export function SequenceSurface() {
 
                     return (
                       <button
+                        ref={(node) => {
+                          const key = definition.id + ":" + index;
+                          if (node) {
+                            stepButtonRefs.current.set(key, node);
+                          } else {
+                            stepButtonRefs.current.delete(key);
+                          }
+                        }}
                         type="button"
                         key={index}
+                        tabIndex={isSelected ? 0 : -1}
+                        onKeyDown={(event) =>
+                          handleMatrixKeyDown(
+                            event,
+                            laneIndex,
+                            index,
+                          )
+                        }
                         className={[
                           "sequence-step",
                           isOn ? "is-on" : "",
@@ -704,6 +815,12 @@ export function SequenceSurface() {
                         onClick={(event) => {
                           if (activeBrush) {
                             event.preventDefault();
+                            if (event.detail === 0) {
+                              applyKeyboardBrush(
+                                definition.id,
+                                index,
+                              );
+                            }
                             return;
                           }
 
