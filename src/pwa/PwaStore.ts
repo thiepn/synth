@@ -35,6 +35,10 @@ function isInstalled(): boolean {
 }
 
 function canUseServiceWorker(): boolean {
+  if (!import.meta.env.PROD) {
+    return false;
+  }
+
   if (
     typeof navigator === "undefined" ||
     !("serviceWorker" in navigator)
