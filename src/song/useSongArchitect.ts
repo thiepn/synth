@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   songArchitectStore,
   type SongArchitectSnapshot,
 } from "./SongArchitectStore";
 
 export function useSongArchitectSnapshot(): SongArchitectSnapshot {
-  return useSyncExternalStore(
-    songArchitectStore.subscribe,
-    songArchitectStore.getSnapshot,
-    songArchitectStore.getSnapshot,
-  );
+  return useStoreSnapshot(songArchitectStore);
 }
