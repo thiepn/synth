@@ -18,6 +18,7 @@ import "./beat-morph.css";
 import "./chaos.css";
 import "./performance.css";
 import "./modulation.css";
+import "./evolve.css";
 
 const root = document.getElementById("root");
 
