@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   evolutionStore,
   type EvolutionSnapshot,
 } from "./EvolutionStore";
 
 export function useEvolutionSnapshot(): EvolutionSnapshot {
-  return useSyncExternalStore(
-    evolutionStore.subscribe,
-    evolutionStore.getSnapshot,
-    evolutionStore.getSnapshot,
-  );
+  return useStoreSnapshot(evolutionStore);
 }
