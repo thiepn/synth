@@ -66,6 +66,7 @@ export function ProjectControl() {
   const [deleteVersionId, setDeleteVersionId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -92,6 +93,9 @@ export function ProjectControl() {
       if (event.key !== "Escape") return;
       event.preventDefault();
       setOpen(false);
+      window.requestAnimationFrame(() => {
+        triggerRef.current?.focus();
+      });
     };
 
     document.addEventListener("pointerdown", close);
@@ -172,6 +176,7 @@ export function ProjectControl() {
       }
     >
       <button
+        ref={triggerRef}
         type="button"
         className="project-readout project-readout--interactive"
         onClick={() => setOpen((value) => !value)}
