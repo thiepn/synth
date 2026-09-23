@@ -3,6 +3,7 @@ import {
 } from "../domain/patternClone";
 import {
   cloneArrangementBlueprint,
+  cloneSectionBlueprint,
 } from "../domain/arrangementClone";
 import type {
   ArrangementBlueprint,
@@ -255,7 +256,7 @@ export class ArrangementStore {
     this.captureUndo();
     this.duplicateCounter += 1;
     const clone: SectionBlueprint = {
-      ...cloneSection(source),
+      ...cloneSectionBlueprint(source),
       id:
         source.id +
         "-copy-" +
