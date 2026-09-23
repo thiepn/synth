@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   drumSoundStore,
   type DrumSoundSnapshot,
 } from "./drumSoundModel";
 
 export function useDrumSoundSnapshot(): DrumSoundSnapshot {
-  return useSyncExternalStore(
-    drumSoundStore.subscribe,
-    drumSoundStore.getSnapshot,
-    drumSoundStore.getSnapshot,
-  );
+  return useStoreSnapshot(drumSoundStore);
 }
