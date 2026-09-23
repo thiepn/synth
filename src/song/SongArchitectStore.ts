@@ -3,6 +3,9 @@ import {
   cloneGenerationProvenance,
   clonePattern,
 } from "../domain/patternClone";
+import {
+  cloneArrangementBlueprint,
+} from "../domain/arrangementClone";
 import type { BeatFamilyGenerationResult } from "../generation/beatFamilyGenerator";
 import type { EvolutionPlan } from "../generation/evolutionEngine";
 import {
@@ -61,23 +64,9 @@ function cloneCandidate(
     },
     result: {
       ...candidate.result,
-      blueprint: {
-        ...candidate.result.blueprint,
-        scenes: candidate.result.blueprint.scenes.map((scene) => ({
-          ...scene,
-          patternIds: [...scene.patternIds],
-          provenance: cloneGenerationProvenance(
-            scene.provenance,
-          ),
-        })),
-        sections: candidate.result.blueprint.sections.map((section) => ({
-          ...section,
-          patternSequence: [...section.patternSequence],
-        })),
-        provenance: cloneGenerationProvenance(
-          candidate.result.blueprint.provenance,
-        ),
-      },
+      blueprint: cloneArrangementBlueprint(
+        candidate.result.blueprint,
+      ),
       reasons: [...candidate.result.reasons],
     },
     occurrences: candidate.occurrences.map((occurrence) => ({
