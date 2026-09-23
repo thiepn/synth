@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   resampleStore,
   type ResampleSnapshot,
 } from "./ResampleStore";
 
 export function useResampleSnapshot(): ResampleSnapshot {
-  return useSyncExternalStore(
-    resampleStore.subscribe,
-    resampleStore.getSnapshot,
-    resampleStore.getSnapshot,
-  );
+  return useStoreSnapshot(resampleStore);
 }
