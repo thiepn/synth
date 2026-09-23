@@ -1,8 +1,10 @@
-import { clonePattern } from "../domain/patternClone";
+import {
+  cloneGenerationProvenance,
+  clonePattern,
+} from "../domain/patternClone";
 import type {
   ArrangementBlueprint,
   FillPlacement,
-  GenerationProvenance,
   Pattern,
   Scene,
   SectionBlueprint,
@@ -45,22 +47,11 @@ type Listener = () => void;
 
 const ARRANGEMENT_HISTORY_LIMIT = 60;
 
-function cloneProvenance(
-  provenance: GenerationProvenance | undefined,
-): GenerationProvenance | undefined {
-  if (!provenance) return undefined;
-  return {
-    ...provenance,
-    style: { ...provenance.style },
-    intent: { ...provenance.intent },
-  };
-}
-
 function cloneScene(scene: Scene): Scene {
   return {
     ...scene,
     patternIds: [...scene.patternIds],
-    provenance: cloneProvenance(scene.provenance),
+    provenance: cloneGenerationProvenance(scene.provenance),
   };
 }
 
@@ -78,7 +69,7 @@ function cloneBlueprint(
     ...blueprint,
     scenes: blueprint.scenes.map(cloneScene),
     sections: blueprint.sections.map(cloneSection),
-    provenance: cloneProvenance(blueprint.provenance),
+    provenance: cloneGenerationProvenance(blueprint.provenance),
   };
 }
 
