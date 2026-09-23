@@ -30,7 +30,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 19 — Sample Import & Hybrid Voice Engine:** complete
 - **Phase 20 — Style DNA & Genre Expansion:** complete
 - **Phase 21 — Beat Morph & Remix Engine:** complete
-- **Next: Phase 22 — Chaos Engine & Controlled Randomness**
+- **Phase 22 — Chaos Engine & Controlled Randomness:** complete
+- **Next: Phase 23 — Performance Engine, Live Macros & Jam Capture**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, and a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -502,6 +503,26 @@ See [Phase 20 implementation notes](docs/phase-20/PHASE_20.md).
 - session-local uncommitted workspace boundary documented
 
 See [Phase 21 implementation notes](docs/phase-21/PHASE_21.md).
+
+### Phase 22 — Chaos Engine & Controlled Randomness
+
+- deterministic keyed entropy independent across domains
+- Subtle → Unstable → Wild progressive intensity
+- rhythm / dynamics / timing / probability / ornament / instrumentation entropy
+- Pattern-lock-aware and region-lock-aware mutation filtering
+- temporary lane/domain/region Chaos freeze masks
+- reusable Chaos seeds and fast New Variation workflow
+- non-destructive base/result preview workspace
+- live transport preview without modifying canonical Pattern state
+- Base / Chaos audition and bypass
+- structured mutation diff
+- explicit COMMIT CHAOS
+- one-step Sequencer Undo on commit
+- chaos creative-lineage history node
+- committed output remains an ordinary editable Pattern
+- zero-intensity identity and bounded event validation
+
+See [Phase 22 implementation notes](docs/phase-22/PHASE_22.md).
 
 ## Phase 0 architecture
 

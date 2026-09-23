@@ -349,6 +349,7 @@ export type HistoryOperation =
   | "variation"
   | "beatMorph"
   | "remix"
+  | "chaos"
   | "manualEdit"
   | "generateKit"
   | "generateTransition"

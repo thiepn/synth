@@ -223,7 +223,7 @@ function addBackbeat(
   random: SeededRandom,
   grid: Grid,
   intent: BeatGenerationIntent,
-  laneId = LANE.snare,
+  laneId: string = LANE.snare,
 ): void {
   const steps = backbeatSteps(lane(grid, laneId).length);
   for (const step of steps) {

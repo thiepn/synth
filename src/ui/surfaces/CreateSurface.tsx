@@ -48,6 +48,7 @@ import { BeatFamilyPanel } from "../family/BeatFamilyPanel";
 import { ArrangeFoundationPanel } from "../arrange/ArrangeFoundationPanel";
 import { StyleDNAPanel } from "../style/StyleDNAPanel";
 import { BeatMorphPanel } from "../morph/BeatMorphPanel";
+import { ChaosPanel } from "../chaos/ChaosPanel";
 import {
   BeatReactor,
   GrooveField,
@@ -924,6 +925,11 @@ export function CreateSurface() {
       <BeatMorphPanel
         targetStyle={style}
         intent={intent()}
+        bpm={transport.bpm}
+      />
+
+      <ChaosPanel
+        pattern={sequencer.pattern}
         bpm={transport.bpm}
       />
 
