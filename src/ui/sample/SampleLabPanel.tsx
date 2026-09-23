@@ -133,6 +133,14 @@ function Pad({
         onSelect();
         onTrigger();
       }}
+      onPointerUp={() => {
+        window.setTimeout(() => {
+          pointerTriggered.current = false;
+        }, 0);
+      }}
+      onPointerCancel={() => {
+        pointerTriggered.current = false;
+      }}
       onClick={() => {
         if (pointerTriggered.current) {
           pointerTriggered.current = false;
