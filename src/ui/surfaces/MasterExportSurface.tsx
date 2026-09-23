@@ -30,6 +30,7 @@ import {
   MachineButton,
   SignalRail,
 } from "../pulse/Primitives";
+import { ResamplePanel } from "../resample/ResamplePanel";
 import {
   TransportPulseSpine,
   TransportStatusLabel,
