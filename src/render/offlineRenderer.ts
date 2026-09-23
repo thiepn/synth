@@ -314,7 +314,7 @@ function graphFor(
 ): OfflineGraph {
   const input = context.createGain();
   const channels = new Map<DrumVoiceId, OfflineTrackGraph>();
-  const noiseBuffer = graph.noiseBuffer;
+  const noiseBuffer = createNoiseBuffer(context);
   const drive = context.createWaveShaper();
   const busCompressor = context.createDynamicsCompressor();
   const convolver = context.createConvolver();
