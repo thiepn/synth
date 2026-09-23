@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   arrangementFoundationStore,
   type ArrangementFoundationSnapshot,
@@ -6,9 +6,5 @@ import {
 
 export function useArrangementFoundationSnapshot():
   ArrangementFoundationSnapshot {
-  return useSyncExternalStore(
-    arrangementFoundationStore.subscribe,
-    arrangementFoundationStore.getSnapshot,
-    arrangementFoundationStore.getSnapshot,
-  );
+  return useStoreSnapshot(arrangementFoundationStore);
 }
