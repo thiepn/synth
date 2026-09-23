@@ -1,5 +1,6 @@
 import type {
   Pattern,
+  PatternLane,
   StepEvent,
 } from "../domain/contracts";
 import {
