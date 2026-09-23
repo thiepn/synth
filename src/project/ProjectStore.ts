@@ -129,6 +129,7 @@ export class ProjectStore {
     "instance-" + Date.now().toString(36);
   private applying = false;
   private changeSerial = 0;
+  private persistedAssetIds = new Set<string>();
   private autosaveTimer: number | undefined;
   private savePromise: Promise<void> | undefined;
   private unsubscribers: Array<() => void> = [];
@@ -675,7 +676,10 @@ export class ProjectStore {
         nextRevision,
         now,
       );
-      const assets = this.captureAssets(now);
+      const assets = this.captureAssets(
+        now,
+        true,
+      );
 
       await localProjectDatabase.saveProject(
         document,
@@ -687,6 +691,9 @@ export class ProjectStore {
       this.documentRevision = nextRevision;
       this.lastSavedAt = now;
       this.conflict = undefined;
+      for (const assetId of document.assetIds) {
+        this.persistedAssetIds.add(assetId);
+      }
 
       if (serialAtStart === this.changeSerial) {
         this.dirty = false;
@@ -727,7 +734,7 @@ export class ProjectStore {
     );
     return {
       document,
-      assets: this.captureAssets(now),
+      assets: this.captureAssets(now, false),
     };
   }
 
@@ -806,10 +813,19 @@ export class ProjectStore {
 
   private captureAssets(
     updatedAt: string,
+    onlyUnpersisted = false,
   ): PersistedAudioAsset[] {
     return sampleAssetStore
       .getSnapshot()
-      .assets.map((state) => {
+      .assets
+      .filter(
+        (state) =>
+          !onlyUnpersisted ||
+          !this.persistedAssetIds.has(
+            state.reference.id,
+          ),
+      )
+      .map((state) => {
         const bytes = sampleAssetStore.getRawBytes(
           state.reference.id,
         );
@@ -860,6 +876,9 @@ export class ProjectStore {
       }
 
       const document = bundle.document;
+      this.persistedAssetIds = new Set(
+        document.assetIds,
+      );
 
       audioTransport.setBpm(document.transport.bpm);
       audioTransport.setMeter(document.transport.meter);
