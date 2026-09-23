@@ -561,18 +561,77 @@ export class ProjectStore {
       );
     };
 
-    subscribe(audioTransport.subscribe);
+    let transportSignature =
+      this.transportPersistenceSignature();
+    this.unsubscribers.push(
+      audioTransport.subscribe(() => {
+        const next = this.transportPersistenceSignature();
+        if (next === transportSignature) return;
+        transportSignature = next;
+        this.markDirty();
+      }),
+    );
+
+    let modulationSignature =
+      this.modulationPersistenceSignature();
+    this.unsubscribers.push(
+      modulationStore.subscribe(() => {
+        const next = this.modulationPersistenceSignature();
+        if (next === modulationSignature) return;
+        modulationSignature = next;
+        this.markDirty();
+      }),
+    );
+
+    let midiSignature = JSON.stringify(
+      midiStore.exportProjectState(),
+    );
+    this.unsubscribers.push(
+      midiStore.subscribe(() => {
+        const next = JSON.stringify(
+          midiStore.exportProjectState(),
+        );
+        if (next === midiSignature) return;
+        midiSignature = next;
+        this.markDirty();
+      }),
+    );
+
     subscribe(sequencerStore.subscribe);
     subscribe(drumSoundStore.subscribe);
     subscribe(sampleAssetStore.subscribe);
     subscribe(mixerStore.subscribe);
-    subscribe(modulationStore.subscribe);
     subscribe(masteringStore.subscribe);
     subscribe(beatFamilyStore.subscribe);
     subscribe(arrangementFoundationStore.subscribe);
     subscribe(arrangementStore.subscribe);
     subscribe(generationHistoryStore.subscribe);
-    subscribe(midiStore.subscribe);
+  }
+
+  private transportPersistenceSignature(): string {
+    const transport = audioTransport.getSnapshot();
+    return JSON.stringify({
+      bpm: transport.bpm,
+      meter: transport.meter,
+      loopBars: transport.loopBars,
+    });
+  }
+
+  private modulationPersistenceSignature(): string {
+    const modulation = modulationStore.getSnapshot();
+    return JSON.stringify({
+      sources: modulation.sources.map((source) => ({
+        ...source,
+        externalValue:
+          source.kind === "external"
+            ? 0
+            : source.externalValue,
+      })),
+      routes: modulation.routes,
+      automationLanes: modulation.automationLanes,
+      selectedSourceId: modulation.selectedSourceId,
+      selectedTargetId: modulation.selectedTargetId,
+    });
   }
 
   private installLifecycle(): void {
