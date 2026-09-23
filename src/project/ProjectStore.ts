@@ -329,7 +329,14 @@ export class ProjectStore {
       return false;
     }
 
-    if (this.dirty && this.saveStatus !== "conflict") {
+    if (this.saveStatus === "conflict") {
+      this.lastError =
+        "Reload the newer project revision or use Save As before restoring a named version.";
+      this.publish();
+      return false;
+    }
+
+    if (this.dirty) {
       try {
         await this.saveNow();
       } catch {
