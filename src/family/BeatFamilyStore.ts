@@ -4,9 +4,11 @@ import type {
   Pattern,
 } from "../domain/contracts";
 import {
-  cloneGenerationProvenance,
   clonePattern,
 } from "../domain/patternClone";
+import {
+  cloneBeatFamily,
+} from "../domain/familyClone";
 import type {
   BeatFamilyGenerationResult,
   BeatFamilyPattern,
@@ -56,13 +58,7 @@ export class BeatFamilyStore {
     state: Omit<BeatFamilySnapshot, "revision">,
   ): void {
     this.family = state.family
-      ? {
-          ...state.family,
-          members: state.family.members.map((member) => ({ ...member })),
-          provenance: cloneGenerationProvenance(
-            state.family.provenance,
-          ),
-        }
+      ? cloneBeatFamily(state.family)
       : undefined;
     this.patterns = state.patterns.map(cloneEntry);
     this.selectedRole =
@@ -76,13 +72,7 @@ export class BeatFamilyStore {
   }
 
   apply(result: BeatFamilyGenerationResult): void {
-    this.family = {
-      ...result.family,
-      members: result.family.members.map((member) => ({ ...member })),
-      provenance: cloneGenerationProvenance(
-        result.family.provenance,
-      ),
-    };
+    this.family = cloneBeatFamily(result.family);
     this.patterns = result.patterns.map(cloneEntry);
     this.selectedRole = "core";
     this.coherenceScore = result.coherenceScore;
@@ -120,13 +110,7 @@ export class BeatFamilyStore {
   private buildSnapshot(): BeatFamilySnapshot {
     return {
       family: this.family
-        ? {
-            ...this.family,
-            members: this.family.members.map((member) => ({ ...member })),
-            provenance: cloneGenerationProvenance(
-              this.family.provenance,
-            ),
-          }
+        ? cloneBeatFamily(this.family)
         : undefined,
       patterns: this.patterns.map(cloneEntry),
       selectedRole: this.selectedRole,
