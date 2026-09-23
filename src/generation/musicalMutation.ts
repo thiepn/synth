@@ -5,7 +5,11 @@ import type {
   StepEvent,
   StyleVector,
 } from "../domain/contracts";
+
 import {
+  clonePattern,
+  cloneStepEvent,
+} from "../domain/patternClone";import {
   applyGroove,
   resetGroove,
   type GroovePersonalityId,
@@ -167,50 +171,6 @@ function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
-
 function isGrooveGeneratedGhost(event: StepEvent): boolean {
   return Boolean(
     event.generatorTags?.includes("ghost") &&
@@ -219,7 +179,7 @@ function isGrooveGeneratedGhost(event: StepEvent): boolean {
 }
 
 function baselineEvent(event: StepEvent): StepEvent {
-  const base = cloneEvent(event);
+  const base = cloneStepEvent(event);
 
   if (event.grooveBase) {
     base.velocity = event.grooveBase.velocity;
