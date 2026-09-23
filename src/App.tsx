@@ -5,9 +5,10 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentType,
   type KeyboardEvent as ReactKeyboardEvent,
+  type LazyExoticComponent,
 } from "react";
-import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
 import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { projectStore } from "./project/ProjectStore";
 import { pwaStore } from "./pwa/PwaStore";
@@ -64,6 +65,19 @@ const PerformanceSurface = lazy(loadPerformanceSurface);
 const MixSurface = lazy(loadMixSurface);
 const MasterExportSurface = lazy(loadMasterExportSurface);
 
+const MODE_SURFACES: Record<
+  ModeId,
+  LazyExoticComponent<ComponentType>
+> = {
+  create: CreateSurface,
+  sequence: SequenceSurface,
+  sound: SoundSurface,
+  arrange: ArrangeSurface,
+  live: PerformanceSurface,
+  mix: MixSurface,
+  archive: MasterExportSurface,
+};
+
 const MODE_PRELOADERS: Partial<Record<ModeId, () => Promise<unknown>>> = {
   create: loadCreateSurface,
   sequence: loadSequenceSurface,
@@ -103,6 +117,7 @@ export function App() {
     () => MODES.find((entry) => entry.id === modeId) ?? MODES[0],
     [modeId],
   );
+  const ActiveSurface = MODE_SURFACES[modeId];
 
   return (
     <div className="synth-app">
@@ -120,23 +135,7 @@ export function App() {
         tabIndex={-1}
       >
         <Suspense fallback={<WorkspaceLoading mode={mode} />}>
-          {modeId === "create" ? (
-            <CreateSurface />
-          ) : modeId === "sequence" ? (
-            <SequenceSurface />
-          ) : modeId === "sound" ? (
-            <SoundSurface />
-          ) : modeId === "arrange" ? (
-            <ArrangeSurface />
-          ) : modeId === "live" ? (
-            <PerformanceSurface />
-          ) : modeId === "mix" ? (
-            <MixSurface />
-          ) : modeId === "archive" ? (
-            <MasterExportSurface />
-          ) : (
-            <ModePlaceholder mode={mode} />
-          )}
+          <ActiveSurface />
         </Suspense>
       </main>
 
