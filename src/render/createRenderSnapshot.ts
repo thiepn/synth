@@ -11,6 +11,7 @@ import type {
   SynthSoundSpec,
   HybridSoundSpec,
 } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
 import { masteringStore } from "../master/MasteringStore";
 import { mixerStore } from "../mix/MixerStore";
 import {
