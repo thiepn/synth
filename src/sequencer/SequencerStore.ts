@@ -1,8 +1,11 @@
 import type {
   Pattern,
-  PatternLane,
   StepEvent,
 } from "../domain/contracts";
+import {
+  clonePattern,
+  cloneStepEvent,
+} from "../domain/patternClone";
 import {
   FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
@@ -42,50 +45,6 @@ type StoreListener = () => void;
 
 const HISTORY_LIMIT = 100;
 const DEFAULT_STEP_VELOCITY = 0.76;
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
 
 function normalizeVelocity(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_STEP_VELOCITY;
@@ -492,7 +451,7 @@ export class SequencerStore {
         if (!decision.event) return;
 
         const next: StepEvent = {
-          ...(existing ? cloneEvent(existing) : createStepEvent(
+          ...(existing ? cloneStepEvent(existing) : createStepEvent(
             decision.targetLaneId,
             stepIndex,
             decision.event.velocity,
@@ -594,10 +553,10 @@ export class SequencerStore {
           (event) =>
             event.tick >= laneLength * FOUNDATION_STEP_TICKS,
         )
-        .map(cloneEvent);
+        .map(cloneStepEvent);
 
       lane.events = [
-        ...nextActive.map(cloneEvent),
+        ...nextActive.map(cloneStepEvent),
         ...dormant,
       ].sort((a, b) => a.tick - b.tick);
     });
@@ -827,7 +786,7 @@ export class SequencerStore {
           if (targetStep >= nextLength) continue;
 
           lane.events.push({
-            ...cloneEvent(source),
+            ...cloneStepEvent(source),
             id: eventId(lane.id, targetStep),
             tick: targetStep * FOUNDATION_STEP_TICKS,
           });
