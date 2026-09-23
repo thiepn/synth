@@ -1,0 +1,412 @@
+.modulation-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border-top: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+  background:
+    linear-gradient(180deg, rgba(90, 164, 210, 0.035), transparent 35%),
+    var(--void);
+}
+
+.modulation-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(240px, 0.8fr)
+    minmax(260px, 0.9fr)
+    minmax(360px, 1.35fr);
+  gap: 14px;
+}
+
+.modulation-layout > div {
+  min-width: 0;
+  border: 1px solid var(--hairline-strong);
+  background: rgba(255, 255, 255, 0.018);
+  padding: 13px;
+}
+
+.modulation-subhead,
+.modulation-target-select,
+.modulation-resolution,
+.automation-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modulation-subhead > span,
+.modulation-target-select > span,
+.modulation-resolution > span {
+  color: var(--ash);
+  font: 650 0.52rem/1 var(--font-mono);
+  letter-spacing: 0.1em;
+}
+
+.modulation-subhead > strong,
+.modulation-resolution > strong {
+  color: var(--bone);
+  font: 720 0.58rem/1 var(--font-mono);
+}
+
+.modulation-source-add {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.modulation-source-add button,
+.modulation-choice-row button,
+.automation-toolbar > button,
+.modulation-route button,
+.modulation-source-list button {
+  border: 1px solid var(--hairline);
+  background: var(--graphite);
+  color: var(--ash);
+  cursor: pointer;
+  font: 650 0.48rem/1 var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.modulation-source-add button {
+  min-height: 34px;
+}
+
+.modulation-source-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.modulation-source-list button {
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  text-align: left;
+}
+
+.modulation-source-list button.is-active,
+.modulation-choice-row button.is-active,
+.modulation-route button.is-active {
+  color: var(--phosphor);
+  border-color: color-mix(in srgb, var(--phosphor) 45%, var(--hairline));
+  background: color-mix(in srgb, var(--phosphor) 5%, var(--graphite));
+}
+
+.modulation-source-list span,
+.modulation-source-list small {
+  color: var(--ash);
+  font: 620 0.46rem/1 var(--font-mono);
+}
+
+.modulation-source-list strong {
+  color: var(--bone);
+  font: 670 0.54rem/1 var(--font-mono);
+}
+
+.modulation-source-scope {
+  margin-top: 10px;
+  height: 104px;
+  border: 1px solid var(--hairline);
+  background: var(--graphite);
+}
+
+.modulation-source-scope svg {
+  width: 100%;
+  height: 100%;
+}
+
+.modulation-source-scope path {
+  fill: none;
+  stroke: rgba(231, 232, 223, 0.08);
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.modulation-source-scope path.is-signal {
+  stroke: var(--ice);
+  stroke-width: 1.4;
+}
+
+.modulation-source-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.modulation-value-readout {
+  margin-top: -5px;
+  text-align: right;
+  color: var(--ash);
+  font: 620 0.48rem/1 var(--font-mono);
+}
+
+.modulation-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.modulation-choice-row button {
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.modulation-step-editor {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+  min-height: 100px;
+  align-items: stretch;
+}
+
+.modulation-step-editor label {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 5px;
+  justify-items: center;
+  color: var(--ash);
+  font: 600 0.42rem/1 var(--font-mono);
+}
+
+.modulation-step-editor input {
+  width: 18px;
+  height: 76px;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  accent-color: var(--ice);
+}
+
+.modulation-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.modulation-routes {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.modulation-target-select {
+  margin-top: 2px;
+}
+
+.modulation-target-select select {
+  min-width: 0;
+  width: 68%;
+  min-height: 34px;
+  border: 1px solid var(--hairline);
+  background: var(--graphite);
+  color: var(--bone);
+  padding: 0 8px;
+  font: 620 0.5rem/1 var(--font-mono);
+}
+
+.modulation-route-list {
+  display: grid;
+  gap: 6px;
+}
+
+.modulation-route {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  padding-top: 8px;
+}
+
+.modulation-route > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.modulation-route span {
+  color: var(--bone);
+  font: 650 0.5rem/1 var(--font-mono);
+}
+
+.modulation-route strong {
+  color: var(--ice);
+  font: 700 0.5rem/1 var(--font-mono);
+}
+
+.modulation-route input {
+  width: 100%;
+  accent-color: var(--ice);
+}
+
+.modulation-route button {
+  min-height: 27px;
+  min-width: 34px;
+}
+
+.modulation-resolution {
+  margin-top: auto;
+  border-top: 1px solid var(--hairline);
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+
+.modulation-resolution strong {
+  font-size: 1.2rem;
+  color: var(--ice);
+}
+
+.modulation-resolution small {
+  flex-basis: 100%;
+  color: var(--ash);
+  font: 600 0.46rem/1.5 var(--font-mono);
+}
+
+.modulation-empty {
+  margin: 0;
+  color: var(--ash);
+  font: 560 0.5rem/1.55 var(--font-mono);
+}
+
+.automation-editor {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.automation-toolbar {
+  flex-wrap: wrap;
+}
+
+.automation-toolbar > button {
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.automation-toolbar > button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.automation-lane {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  border: 1px solid var(--hairline-strong);
+  background: var(--graphite);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.automation-lane.is-disabled {
+  opacity: 0.48;
+}
+
+.automation-lane__grid {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent calc(25% - 1px),
+      rgba(231, 232, 223, 0.055) 25%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(12.5% - 1px),
+      rgba(231, 232, 223, 0.045) 12.5%
+    );
+  pointer-events: none;
+}
+
+.automation-lane__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--heat);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.automation-point {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--ice);
+  border-radius: 50%;
+  background: var(--void);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.automation-point:hover,
+.automation-point:focus-visible {
+  background: var(--ice);
+  outline: none;
+}
+
+.automation-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ash);
+  font: 600 0.44rem/1 var(--font-mono);
+}
+
+@media (max-width: 1080px) {
+  .modulation-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .automation-editor {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .modulation-panel {
+    padding: 12px;
+  }
+
+  .modulation-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-editor {
+    grid-column: auto;
+  }
+
+  .modulation-source-add {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .automation-lane {
+    min-height: 220px;
+  }
+
+  .modulation-target-select {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modulation-target-select select {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .modulation-source-add button,
+  .modulation-choice-row button,
+  .modulation-route button,
+  .automation-toolbar > button {
+    min-height: 38px;
+  }
+}
