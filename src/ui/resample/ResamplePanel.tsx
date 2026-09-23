@@ -135,11 +135,13 @@ export function ResamplePanel() {
           ? "master"
           : tailMode !== "none"
             ? "fx"
-            : range === "section"
-              ? "section"
-              : range === "selection"
-                ? "selection"
-                : "pattern");
+            : range === "arrangement"
+              ? "arrangement"
+              : range === "section"
+                ? "section"
+                : range === "selection"
+                  ? "selection"
+                  : "pattern");
     const label =
       "Resample " +
       rangeLabel() +
@@ -157,6 +159,39 @@ export function ResamplePanel() {
         (tailOverride ?? tailMode) === "fixed"
           ? fixedTailSeconds
           : undefined,
+      openInSampleLab: openInLab,
+    });
+
+    if (artifact) {
+      setStatus(
+        artifact.label +
+          " READY / " +
+          seconds(artifact.durationSeconds),
+      );
+    }
+  };
+
+  const bounceSection = async () => {
+    const targetSectionId =
+      sectionId ||
+      arrangement.selectedSectionId ||
+      arrangement.blueprint?.sections[0]?.id;
+    if (!targetSectionId) return;
+
+    const section = arrangement.blueprint?.sections.find(
+      (entry) => entry.id === targetSectionId,
+    );
+    const artifact = await resampleStore.renderCopy({
+      range: {
+        kind: "section",
+        sectionId: targetSectionId,
+      },
+      kind: "section",
+      label: "Resample Section - " + (section?.label ?? "Section"),
+      includeMastering: false,
+      tailMode,
+      fixedTailSeconds:
+        tailMode === "fixed" ? fixedTailSeconds : undefined,
       openInSampleLab: openInLab,
     });
 
@@ -406,9 +441,7 @@ export function ResamplePanel() {
           <MachineButton
             compact
             disabled={busy || !arrangement.blueprint}
-            onClick={() =>
-              void renderCopy("section", undefined, false)
-            }
+            onClick={() => void bounceSection()}
           >
             BOUNCE SECTION
           </MachineButton>
@@ -431,6 +464,21 @@ export function ResamplePanel() {
             }
           >
             BOUNCE MASTER
+          </MachineButton>
+
+          <MachineButton
+            compact
+            disabled={busy || range !== "selection"}
+            onClick={() =>
+              void renderCopy(
+                "selection",
+                undefined,
+                false,
+                "none",
+              )
+            }
+          >
+            CONSOLIDATE SELECTION
           </MachineButton>
         </div>
 
