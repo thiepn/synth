@@ -14,7 +14,7 @@
     "postbuild": "npm run check:bundle",
     "check:performance": "node scripts/check-performance-contracts.mjs",
     "check:architecture": "node scripts/check-architecture-contracts.mjs",
-    "qa:e2e": "playwright test e2e/production.spec.ts",
+    "qa:e2e": "playwright test e2e/production.spec.ts --repeat-each=2 --retries=0",
     "qa:e2e:install": "playwright install --with-deps chromium",
     "check:release": "node scripts/check-release-freeze.mjs",
     "qa:soak": "playwright test e2e/soak.spec.ts --repeat-each=2 --retries=0"
