@@ -849,6 +849,7 @@ export class SequencerStore {
     if (!previous) return;
 
     this.redoStack.push(clonePattern(this.pattern));
+    this.runtimePreview = undefined;
     this.pattern = previous;
     this.lastCoalesceKey = null;
     this.lastCoalesceAt = 0;
@@ -861,6 +862,7 @@ export class SequencerStore {
     if (!next) return;
 
     this.undoStack.push(clonePattern(this.pattern));
+    this.runtimePreview = undefined;
     this.pattern = next;
     this.lastCoalesceKey = null;
     this.lastCoalesceAt = 0;
