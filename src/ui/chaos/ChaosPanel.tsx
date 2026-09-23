@@ -65,16 +65,6 @@ export function ChaosPanel({
     chaosStore.setBasePattern(pattern);
   }, [pattern]);
 
-  useEffect(() => {
-    const runtimePattern =
-      chaos.active && !chaos.bypass ? previewPattern : undefined;
-    sequencerStore.setRuntimePreview(runtimePattern);
-
-    return () => {
-      sequencerStore.setRuntimePreview(undefined);
-    };
-  }, [chaos.active, chaos.bypass, previewPattern]);
-
   const previewGeometry = useMemo(
     () => (previewPattern ? deriveRhythmGlyph(previewPattern) : undefined),
     [previewPattern],

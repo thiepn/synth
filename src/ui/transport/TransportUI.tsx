@@ -52,8 +52,13 @@ export function TransportLifecycle({
 }: {
   mode: ModeDefinition;
 }): null {
+  const arrangementPlayback = useArrangementPlaybackSnapshot();
+  const arrangementTransport =
+    mode.id === "arrange" ||
+    (mode.id === "live" && arrangementPlayback.engaged);
+
   useTransportLifecycle(
-    mode.id === "arrange"
+    arrangementTransport
       ? toggleArrangeFromKeyboard
       : undefined,
   );
@@ -64,7 +69,10 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
   const snapshot = useTransportSnapshot();
   const arrangementPlayback = useArrangementPlaybackSnapshot();
   const arrangeMode = mode.id === "arrange";
-  const transportPlaying = arrangeMode
+  const arrangementTransport =
+    arrangeMode ||
+    (mode.id === "live" && arrangementPlayback.engaged);
+  const transportPlaying = arrangementTransport
     ? arrangementPlayback.engaged && snapshot.status === "running"
     : snapshot.desiredPlaying;
   const meterValue = `${snapshot.meter.numerator}/${snapshot.meter.denominator}`;
@@ -92,7 +100,7 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
         type="button"
         className={transportPlaying ? "transport-key is-playing" : "transport-key"}
         onClick={() =>
-          arrangeMode
+          arrangementTransport
             ? void arrangementPlaybackStore.toggle()
             : void audioTransport.toggle()
         }
@@ -106,7 +114,7 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
         type="button"
         className="transport-key"
         onClick={() =>
-          arrangeMode
+          arrangementTransport
             ? arrangementPlaybackStore.stop()
             : audioTransport.stop()
         }
