@@ -2,6 +2,7 @@ import {
   DRUM_PADS,
   type DrumVoiceId,
 } from "../music/foundationPattern";
+import { errorMessage } from "../runtime/errors";
 import { createRenderSnapshot } from "./createRenderSnapshot";
 import { renderSnapshot } from "./offlineRenderer";
 import type {
@@ -285,7 +286,7 @@ export class RenderStore {
     this.phaseLabel = "RENDER FAILED";
     this.activeStem = undefined;
     this.lastError =
-      error instanceof Error ? error.message : String(error);
+      errorMessage(error);
     this.publish();
   }
 
