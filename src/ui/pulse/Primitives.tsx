@@ -30,7 +30,7 @@ export const MODES: ModeDefinition[] = [
   { id: "arrange", number: "04", label: "ARRANGE", phase: "PHASE 18" },
   { id: "live", number: "05", label: "LIVE", phase: "PHASE 23" },
   { id: "mix", number: "06", label: "MIX", phase: "PHASE 27" },
-  { id: "archive", number: "07", label: "ARCHIVE", phase: "PHASE 28" },
+  { id: "archive", number: "07", label: "EXPORT", phase: "PHASE 28" },
 ];
 
 interface MachineButtonProps {

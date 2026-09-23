@@ -59,7 +59,8 @@ export function TransportLifecycle({
   const arrangement = useArrangementSnapshot();
   const arrangementTransport =
     mode.id === "arrange" ||
-    (mode.id === "mix" && Boolean(arrangement.blueprint)) ||
+    ((mode.id === "mix" || mode.id === "archive") &&
+      Boolean(arrangement.blueprint)) ||
     (mode.id === "live" && arrangementPlayback.engaged);
 
   useTransportLifecycle(
@@ -75,11 +76,12 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
   const arrangementPlayback = useArrangementPlaybackSnapshot();
   const arrangement = useArrangementSnapshot();
   const arrangeMode = mode.id === "arrange";
-  const mixArrangementMode =
-    mode.id === "mix" && Boolean(arrangement.blueprint);
+  const productionArrangementMode =
+    (mode.id === "mix" || mode.id === "archive") &&
+    Boolean(arrangement.blueprint);
   const arrangementTransport =
     arrangeMode ||
-    mixArrangementMode ||
+    productionArrangementMode ||
     (mode.id === "live" && arrangementPlayback.engaged);
   const transportPlaying = arrangementTransport
     ? arrangementPlayback.engaged && snapshot.status === "running"
