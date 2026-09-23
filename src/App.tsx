@@ -1,18 +1,13 @@
 import {
+  lazy,
+  Suspense,
   useEffect,
   useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { CreateSurface } from "./ui/surfaces/CreateSurface";
 import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
-import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
-import { SoundSurface } from "./ui/surfaces/SoundSurface";
-import { ArrangeSurface } from "./ui/surfaces/ArrangeSurface";
-import { PerformanceSurface } from "./ui/surfaces/PerformanceSurface";
-import { MixSurface } from "./ui/surfaces/MixSurface";
-import { MasterExportSurface } from "./ui/surfaces/MasterExportSurface";
 import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { projectStore } from "./project/ProjectStore";
 import { pwaStore } from "./pwa/PwaStore";
@@ -30,6 +25,70 @@ import {
   TransportControls,
   TransportLifecycle,
 } from "./ui/transport/TransportUI";
+
+const loadCreateSurface = () =>
+  import("./ui/surfaces/CreateSurface").then((module) => ({
+    default: module.CreateSurface,
+  }));
+const loadSequenceSurface = () =>
+  import("./ui/surfaces/SequenceSurface").then((module) => ({
+    default: module.SequenceSurface,
+  }));
+const loadSoundSurface = () =>
+  import("./ui/surfaces/SoundSurface").then((module) => ({
+    default: module.SoundSurface,
+  }));
+const loadArrangeSurface = () =>
+  import("./ui/surfaces/ArrangeSurface").then((module) => ({
+    default: module.ArrangeSurface,
+  }));
+const loadPerformanceSurface = () =>
+  import("./ui/surfaces/PerformanceSurface").then((module) => ({
+    default: module.PerformanceSurface,
+  }));
+const loadMixSurface = () =>
+  import("./ui/surfaces/MixSurface").then((module) => ({
+    default: module.MixSurface,
+  }));
+const loadMasterExportSurface = () =>
+  import("./ui/surfaces/MasterExportSurface").then((module) => ({
+    default: module.MasterExportSurface,
+  }));
+
+const CreateSurface = lazy(loadCreateSurface);
+const SequenceSurface = lazy(loadSequenceSurface);
+const SoundSurface = lazy(loadSoundSurface);
+const ArrangeSurface = lazy(loadArrangeSurface);
+const PerformanceSurface = lazy(loadPerformanceSurface);
+const MixSurface = lazy(loadMixSurface);
+const MasterExportSurface = lazy(loadMasterExportSurface);
+
+const MODE_PRELOADERS: Partial<Record<ModeId, () => Promise<unknown>>> = {
+  create: loadCreateSurface,
+  sequence: loadSequenceSurface,
+  sound: loadSoundSurface,
+  arrange: loadArrangeSurface,
+  live: loadPerformanceSurface,
+  mix: loadMixSurface,
+  archive: loadMasterExportSurface,
+};
+
+function preloadModeSurface(modeId: ModeId): void {
+  void MODE_PRELOADERS[modeId]?.();
+}
+
+function WorkspaceLoading({
+  mode,
+}: {
+  mode: ModeDefinition;
+}) {
+  return (
+    <section className="workspace-loading" aria-live="polite">
+      <span>{mode.number} / {mode.label}</span>
+      <strong>LOADING WORKSPACE…</strong>
+    </section>
+  );
+}
 
 export function App() {
   const [modeId, setModeId] = useState<ModeId>("create");
@@ -59,23 +118,25 @@ export function App() {
         className="synth-workspace"
         tabIndex={-1}
       >
-        {modeId === "create" ? (
-          <CreateSurface />
-        ) : modeId === "sequence" ? (
-          <SequenceSurface />
-        ) : modeId === "sound" ? (
-          <SoundSurface />
-        ) : modeId === "arrange" ? (
-          <ArrangeSurface />
-        ) : modeId === "live" ? (
-          <PerformanceSurface />
-        ) : modeId === "mix" ? (
-          <MixSurface />
-        ) : modeId === "archive" ? (
-          <MasterExportSurface />
-        ) : (
-          <ModePlaceholder mode={mode} />
-        )}
+        <Suspense fallback={<WorkspaceLoading mode={mode} />}>
+          {modeId === "create" ? (
+            <CreateSurface />
+          ) : modeId === "sequence" ? (
+            <SequenceSurface />
+          ) : modeId === "sound" ? (
+            <SoundSurface />
+          ) : modeId === "arrange" ? (
+            <ArrangeSurface />
+          ) : modeId === "live" ? (
+            <PerformanceSurface />
+          ) : modeId === "mix" ? (
+            <MixSurface />
+          ) : modeId === "archive" ? (
+            <MasterExportSurface />
+          ) : (
+            <ModePlaceholder mode={mode} />
+          )}
+        </Suspense>
       </main>
 
       <ModeRail
@@ -175,6 +236,8 @@ function ModeRail({
           }
           tabIndex={active === mode.id ? 0 : -1}
           onClick={() => onChange(mode.id)}
+          onFocus={() => preloadModeSurface(mode.id)}
+          onPointerEnter={() => preloadModeSurface(mode.id)}
           onKeyDown={(event) => moveFocus(event, index)}
           aria-current={active === mode.id ? "page" : undefined}
           aria-label={
