@@ -12,7 +12,6 @@ import {
 } from "../../master/masteringModel";
 import { masteringStore } from "../../master/MasteringStore";
 import { useMasteringSnapshot } from "../../master/useMastering";
-import { PPQ } from "../../domain/contracts";
 import { ticksPerBeat } from "../../audio/transportMath";
 import {
   renderStore,
