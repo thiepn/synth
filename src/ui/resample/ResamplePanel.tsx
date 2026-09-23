@@ -6,7 +6,6 @@ import {
   DRUM_PADS,
   type DrumVoiceId,
 } from "../../music/foundationPattern";
-import { freezeStore } from "../../resample/FreezeStore";
 import { useFreezeSnapshot } from "../../resample/useFreeze";
 import {
   resampleStore,
