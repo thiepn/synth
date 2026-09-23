@@ -148,6 +148,7 @@ export class SampleLabPlayer {
   async play(
     spec: SampleSoundSpec,
     velocity = 1,
+    loop = false,
   ): Promise<number> {
     const context = await audioTransport.unlockAudio();
     await sampleAssetStore.ensureDecoded(context, spec.assetId);
@@ -167,27 +168,51 @@ export class SampleLabPlayer {
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.setValueAtTime(selection.playbackRate, at);
+    source.loop = loop;
+    if (loop) {
+      source.loopStart = selection.start;
+      source.loopEnd = selection.start + selection.sourceDuration;
+    }
 
     const gain = context.createGain();
     const peak =
       Math.max(0.01, Math.min(1, velocity)) *
       dbToGain(spec.gainDb);
-    envelope(
-      gain.gain,
-      at,
-      selection.audibleDuration,
-      peak,
-      spec,
-    );
+    if (loop) {
+      const fadeIn = Math.max(
+        0.0005,
+        Math.min(
+          selection.audibleDuration * 0.45,
+          spec.fadeInSeconds ?? 0.003,
+        ),
+      );
+      gain.gain.setValueAtTime(MIN_GAIN, at);
+      gain.gain.linearRampToValueAtTime(
+        Math.max(MIN_GAIN, peak),
+        at + fadeIn,
+      );
+    } else {
+      envelope(
+        gain.gain,
+        at,
+        selection.audibleDuration,
+        peak,
+        spec,
+      );
+    }
 
     source.connect(gain);
     gain.connect(context.destination);
-    source.start(
-      at,
-      selection.start,
-      selection.sourceDuration,
-    );
-    source.stop(at + selection.audibleDuration + 0.02);
+    if (loop) {
+      source.start(at, selection.start);
+    } else {
+      source.start(
+        at,
+        selection.start,
+        selection.sourceDuration,
+      );
+      source.stop(at + selection.audibleDuration + 0.02);
+    }
 
     source.onended = () => {
       if (this.source === source) {
