@@ -1,6 +1,7 @@
 import type { Pattern } from "../domain/contracts";
 import { hashSeed } from "../generation/prng";
 import {
+  FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
   type DrumVoiceId,
 } from "../music/foundationPattern";
@@ -49,12 +50,12 @@ function generatedHit(
   const lane = laneForVoice(pattern, voice);
   if (!definition || !lane || lane.muted) return undefined;
 
-  const patternSteps = Math.max(1, Math.round(pattern.lengthTicks / 240));
+  const patternSteps = Math.max(1, Math.round(pattern.lengthTicks / FOUNDATION_STEP_TICKS));
   const laneSteps = Math.max(
     1,
     Math.min(
       patternSteps,
-      Math.round((lane.loopLengthTicks ?? pattern.lengthTicks) / 240),
+      Math.round((lane.loopLengthTicks ?? pattern.lengthTicks) / FOUNDATION_STEP_TICKS),
     ),
   );
 
