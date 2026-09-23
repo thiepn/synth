@@ -1466,7 +1466,11 @@ export class DrumEngine {
 
     source.connect(sampleGain);
     sampleGain.connect(kill);
-    kill.connect(this.channelInput(voice));
+    kill.connect(
+      spec.renderedClip
+        ? graph.masterInputTrim
+        : this.channelInput(voice),
+    );
 
     source.start(at, start, sourceDuration);
     source.stop(stopAt + 0.012);
