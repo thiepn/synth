@@ -7,7 +7,8 @@ export type ModulationSourceKind =
   | "envelope"
   | "sampleHold"
   | "randomSmooth"
-  | "step";
+  | "step"
+  | "external";
 
 export type LfoShape = "sine" | "triangle" | "square" | "saw";
 export type AutomationCurve = "hold" | "linear" | "smooth";
@@ -24,7 +25,11 @@ export interface ModulationSource {
   attack: number;
   stepValues: number[];
   bipolar: boolean;
+  /** Current normalized hardware/external control value. */
+  externalValue?: number;
 }
+
+export type ModulationRouteMode = "add" | "replace";
 
 export interface ModulationRoute {
   id: string;
@@ -32,6 +37,7 @@ export interface ModulationRoute {
   targetId: string;
   depth: number;
   enabled: boolean;
+  mode?: ModulationRouteMode;
 }
 
 export interface AutomationPoint {
@@ -179,6 +185,11 @@ export function evaluateModulationSource(
     return a + (b - a) * mix;
   }
 
+  if (source.kind === "external") {
+    const raw = clamp01(source.externalValue ?? 0);
+    return source.bipolar ? raw * 2 - 1 : raw;
+  }
+
   const values =
     source.stepValues.length > 0
       ? source.stepValues
@@ -277,6 +288,7 @@ export function resolveModulatedTarget(input: {
     input.sources.map((source) => [source.id, source]),
   );
 
+  let replacedNormalized = automatedNormalized;
   let modulationOffset = 0;
   let routeCount = 0;
 
@@ -286,12 +298,27 @@ export function resolveModulatedTarget(input: {
     if (!source || !source.enabled) continue;
 
     const value = evaluateModulationSource(source, input.tick);
-    modulationOffset += value * clamp(route.depth, -1, 1) * 0.5;
+    const depth = clamp(route.depth, -1, 1);
+
+    if ((route.mode ?? "add") === "replace") {
+      const normalizedSource = source.bipolar
+        ? clamp01((value + 1) / 2)
+        : clamp01(value);
+      const amount = Math.abs(depth);
+      const targetValue =
+        depth >= 0 ? normalizedSource : 1 - normalizedSource;
+      replacedNormalized =
+        replacedNormalized +
+        (targetValue - replacedNormalized) * amount;
+    } else {
+      modulationOffset += value * depth * 0.5;
+    }
+
     routeCount += 1;
   }
 
   const normalizedValue = clamp01(
-    automatedNormalized + modulationOffset,
+    replacedNormalized + modulationOffset,
   );
   const resolved = min + normalizedValue * (max - min);
 
@@ -356,6 +383,14 @@ export function createDefaultSource(
       stepValues: [0.1, 0.75, 0.35, 0.9, 0.25, 0.65, 0.45, 0.8],
       bipolar: true,
     },
+    external: {
+      name: "External",
+      rateBeats: 1,
+      shape: "square",
+      attack: 0.25,
+      stepValues: [0],
+      bipolar: false,
+    },
   };
 
   const preset = defaults[kind];
@@ -372,5 +407,6 @@ export function createDefaultSource(
     attack: preset.attack,
     stepValues: [...preset.stepValues],
     bipolar: preset.bipolar,
+    externalValue: kind === "external" ? 0 : undefined,
   };
 }

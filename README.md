@@ -39,7 +39,7 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 28 — Mastering, Rendering & Export Engine:** complete
 - **Phase 29 — Sample Lab, Chopping & Creative Sampling:** complete
 - **Phase 30 — Resampling, Bounce, Freeze & Internal Audio Workflow:** complete
-- **Next: Phase 31 — MIDI, Pad Performance & External Control**
+- **Phase 31 — MIDI, Pad Performance & External Control:** complete
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -684,6 +684,28 @@ See [Phase 29 implementation notes](docs/phase-29/PHASE_29.md).
 - content-addressed derived assets retained for later creative resampling
 
 See [Phase 30 implementation notes](docs/phase-30/PHASE_30.md).
+
+### Phase 31 — MIDI, Pad Performance & External Control
+
+- explicit opt-in Web MIDI permission flow
+- input discovery / selection / hot-plug / session reconnect
+- channel filtering
+- default GM-style eight-pad note map
+- MIDI Learn for pads / LIVE macros / actions / scenes / transport
+- parameter learn through the shared Phase 24 registry
+- Note / CC / Pitch Bend / Channel Pressure / Poly Aftertouch support
+- optional MIDI Clock BPM following plus Start / Continue / Stop
+- shared InputActionRouter instead of feature-specific MIDI handlers
+- external hardware values represented as Phase 24 External modulation sources
+- Pattern recording with OFF / 1/16 / 1/8 / 1/4 quantize
+- bounded microtiming preservation when quantize is OFF
+- Overdub / Replace affected lanes
+- one normal Pattern + History commit per MIDI take
+- session controller profiles with mapping reconstruction
+- full responsive MIDI controller surface in LIVE
+- clean unsupported-browser fallback
+
+See [Phase 31 implementation notes](docs/phase-31/PHASE_31.md).
 
 ## Phase 0 architecture
 

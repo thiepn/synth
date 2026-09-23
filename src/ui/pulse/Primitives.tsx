@@ -74,6 +74,7 @@ interface SignalRailProps {
   minLabel?: string;
   maxLabel?: string;
   tone?: "phosphor" | "heat" | "ice";
+  disabled?: boolean;
   onChange?: (next: number) => void;
 }
 
@@ -83,6 +84,7 @@ export function SignalRail({
   minLabel = "00",
   maxLabel = "100",
   tone = "phosphor",
+  disabled = false,
   onChange,
 }: SignalRailProps) {
   const clamped = Math.max(0, Math.min(100, value));
@@ -106,6 +108,7 @@ export function SignalRail({
           min="0"
           max="100"
           value={clamped}
+          disabled={disabled}
           onChange={(event) => onChange?.(Number(event.currentTarget.value))}
           aria-label={label}
         />

@@ -126,7 +126,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 30</span>
+        <span>PHASE 31</span>
       </div>
     </nav>
   );

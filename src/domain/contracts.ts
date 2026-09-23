@@ -362,6 +362,7 @@ export type HistoryOperation =
   | "chaos"
   | "evolve"
   | "sampleLab"
+  | "midiRecord"
   | "manualEdit"
   | "generateKit"
   | "generateTransition"
