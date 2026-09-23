@@ -15,18 +15,27 @@ import { mixerStore } from "../mix/MixerStore";
 import { modulationStore } from "../modulation/ModulationStore";
 import { beatMorphStore } from "../morph/BeatMorphStore";
 import { performanceStore } from "../performance/PerformanceStore";
-import { localProjectDatabase } from "../persistence/LocalProjectDatabase";
+import {
+  localProjectDatabase,
+  ProjectRevisionConflictError,
+} from "../persistence/LocalProjectDatabase";
 import { renderStore } from "../render/RenderStore";
 import { resampleStore } from "../resample/ResampleStore";
 import { sampleLabStore } from "../sample/SampleLabStore";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { songArchitectStore } from "../song/SongArchitectStore";
 import {
+  createProjectBackup,
+  readProjectBackup,
+} from "./projectBackup";
+import {
   SYNTH_PROJECT_DOCUMENT_VERSION,
   assertProjectDocument,
   type LoadedProjectBundle,
   type PersistedAudioAsset,
   type ProjectSummary,
+  type ProjectVersionRecord,
+  type ProjectVersionSummary,
   type SynthProjectDocument,
 } from "./projectTypes";
 
@@ -38,8 +47,20 @@ export type ProjectSaveStatus =
   | "clean"
   | "dirty"
   | "saving"
+  | "conflict"
   | "error"
   | "unsupported";
+
+export interface ProjectConflictState {
+  remoteRevision: number;
+  message: string;
+}
+
+export interface ProjectStorageEstimate {
+  usageBytes?: number;
+  quotaBytes?: number;
+  persisted?: boolean;
+}
 
 export interface ProjectSnapshot {
   supported: boolean;
@@ -51,6 +72,9 @@ export interface ProjectSnapshot {
   lastSavedAt?: string;
   lastError?: string;
   summaries: ProjectSummary[];
+  versions: ProjectVersionSummary[];
+  conflict?: ProjectConflictState;
+  storage: ProjectStorageEstimate;
   revision: number;
 }
 
@@ -96,6 +120,13 @@ export class ProjectStore {
   private lastSavedAt: string | undefined;
   private lastError: string | undefined;
   private summaries: ProjectSummary[] = [];
+  private versions: ProjectVersionSummary[] = [];
+  private conflict: ProjectConflictState | undefined;
+  private storage: ProjectStorageEstimate = {};
+  private broadcast: BroadcastChannel | undefined;
+  private instanceId =
+    globalThis.crypto?.randomUUID?.() ??
+    "instance-" + Date.now().toString(36);
   private applying = false;
   private changeSerial = 0;
   private autosaveTimer: number | undefined;
@@ -143,7 +174,11 @@ export class ProjectStore {
       await this.savePromise;
     } finally {
       this.savePromise = undefined;
-      if (this.dirty && !this.applying) {
+      if (
+        this.dirty &&
+        !this.applying &&
+        this.saveStatus !== "conflict"
+      ) {
         this.scheduleAutosave();
       }
     }
@@ -154,7 +189,17 @@ export class ProjectStore {
     if (projectId === this.projectId) return true;
 
     if (this.dirty) {
-      await this.saveNow();
+      if (this.saveStatus === "conflict") {
+        this.lastError =
+          "Save As or reload the conflicted project before switching projects.";
+        this.publish();
+        return false;
+      }
+      try {
+        await this.saveNow();
+      } catch {
+        return false;
+      }
     }
 
     const rollback = this.captureCurrentBundle();
@@ -170,6 +215,8 @@ export class ProjectStore {
       await this.applyBundle(bundle);
       await localProjectDatabase.setActiveProjectId(projectId);
       await this.refreshSummaries();
+      await this.refreshVersions();
+      await this.refreshStorageEstimate();
       return true;
     } catch (error) {
       try {
@@ -187,36 +234,358 @@ export class ProjectStore {
 
   async saveAsNew(name: string): Promise<string | undefined> {
     if (!this.initialized || this.applying) return undefined;
-    if (this.dirty) {
-      await this.saveNow();
-    }
 
     const previousId = this.projectId;
     const previousName = this.name;
     const previousCreatedAt = this.createdAt;
     const previousRevision = this.documentRevision;
+    const previousDirty = this.dirty;
+    const previousStatus = this.saveStatus;
+    const previousConflict = this.conflict;
 
     this.projectId = newProjectId();
     this.name = cleanProjectName(name);
     this.createdAt = new Date().toISOString();
     this.documentRevision = 0;
+    this.conflict = undefined;
     this.dirty = true;
+    this.saveStatus = "dirty";
     this.changeSerial += 1;
 
     try {
       await this.saveNow();
+      if (this.projectId) {
+        await localProjectDatabase.setActiveProjectId(
+          this.projectId,
+        );
+      }
       return this.projectId;
     } catch (error) {
       this.projectId = previousId;
       this.name = previousName;
       this.createdAt = previousCreatedAt;
       this.documentRevision = previousRevision;
-      this.dirty = false;
-      this.saveStatus = "error";
+      this.dirty = previousDirty;
+      this.saveStatus = previousStatus;
+      this.conflict = previousConflict;
       this.lastError =
         error instanceof Error ? error.message : String(error);
       this.publish();
       return undefined;
+    }
+  }
+
+  async createVersion(
+    name: string,
+  ): Promise<ProjectVersionSummary | undefined> {
+    if (!this.initialized || !this.projectId || this.applying) {
+      return undefined;
+    }
+
+    try {
+      if (this.dirty) {
+        await this.saveNow();
+      }
+      if (this.saveStatus === "conflict") {
+        return undefined;
+      }
+
+      const now = new Date().toISOString();
+      const document = this.captureDocument(
+        this.documentRevision,
+        this.lastSavedAt ?? now,
+      );
+      const version: ProjectVersionRecord = {
+        id:
+          "version-" +
+          this.projectId +
+          "-" +
+          (globalThis.crypto?.randomUUID?.() ??
+            Date.now().toString(36)),
+        projectId: this.projectId,
+        name: cleanProjectName(name || "Snapshot"),
+        createdAt: now,
+        sourceRevision: this.documentRevision,
+        document,
+      };
+
+      await localProjectDatabase.saveVersion(version);
+      await this.refreshVersions();
+      this.publish();
+      return this.versions.find(
+        (entry) => entry.id === version.id,
+      );
+    } catch (error) {
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.saveStatus =
+        error instanceof ProjectRevisionConflictError
+          ? "conflict"
+          : "error";
+      this.publish();
+      return undefined;
+    }
+  }
+
+  async restoreVersion(versionId: string): Promise<boolean> {
+    if (!this.initialized || !this.projectId || this.applying) {
+      return false;
+    }
+
+    if (this.dirty && this.saveStatus !== "conflict") {
+      try {
+        await this.saveNow();
+      } catch {
+        return false;
+      }
+    }
+
+    const rollback = this.captureCurrentBundle();
+    const activeId = this.projectId;
+    const activeName = this.name;
+    const activeCreatedAt = this.createdAt;
+    const activeRevision = this.documentRevision;
+    const activeUpdatedAt =
+      this.lastSavedAt ?? new Date().toISOString();
+
+    this.saveStatus = "loading";
+    this.lastError = undefined;
+    this.publish();
+
+    try {
+      const bundle =
+        await localProjectDatabase.loadVersionBundle(versionId);
+      if (!bundle) {
+        throw new Error("The selected project version no longer exists.");
+      }
+
+      bundle.document = {
+        ...bundle.document,
+        id: activeId,
+        name: activeName,
+        createdAt: activeCreatedAt,
+        updatedAt: activeUpdatedAt,
+        revision: activeRevision,
+      };
+
+      await this.applyBundle(bundle);
+      this.changeSerial += 1;
+      this.dirty = true;
+      this.saveStatus = "dirty";
+      this.conflict = undefined;
+      this.lastError = undefined;
+      this.scheduleAutosave();
+      this.publish();
+      return true;
+    } catch (error) {
+      try {
+        await this.applyBundle(rollback);
+      } catch {
+        // Preserve the original restore error.
+      }
+      this.saveStatus = "error";
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return false;
+    }
+  }
+
+  async deleteVersion(versionId: string): Promise<void> {
+    if (!this.initialized || this.applying) return;
+    await localProjectDatabase.deleteVersion(versionId);
+    await this.refreshVersions();
+    await this.refreshStorageEstimate();
+    this.publish();
+  }
+
+  async duplicateProject(
+    projectId: string,
+    name: string,
+  ): Promise<string | undefined> {
+    if (!this.initialized || this.applying) return undefined;
+
+    try {
+      const bundle =
+        await localProjectDatabase.loadProject(projectId);
+      if (!bundle) {
+        throw new Error("The source project no longer exists.");
+      }
+
+      const now = new Date().toISOString();
+      const newId = newProjectId();
+      const document: SynthProjectDocument = {
+        ...structuredClone(bundle.document),
+        id: newId,
+        name: cleanProjectName(name),
+        createdAt: now,
+        updatedAt: now,
+        revision: 1,
+      };
+
+      await localProjectDatabase.saveProject(
+        document,
+        bundle.assets,
+        0,
+        false,
+      );
+      await this.refreshSummaries();
+      await this.refreshStorageEstimate();
+      this.publish();
+      return newId;
+    } catch (error) {
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return undefined;
+    }
+  }
+
+  async deleteProject(projectId: string): Promise<boolean> {
+    if (
+      !this.initialized ||
+      this.applying ||
+      projectId === this.projectId
+    ) {
+      return false;
+    }
+
+    try {
+      await localProjectDatabase.deleteProject(projectId);
+      await this.refreshSummaries();
+      await this.refreshStorageEstimate();
+      this.publish();
+      return true;
+    } catch (error) {
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return false;
+    }
+  }
+
+  async reloadActiveProject(): Promise<boolean> {
+    if (!this.projectId || this.applying) return false;
+
+    try {
+      const bundle =
+        await localProjectDatabase.loadProject(this.projectId);
+      if (!bundle) {
+        throw new Error("The active project no longer exists.");
+      }
+      await this.applyBundle(bundle);
+      await this.refreshSummaries();
+      await this.refreshVersions();
+      return true;
+    } catch (error) {
+      this.saveStatus = "error";
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return false;
+    }
+  }
+
+  async exportBackup(
+    projectId = this.projectId,
+  ): Promise<{ blob: Blob; filename: string } | undefined> {
+    if (!projectId || !this.initialized) return undefined;
+
+    try {
+      if (
+        projectId === this.projectId &&
+        this.saveStatus === "conflict" &&
+        this.dirty
+      ) {
+        throw new Error(
+          "Save As or reload the conflicted project before exporting a backup.",
+        );
+      }
+      if (
+        projectId === this.projectId &&
+        this.dirty
+      ) {
+        await this.saveNow();
+      }
+
+      const bundle =
+        await localProjectDatabase.loadProject(projectId);
+      if (!bundle) {
+        throw new Error("The project no longer exists.");
+      }
+
+      const blob = await createProjectBackup(bundle);
+      const safeName = bundle.document.name
+        .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/[. ]+$/g, "")
+        .slice(0, 80) || "Synth Project";
+
+      return {
+        blob,
+        filename: safeName + ".synth.zip",
+      };
+    } catch (error) {
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return undefined;
+    }
+  }
+
+  async importBackup(
+    blob: Blob,
+  ): Promise<string | undefined> {
+    if (!this.initialized || this.applying) return undefined;
+
+    try {
+      const bundle = await readProjectBackup(blob);
+      const now = new Date().toISOString();
+      const newId = newProjectId();
+      const document: SynthProjectDocument = {
+        ...bundle.document,
+        id: newId,
+        name: cleanProjectName(
+          bundle.document.name + " Imported",
+        ),
+        createdAt: now,
+        updatedAt: now,
+        revision: 1,
+      };
+
+      await localProjectDatabase.saveProject(
+        document,
+        bundle.assets,
+        0,
+        false,
+      );
+      await this.refreshSummaries();
+      await this.refreshStorageEstimate();
+      this.lastError = undefined;
+      this.publish();
+      return newId;
+    } catch (error) {
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return undefined;
+    }
+  }
+
+  async requestPersistentStorage(): Promise<boolean> {
+    try {
+      const storage = navigator.storage;
+      if (!storage?.persist) return false;
+      const persisted = await storage.persist();
+      await this.refreshStorageEstimate();
+      this.publish();
+      return persisted;
+    } catch (error) {
+      this.lastError =
+        error instanceof Error ? error.message : String(error);
+      this.publish();
+      return false;
     }
   }
 
@@ -252,6 +621,8 @@ export class ProjectStore {
       }
 
       await this.refreshSummaries();
+      await this.refreshVersions();
+      await this.refreshStorageEstimate();
       this.initialized = true;
       this.installSubscriptions();
       this.installLifecycle();
@@ -282,6 +653,11 @@ export class ProjectStore {
     this.dirty = true;
     this.changeSerial += 1;
     await this.performSave();
+    if (this.projectId) {
+      await localProjectDatabase.setActiveProjectId(
+        this.projectId,
+      );
+    }
   }
 
   private async performSave(): Promise<void> {
@@ -304,10 +680,13 @@ export class ProjectStore {
       await localProjectDatabase.saveProject(
         document,
         assets,
+        this.documentRevision,
+        false,
       );
 
       this.documentRevision = nextRevision;
       this.lastSavedAt = now;
+      this.conflict = undefined;
 
       if (serialAtStart === this.changeSerial) {
         this.dirty = false;
@@ -318,10 +697,21 @@ export class ProjectStore {
       }
 
       await this.refreshSummaries();
+      await this.refreshVersions();
+      await this.refreshStorageEstimate();
+      this.broadcastSave(document);
       this.publish();
     } catch (error) {
       this.dirty = true;
-      this.saveStatus = "error";
+      if (error instanceof ProjectRevisionConflictError) {
+        this.saveStatus = "conflict";
+        this.conflict = {
+          remoteRevision: error.actualRevision,
+          message: error.message,
+        };
+      } else {
+        this.saveStatus = "error";
+      }
       this.lastError =
         error instanceof Error ? error.message : String(error);
       this.publish();
@@ -520,6 +910,7 @@ export class ProjectStore {
       this.changeSerial += 1;
       this.dirty = false;
       this.saveStatus = "clean";
+      this.conflict = undefined;
       this.lastError = undefined;
     } finally {
       this.applying = false;
@@ -531,6 +922,13 @@ export class ProjectStore {
     if (this.applying || !this.initialized) return;
     this.changeSerial += 1;
     this.dirty = true;
+
+    if (this.conflict) {
+      this.saveStatus = "conflict";
+      this.publish();
+      return;
+    }
+
     this.saveStatus = "dirty";
     this.publish();
     this.scheduleAutosave();
@@ -541,6 +939,7 @@ export class ProjectStore {
       !this.initialized ||
       !this.dirty ||
       this.applying ||
+      this.saveStatus === "conflict" ||
       !localProjectDatabase.supported
     ) {
       return;
@@ -712,9 +1111,91 @@ export class ProjectStore {
     });
   }
 
+  private async refreshStorageEstimate(): Promise<void> {
+    const storage = navigator.storage;
+    if (!storage?.estimate) {
+      this.storage = {};
+      return;
+    }
+
+    try {
+      const estimate = await storage.estimate();
+      const persisted =
+        storage.persisted
+          ? await storage.persisted()
+          : undefined;
+      this.storage = {
+        usageBytes: estimate.usage,
+        quotaBytes: estimate.quota,
+        persisted,
+      };
+    } catch {
+      this.storage = {};
+    }
+  }
+
+  private broadcastSave(
+    document: SynthProjectDocument,
+  ): void {
+    this.broadcast?.postMessage({
+      type: "saved",
+      instanceId: this.instanceId,
+      projectId: document.id,
+      revision: document.revision,
+      updatedAt: document.updatedAt,
+    });
+  }
+
+  private installBroadcastChannel(): void {
+    if (
+      this.broadcast ||
+      typeof BroadcastChannel === "undefined"
+    ) {
+      return;
+    }
+
+    this.broadcast =
+      new BroadcastChannel("synth-project-sync-v1");
+    this.broadcast.onmessage = (event) => {
+      const message = event.data as {
+        type?: string;
+        instanceId?: string;
+        projectId?: string;
+        revision?: number;
+      };
+
+      if (
+        message.type !== "saved" ||
+        message.instanceId === this.instanceId ||
+        message.projectId !== this.projectId ||
+        !Number.isFinite(message.revision)
+      ) {
+        return;
+      }
+
+      const remoteRevision = Math.max(
+        0,
+        Math.round(message.revision ?? 0),
+      );
+      if (remoteRevision <= this.documentRevision) {
+        return;
+      }
+
+      this.conflict = {
+        remoteRevision,
+        message:
+          "A newer revision was saved in another tab.",
+      };
+      this.saveStatus = "conflict";
+      this.clearAutosaveTimer();
+      this.publish();
+    };
+  }
+
   private installLifecycle(): void {
     if (this.lifecycleInstalled) return;
     this.lifecycleInstalled = true;
+    this.installBroadcastChannel();
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden" && this.dirty) {
@@ -727,6 +1208,18 @@ export class ProjectStore {
         void this.saveNow();
       }
     });
+  }
+
+  private async refreshVersions(): Promise<void> {
+    if (
+      !localProjectDatabase.supported ||
+      !this.projectId
+    ) {
+      this.versions = [];
+      return;
+    }
+    this.versions =
+      await localProjectDatabase.listVersions(this.projectId);
   }
 
   private async refreshSummaries(): Promise<void> {
@@ -755,6 +1248,11 @@ export class ProjectStore {
       lastSavedAt: this.lastSavedAt,
       lastError: this.lastError,
       summaries: this.summaries.map((summary) => ({ ...summary })),
+      versions: this.versions.map((version) => ({ ...version })),
+      conflict: this.conflict
+        ? { ...this.conflict }
+        : undefined,
+      storage: { ...this.storage },
       revision: this.revision,
     };
   }

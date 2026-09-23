@@ -166,3 +166,52 @@ export function assertProjectDocument(
     throw new Error("Project creative history is invalid.");
   }
 }
+
+
+export interface ProjectVersionRecord {
+  id: string;
+  projectId: string;
+  name: string;
+  createdAt: string;
+  sourceRevision: number;
+  document: SynthProjectDocument;
+}
+
+export interface ProjectVersionSummary {
+  id: string;
+  projectId: string;
+  name: string;
+  createdAt: string;
+  sourceRevision: number;
+  assetCount: number;
+}
+
+export interface ProjectBackupManifestV1 {
+  format: "synth-project-package";
+  version: 1;
+  exportedAt: string;
+  projectFile: "project.json";
+  assetIndexFile: "assets.json";
+  projectId: string;
+  projectName: string;
+  assetCount: number;
+}
+
+export interface ProjectBackupAssetIndexEntry {
+  id: string;
+  stateFile: string;
+  dataFile: string;
+}
+
+export function versionSummary(
+  version: ProjectVersionRecord,
+): ProjectVersionSummary {
+  return {
+    id: version.id,
+    projectId: version.projectId,
+    name: version.name,
+    createdAt: version.createdAt,
+    sourceRevision: version.sourceRevision,
+    assetCount: version.document.assetIds.length,
+  };
+}

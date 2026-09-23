@@ -1,4 +1,4 @@
-interface ZipEntry {
+export interface ZipEntry {
   name: string;
   bytes: Uint8Array;
 }
@@ -138,4 +138,154 @@ export async function blobZipEntry(
     name,
     bytes: new Uint8Array(await blob.arrayBuffer()),
   };
+}
+
+
+const MAX_PARSE_ENTRIES = 512;
+const MAX_PARSE_BYTES = 1024 * 1024 * 1024;
+
+function safeZipPath(name: string): boolean {
+  return (
+    name.length > 0 &&
+    name.length <= 240 &&
+    !name.startsWith("/") &&
+    !name.startsWith("\\") &&
+    !name.includes("\\") &&
+    !name.split("/").some((part) => part === "..")
+  );
+}
+
+function findEndOfCentralDirectory(
+  bytes: Uint8Array,
+): number {
+  const minimum = Math.max(0, bytes.length - 65_557);
+  for (let offset = bytes.length - 22; offset >= minimum; offset -= 1) {
+    if (
+      bytes[offset] === 0x50 &&
+      bytes[offset + 1] === 0x4b &&
+      bytes[offset + 2] === 0x05 &&
+      bytes[offset + 3] === 0x06
+    ) {
+      return offset;
+    }
+  }
+  return -1;
+}
+
+export async function parseStoreZip(
+  blob: Blob,
+): Promise<Map<string, Uint8Array>> {
+  if (blob.size <= 0 || blob.size > MAX_PARSE_BYTES) {
+    throw new Error("ZIP package size is invalid or too large.");
+  }
+
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const eocdOffset = findEndOfCentralDirectory(bytes);
+  if (eocdOffset < 0) {
+    throw new Error("ZIP end-of-central-directory record is missing.");
+  }
+
+  const disk = view.getUint16(eocdOffset + 4, true);
+  const centralDisk = view.getUint16(eocdOffset + 6, true);
+  const entriesOnDisk = view.getUint16(eocdOffset + 8, true);
+  const entryCount = view.getUint16(eocdOffset + 10, true);
+  const centralSize = view.getUint32(eocdOffset + 12, true);
+  const centralOffset = view.getUint32(eocdOffset + 16, true);
+
+  if (
+    disk !== 0 ||
+    centralDisk !== 0 ||
+    entriesOnDisk !== entryCount
+  ) {
+    throw new Error("Multi-disk ZIP packages are not supported.");
+  }
+  if (entryCount > MAX_PARSE_ENTRIES) {
+    throw new Error("ZIP package contains too many entries.");
+  }
+  if (
+    centralOffset + centralSize > bytes.byteLength ||
+    centralOffset < 0
+  ) {
+    throw new Error("ZIP central directory is out of bounds.");
+  }
+
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const result = new Map<string, Uint8Array>();
+  let cursor = centralOffset;
+  let totalBytes = 0;
+
+  for (let index = 0; index < entryCount; index += 1) {
+    if (
+      cursor + 46 > bytes.byteLength ||
+      view.getUint32(cursor, true) !== 0x02014b50
+    ) {
+      throw new Error("ZIP central directory entry is invalid.");
+    }
+
+    const flags = view.getUint16(cursor + 8, true);
+    const method = view.getUint16(cursor + 10, true);
+    const checksum = view.getUint32(cursor + 16, true);
+    const compressedSize = view.getUint32(cursor + 20, true);
+    const uncompressedSize = view.getUint32(cursor + 24, true);
+    const nameLength = view.getUint16(cursor + 28, true);
+    const extraLength = view.getUint16(cursor + 30, true);
+    const commentLength = view.getUint16(cursor + 32, true);
+    const localOffset = view.getUint32(cursor + 42, true);
+    const nextCursor =
+      cursor + 46 + nameLength + extraLength + commentLength;
+
+    if (nextCursor > bytes.byteLength) {
+      throw new Error("ZIP entry metadata is out of bounds.");
+    }
+    if (method !== 0 || compressedSize !== uncompressedSize) {
+      throw new Error(
+        "Only uncompressed Synth ZIP entries are supported.",
+      );
+    }
+    if ((flags & 0x0008) !== 0) {
+      throw new Error("ZIP data descriptors are not supported.");
+    }
+
+    const name = decoder.decode(
+      bytes.subarray(cursor + 46, cursor + 46 + nameLength),
+    );
+    if (!safeZipPath(name) || result.has(name)) {
+      throw new Error("ZIP contains an unsafe or duplicate path.");
+    }
+
+    if (
+      localOffset + 30 > bytes.byteLength ||
+      view.getUint32(localOffset, true) !== 0x04034b50
+    ) {
+      throw new Error("ZIP local entry header is invalid.");
+    }
+
+    const localNameLength = view.getUint16(localOffset + 26, true);
+    const localExtraLength = view.getUint16(localOffset + 28, true);
+    const dataStart =
+      localOffset + 30 + localNameLength + localExtraLength;
+    const dataEnd = dataStart + uncompressedSize;
+
+    if (dataEnd > bytes.byteLength) {
+      throw new Error("ZIP entry payload is out of bounds.");
+    }
+
+    totalBytes += uncompressedSize;
+    if (totalBytes > MAX_PARSE_BYTES) {
+      throw new Error("ZIP uncompressed payload is too large.");
+    }
+
+    const payload = new Uint8Array(uncompressedSize);
+    payload.set(bytes.subarray(dataStart, dataEnd));
+    if (crc32(payload) !== checksum) {
+      throw new Error("ZIP entry checksum failed: " + name);
+    }
+
+    result.set(name, payload);
+    cursor = nextCursor;
+  }
+
+  return result;
 }

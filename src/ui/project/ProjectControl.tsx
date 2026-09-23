@@ -2,9 +2,11 @@ import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent,
 } from "react";
 import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
+import { triggerBlobDownload } from "../../render/wavEncoder";
 import { MachineButton } from "../pulse/Primitives";
 
 function timeLabel(value: string | undefined): string {
@@ -30,6 +32,8 @@ function statusLabel(
       return "UNSAVED";
     case "clean":
       return "SAVED";
+    case "conflict":
+      return "CONFLICT";
     case "error":
       return "SAVE ERROR";
     case "unsupported":
@@ -40,16 +44,35 @@ function statusLabel(
   }
 }
 
+function bytesLabel(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) return "—";
+  if (value < 1024) return Math.round(value) + " B";
+  if (value < 1024 * 1024) {
+    return (value / 1024).toFixed(1) + " KB";
+  }
+  if (value < 1024 * 1024 * 1024) {
+    return (value / (1024 * 1024)).toFixed(1) + " MB";
+  }
+  return (value / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+}
+
 export function ProjectControl() {
   const project = useProjectSnapshot();
   const [open, setOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState(project.name);
   const [copyName, setCopyName] = useState(project.name + " Copy");
+  const [versionName, setVersionName] = useState("Snapshot");
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deleteVersionId, setDeleteVersionId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setNameDraft(project.name);
     setCopyName(project.name + " Copy");
+    setDeleteProjectId(null);
+    setDeleteVersionId(null);
   }, [project.projectId, project.name]);
 
   useEffect(() => {
@@ -75,9 +98,57 @@ export function ProjectControl() {
   };
 
   const saveCopy = async () => {
-    const id = await projectStore.saveAsNew(copyName);
-    if (id) {
-      setOpen(false);
+    setBusy("save-as");
+    try {
+      const id = await projectStore.saveAsNew(copyName);
+      if (id) setOpen(false);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const createVersion = async () => {
+    setBusy("version");
+    try {
+      const version = await projectStore.createVersion(versionName);
+      if (version) {
+        setVersionName(
+          "Snapshot " + String(project.versions.length + 2),
+        );
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const exportBackup = async (projectId?: string) => {
+    setBusy("backup-export");
+    try {
+      const backup = await projectStore.exportBackup(projectId);
+      if (backup) {
+        triggerBlobDownload(backup.blob, backup.filename);
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const importBackup = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+
+    setBusy("backup-import");
+    try {
+      const id = await projectStore.importBackup(file);
+      if (id) {
+        const opened = await projectStore.openProject(id);
+        if (opened) setOpen(false);
+      }
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -107,8 +178,16 @@ export function ProjectControl() {
         <div
           className="project-popover"
           role="dialog"
-          aria-label="Project controls"
+          aria-label="Project library and persistence controls"
         >
+          <input
+            ref={importRef}
+            className="project-file-input"
+            type="file"
+            accept=".zip,.synth.zip,application/zip"
+            onChange={(event) => void importBackup(event)}
+          />
+
           <div className="project-popover__status">
             <span>
               {project.supported
@@ -116,18 +195,42 @@ export function ProjectControl() {
                 : "LOCAL STORAGE UNAVAILABLE"}
             </span>
             <strong>
-              {project.dirty
-                ? "CHANGES PENDING"
-                : timeLabel(project.lastSavedAt)}
+              {project.saveStatus === "conflict"
+                ? "NEWER REVISION DETECTED"
+                : project.dirty
+                  ? "CHANGES PENDING"
+                  : timeLabel(project.lastSavedAt)}
             </strong>
           </div>
+
+          {project.conflict ? (
+            <div className="project-conflict">
+              <span>{project.conflict.message}</span>
+              <strong>
+                REMOTE REV {project.conflict.remoteRevision}
+              </strong>
+              <div>
+                <MachineButton
+                  compact
+                  disabled={Boolean(busy)}
+                  onClick={() => void projectStore.reloadActiveProject()}
+                >
+                  RELOAD NEWER
+                </MachineButton>
+                <span>
+                  Use SAVE AS below first if you need to preserve this tab's
+                  local state.
+                </span>
+              </div>
+            </div>
+          ) : null}
 
           <label className="project-name-editor">
             <span>PROJECT NAME</span>
             <input
               value={nameDraft}
               maxLength={80}
-              disabled={!project.initialized}
+              disabled={!project.initialized || Boolean(busy)}
               onChange={(event) =>
                 setNameDraft(event.currentTarget.value)
               }
@@ -148,11 +251,35 @@ export function ProjectControl() {
               disabled={
                 !project.initialized ||
                 !project.supported ||
-                project.saveStatus === "saving"
+                Boolean(busy) ||
+                project.saveStatus === "saving" ||
+                project.saveStatus === "conflict"
               }
               onClick={() => void projectStore.saveNow()}
             >
               SAVE NOW
+            </MachineButton>
+            <MachineButton
+              compact
+              disabled={
+                !project.initialized ||
+                !project.supported ||
+                Boolean(busy)
+              }
+              onClick={() => void exportBackup()}
+            >
+              EXPORT BACKUP
+            </MachineButton>
+            <MachineButton
+              compact
+              disabled={
+                !project.initialized ||
+                !project.supported ||
+                Boolean(busy)
+              }
+              onClick={() => importRef.current?.click()}
+            >
+              IMPORT BACKUP
             </MachineButton>
           </div>
 
@@ -162,7 +289,7 @@ export function ProjectControl() {
               <input
                 value={copyName}
                 maxLength={80}
-                disabled={!project.initialized || !project.supported}
+                disabled={!project.initialized || !project.supported || Boolean(busy)}
                 onChange={(event) =>
                   setCopyName(event.currentTarget.value)
                 }
@@ -172,13 +299,91 @@ export function ProjectControl() {
                 disabled={
                   !project.initialized ||
                   !project.supported ||
-                  project.saveStatus === "saving"
+                  Boolean(busy)
                 }
                 onClick={() => void saveCopy()}
               >
                 SAVE AS
               </MachineButton>
             </div>
+          </div>
+
+          <div className="project-versions">
+            <div className="project-popover__subhead">
+              <span>NAMED VERSIONS</span>
+              <strong>{project.versions.length}</strong>
+            </div>
+
+            <div className="project-version-create">
+              <input
+                value={versionName}
+                maxLength={80}
+                disabled={Boolean(busy) || project.saveStatus === "conflict"}
+                onChange={(event) =>
+                  setVersionName(event.currentTarget.value)
+                }
+              />
+              <MachineButton
+                compact
+                disabled={
+                  Boolean(busy) ||
+                  !project.supported ||
+                  project.saveStatus === "conflict"
+                }
+                onClick={() => void createVersion()}
+              >
+                SNAPSHOT
+              </MachineButton>
+            </div>
+
+            {project.versions.length > 0 ? (
+              <div className="project-version-list">
+                {project.versions.map((version) => (
+                  <div key={version.id}>
+                    <div>
+                      <strong>{version.name}</strong>
+                      <small>
+                        REV {version.sourceRevision}
+                        {" · "}
+                        {version.assetCount} ASSETS
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={Boolean(busy)}
+                      onClick={() =>
+                        void projectStore.restoreVersion(version.id)
+                      }
+                    >
+                      RESTORE
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        deleteVersionId === version.id
+                          ? "is-confirming"
+                          : undefined
+                      }
+                      disabled={Boolean(busy)}
+                      onClick={() => {
+                        if (deleteVersionId === version.id) {
+                          setDeleteVersionId(null);
+                          void projectStore.deleteVersion(version.id);
+                        } else {
+                          setDeleteVersionId(version.id);
+                        }
+                      }}
+                    >
+                      {deleteVersionId === version.id
+                        ? "CONFIRM"
+                        : "DELETE"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>NO NAMED VERSIONS</p>
+            )}
           </div>
 
           <div className="project-existing">
@@ -191,34 +396,123 @@ export function ProjectControl() {
               <div className="project-list">
                 {project.summaries.map((summary) => {
                   const active = summary.id === project.projectId;
+                  const confirming =
+                    deleteProjectId === summary.id;
+
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={summary.id}
-                      className={active ? "is-active" : undefined}
-                      disabled={active || project.saveStatus === "saving"}
-                      onClick={() =>
-                        void projectStore
-                          .openProject(summary.id)
-                          .then((ok) => {
-                            if (ok) setOpen(false);
-                          })
+                      className={
+                        active
+                          ? "project-library-row is-active"
+                          : "project-library-row"
                       }
                     >
-                      <span>{summary.name}</span>
-                      <small>
-                        REV {summary.revision}
-                        {" · "}
-                        {summary.assetCount} ASSETS
-                      </small>
-                      <b>{active ? "ACTIVE" : "OPEN"}</b>
-                    </button>
+                      <button
+                        type="button"
+                        className="project-library-row__open"
+                        disabled={
+                          active ||
+                          Boolean(busy) ||
+                          project.saveStatus === "saving"
+                        }
+                        onClick={() =>
+                          void projectStore
+                            .openProject(summary.id)
+                            .then((ok) => {
+                              if (ok) setOpen(false);
+                            })
+                        }
+                      >
+                        <span>{summary.name}</span>
+                        <small>
+                          REV {summary.revision}
+                          {" · "}
+                          {summary.assetCount} ASSETS
+                        </small>
+                        <b>{active ? "ACTIVE" : "OPEN"}</b>
+                      </button>
+
+                      <div className="project-library-row__actions">
+                        <button
+                          type="button"
+                          disabled={Boolean(busy)}
+                          onClick={() =>
+                            void projectStore.duplicateProject(
+                              summary.id,
+                              summary.name + " Copy",
+                            )
+                          }
+                        >
+                          COPY
+                        </button>
+                        <button
+                          type="button"
+                          disabled={Boolean(busy)}
+                          onClick={() =>
+                            void exportBackup(summary.id)
+                          }
+                        >
+                          BACKUP
+                        </button>
+                        <button
+                          type="button"
+                          disabled={active || Boolean(busy)}
+                          className={
+                            confirming
+                              ? "is-confirming"
+                              : undefined
+                          }
+                          onClick={() => {
+                            if (confirming) {
+                              setDeleteProjectId(null);
+                              void projectStore.deleteProject(summary.id);
+                            } else {
+                              setDeleteProjectId(summary.id);
+                            }
+                          }}
+                        >
+                          {confirming ? "CONFIRM DELETE" : "DELETE"}
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             ) : (
               <p>NO SAVED PROJECTS</p>
             )}
+          </div>
+
+          <div className="project-storage">
+            <div className="project-popover__subhead">
+              <span>LOCAL STORAGE</span>
+              <strong>
+                {bytesLabel(project.storage.usageBytes)}
+                {" / "}
+                {bytesLabel(project.storage.quotaBytes)}
+              </strong>
+            </div>
+            <div>
+              <span>
+                {project.storage.persisted === true
+                  ? "PERSISTENT STORAGE GRANTED"
+                  : project.storage.persisted === false
+                    ? "BEST-EFFORT STORAGE"
+                    : "PERSISTENCE STATUS UNKNOWN"}
+              </span>
+              {project.storage.persisted === false ? (
+                <MachineButton
+                  compact
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    void projectStore.requestPersistentStorage()
+                  }
+                >
+                  REQUEST PERSISTENT
+                </MachineButton>
+              ) : null}
+            </div>
           </div>
 
           {project.lastError ? (
@@ -228,8 +522,9 @@ export function ProjectControl() {
           ) : null}
 
           <p className="project-storage-note">
-            Projects and referenced audio are stored locally in this browser.
-            External backup/version-history tooling is intentionally separate.
+            Projects, versions and audio dependencies are local to this
+            browser. Backup packages are portable and integrity-checked before
+            import.
           </p>
         </div>
       ) : null}
