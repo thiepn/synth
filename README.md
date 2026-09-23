@@ -47,7 +47,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 36 — Performance, Battery & Scale Hardening:** complete
 - **Phase 37 — Architecture Consolidation & Product Simplification:** complete
 - **Phase 38 — Comprehensive Product Audit & Adversarial QA:** complete
-- **Next: Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze**
+- **Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze:** complete
+- **Next: Phase 40 — v1.0.0 Production Release & Maintenance Baseline**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -864,6 +865,26 @@ See [Phase 37 implementation notes](docs/phase-37/PHASE_37.md).
 - CI failure screenshots/traces retained as artifacts
 
 See [Phase 38 implementation notes](docs/phase-38/PHASE_38.md).
+
+### Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze
+
+- Synth frozen at `1.0.0-rc.1`
+- committed npm lockfile v3
+- CI and Pages builds use `npm ci`
+- release-freeze contract for version/schema/dependency pins
+- production adversarial matrix repeated twice with zero retries
+- 28/28 RC production-browser executions pass
+- repeated RC soak suite with zero retries
+- 6/6 soak executions pass
+- repeated project save/snapshot/reload cycles
+- Chromium frozen→active transport recovery
+- repeated mode churn after lifecycle recovery
+- six-sample import/decode/remove/GC convergence soak
+- Project schema v1 frozen
+- final RC bundle: 281.5 KB entry JS, 781.8 KB total JS / 19 chunks, 168.1 KB CSS
+- release checklist and evidence frozen before v1.0.0 promotion
+
+See [Phase 39 certification notes](docs/phase-39/PHASE_39.md) and [release checklist](docs/phase-39/RELEASE_CHECKLIST.md).
 
 ## Phase 0 architecture
 
