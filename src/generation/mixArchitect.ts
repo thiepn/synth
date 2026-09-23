@@ -41,6 +41,8 @@ export interface MixArchitectRequest {
   soundSpecs: Record<DrumVoiceId, DrumMaterialSpec>;
   current: MixerState;
   arrangement?: ArrangementBlueprint;
+  lockedVoices?: readonly DrumVoiceId[];
+  masterLocked?: boolean;
 }
 
 export interface MixArchitectMetrics {
@@ -63,6 +65,7 @@ export interface MixArchitectPlan {
   automationLanes: AutomationLane[];
   metrics: MixArchitectMetrics;
   warnings: string[];
+  previewLevelMatchDb: number;
 }
 
 interface ChannelTarget {
@@ -411,7 +414,10 @@ function buildSectionAutomation(
     "crash",
   ];
 
+  const lockedVoices = new Set(request.lockedVoices ?? []);
+
   for (const voice of gainVoices) {
+    if (lockedVoices.has(voice)) continue;
     const targetId = mixerTargetId(voice, "gainDb");
     const base = state.channels[voice].gainDb;
     const points: AutomationPoint[] = [];
@@ -463,6 +469,7 @@ function buildSectionAutomation(
   }
 
   for (const voice of spaceVoices) {
+    if (lockedVoices.has(voice)) continue;
     const targetId = mixerTargetId(voice, "reverbSend");
     const base = state.channels[voice].reverbSend;
     const points: AutomationPoint[] = [];
@@ -497,6 +504,63 @@ function buildSectionAutomation(
   }
 
   return automation;
+}
+
+function dbGain(db: number): number {
+  if (!Number.isFinite(db)) return 1;
+  return Math.pow(10, db / 20);
+}
+
+const LOUDNESS_WEIGHTS: Record<DrumVoiceId, number> = {
+  kick: 1.3,
+  snare: 1.08,
+  clap: 0.72,
+  closedHat: 0.48,
+  openHat: 0.46,
+  tom: 0.82,
+  percussion: 0.58,
+  crash: 0.4,
+};
+
+function loudnessProxy(
+  pattern: Pattern,
+  state: MixerState,
+): number {
+  let total = 0;
+
+  for (const pad of DRUM_PADS) {
+    const channel = state.channels[pad.voice];
+    if (channel.muted) continue;
+
+    const density = Math.max(0.04, laneDensity(pattern, pad.voice));
+    const processingLift =
+      1 +
+      channel.compression * 0.07 +
+      channel.saturation * 0.05;
+    total +=
+      density *
+      LOUDNESS_WEIGHTS[pad.voice] *
+      dbGain(channel.gainDb) *
+      processingLift;
+  }
+
+  return Math.max(
+    0.0001,
+    total * dbGain(state.masterGainDb),
+  );
+}
+
+function previewLevelMatchDb(
+  pattern: Pattern,
+  before: MixerState,
+  after: MixerState,
+): number {
+  const beforeProxy = loudnessProxy(pattern, before);
+  const afterProxy = loudnessProxy(pattern, after);
+  const compensation =
+    20 * Math.log10(beforeProxy / Math.max(0.0001, afterProxy));
+
+  return clamp(compensation, -6, 6);
 }
 
 function metrics(
@@ -554,7 +618,16 @@ export function generateMixPlan(
   );
   const state = cloneMixerState(request.current);
 
+  const lockedVoices = new Set(request.lockedVoices ?? []);
+
   for (const pad of DRUM_PADS) {
+    if (lockedVoices.has(pad.voice)) {
+      state.channels[pad.voice] = {
+        ...request.current.channels[pad.voice],
+      };
+      continue;
+    }
+
     const random = new SeededRandom(
       deriveSeed(effectiveSeed, "channel:" + pad.voice),
     );
@@ -570,11 +643,13 @@ export function generateMixPlan(
     );
   }
 
-  state.masterGainDb = lerp(
-    request.current.masterGainDb,
-    request.direction === "punchy" ? -1.5 : -2,
-    intensity,
-  );
+  state.masterGainDb = request.masterLocked
+    ? request.current.masterGainDb
+    : lerp(
+        request.current.masterGainDb,
+        request.direction === "punchy" ? -1.5 : -2,
+        intensity,
+      );
 
   const automationLanes = buildSectionAutomation(
     request,
@@ -583,6 +658,11 @@ export function generateMixPlan(
   const mixMetrics = metrics(
     state,
     automationLanes.length,
+  );
+  const levelMatchDb = previewLevelMatchDb(
+    request.pattern,
+    request.current,
+    state,
   );
   const warnings: string[] = [];
 
@@ -613,5 +693,6 @@ export function generateMixPlan(
     automationLanes,
     metrics: mixMetrics,
     warnings,
+    previewLevelMatchDb: levelMatchDb,
   };
 }
