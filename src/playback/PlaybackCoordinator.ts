@@ -61,6 +61,12 @@ export function playbackTargetForContext(
 }
 
 export class PlaybackCoordinator {
+  private mode: ModeId = "create";
+
+  currentMode(): ModeId {
+    return this.mode;
+  }
+
   targetForMode(modeId: ModeId): PlaybackTarget {
     return playbackTargetForContext({
       modeId,
@@ -129,7 +135,12 @@ export class PlaybackCoordinator {
     currentMode: ModeId,
     nextMode: ModeId,
   ): void {
-    if (currentMode === nextMode) return;
+    if (currentMode === nextMode) {
+      this.mode = nextMode;
+      return;
+    }
+
+    this.mode = nextMode;
 
     if (
       currentMode === "arrange" ||
