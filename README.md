@@ -38,7 +38,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 27 — Mix Architect, Auto-Mix & Production Engine:** complete
 - **Phase 28 — Mastering, Rendering & Export Engine:** complete
 - **Phase 29 — Sample Lab, Chopping & Creative Sampling:** complete
-- **Next: Phase 30 — Resampling, Bounce, Freeze & Flatten**
+- **Phase 30 — Resampling, Bounce, Freeze & Internal Audio Workflow:** complete
+- **Next: Phase 31 — MIDI, Pad Performance & External Control**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -665,6 +666,24 @@ See [Phase 28 implementation notes](docs/phase-28/PHASE_28.md).
 - canonical SampleSoundSpec rate/fade playback parity across live + offline rendering
 
 See [Phase 29 implementation notes](docs/phase-29/PHASE_29.md).
+
+### Phase 30 — Resampling, Bounce, Freeze & Internal Audio Workflow
+
+- one shared Phase 28 render foundation for all internal bounce operations
+- Render Copy for Pattern / ARRANGE / Section / custom selection / track / FX-tail / master
+- direct internal audio assets with optional automatic Sample Lab opening
+- reversible pre-master Pattern Freeze with real scheduler-level CPU reduction
+- automatic stale-freeze invalidation on Pattern / sound / mix / modulation / engine / tempo / meter changes
+- Flatten Pattern into one canonical rendered-clip event
+- Replace With Audio using the same atomic rendered-clip architecture
+- explicit recovery snapshot for Flatten/Replace
+- renderedClip pre-master routing to prevent double processing
+- current mastering remains live over Freeze/Flatten audio
+- track bounce, Section bounce, selection consolidation, master bounce, FX + tail bounce
+- atomic render-before-mutate behavior
+- content-addressed derived assets retained for later creative resampling
+
+See [Phase 30 implementation notes](docs/phase-30/PHASE_30.md).
 
 ## Phase 0 architecture
 
