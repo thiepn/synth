@@ -1,4 +1,5 @@
 import type { ArrangementShapeId, Pattern } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
 import type { BeatFamilyGenerationResult } from "../generation/beatFamilyGenerator";
 import type { EvolutionPlan } from "../generation/evolutionEngine";
 import {
