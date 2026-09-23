@@ -69,6 +69,71 @@ function watchRuntimeErrors(page: Page): string[] {
   return errors;
 }
 
+function tinyWavBuffer(): Buffer {
+  const sampleRate = 8_000;
+  const sampleCount = 400;
+  const bytesPerSample = 2;
+  const dataBytes = sampleCount * bytesPerSample;
+  const buffer = Buffer.alloc(44 + dataBytes);
+
+  buffer.write("RIFF", 0, "ascii");
+  buffer.writeUInt32LE(36 + dataBytes, 4);
+  buffer.write("WAVE", 8, "ascii");
+  buffer.write("fmt ", 12, "ascii");
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * bytesPerSample, 28);
+  buffer.writeUInt16LE(bytesPerSample, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36, "ascii");
+  buffer.writeUInt32LE(dataBytes, 40);
+
+  for (let index = 0; index < sampleCount; index += 1) {
+    const phase = (index / sampleRate) * Math.PI * 2 * 220;
+    const sample = Math.round(Math.sin(phase) * 4_000);
+    buffer.writeInt16LE(sample, 44 + index * 2);
+  }
+
+  return buffer;
+}
+
+async function corruptActiveProjectSchema(page: Page) {
+  await page.evaluate(async () => {
+    const request = indexedDB.open("synth-local-v1", 2);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    const activeId = await new Promise<string>((resolve, reject) => {
+      const transaction = database.transaction("meta", "readonly");
+      const get = transaction.objectStore("meta").get("activeProjectId");
+      get.onsuccess = () => resolve(get.result?.value);
+      get.onerror = () => reject(get.error);
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("projects", "readwrite");
+      const store = transaction.objectStore("projects");
+      const get = store.get(activeId);
+
+      get.onsuccess = () => {
+        const project = get.result;
+        project.schemaVersion = 999;
+        store.put(project);
+      };
+      get.onerror = () => reject(get.error);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+
+    database.close();
+  });
+}
+
 test("production shell lazy-loads every mode without runtime errors", async ({
   page,
 }) => {
@@ -264,6 +329,175 @@ test("cross-tab revision conflict is detected and can reload the newer revision"
   await expect(
     second.locator(".project-readout--interactive"),
   ).not.toContainText("CONFLICT");
+});
+
+test("named version restore rolls canonical sequencer state back safely", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForProjectReady(page);
+
+  await page.getByRole("button", {
+    name: "Mode 02: SEQUENCE",
+  }).click();
+  await expect(page.locator(".sequence-surface")).toBeVisible();
+
+  const step = page.locator(
+    '.sequence-step[data-lane-id="lane-kick"][data-step-index="0"]',
+  );
+  const initial = await step.getAttribute("aria-pressed");
+  expect(initial).not.toBeNull();
+
+  let dialog = await openProjectDialog(page);
+  await dialog
+    .locator(".project-version-create input")
+    .fill("Before Edit");
+  await dialog.getByRole("button", {
+    name: "SNAPSHOT",
+  }).click();
+  await expect(
+    dialog.locator(".project-version-list"),
+  ).toContainText("Before Edit");
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+
+  await step.click();
+  await expect(step).not.toHaveAttribute(
+    "aria-pressed",
+    initial!,
+  );
+
+  dialog = await openProjectDialog(page);
+  const versionRow = dialog
+    .locator(".project-version-list > div")
+    .filter({ hasText: "Before Edit" });
+  await versionRow.getByRole("button", {
+    name: "RESTORE",
+  }).click();
+
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    initial!,
+  );
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).not.toContainText("SAVE ERROR");
+});
+
+test("sample cache is evicted when content-addressed audio is removed and reimported", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", {
+    name: "Mode 03: SOUND",
+  }).click();
+  await expect(page.locator(".sound-surface")).toBeVisible();
+
+  const samplePanel = page.locator(".sample-source-panel");
+  const input = samplePanel.locator("input.sample-file-input");
+  const file = {
+    name: "qa-tone.wav",
+    mimeType: "audio/wav",
+    buffer: tinyWavBuffer(),
+  };
+
+  await input.setInputFiles(file);
+  let row = samplePanel.locator(".sample-library__row").filter({
+    hasText: "qa-tone.wav",
+  });
+  await expect(row).toBeVisible();
+
+  await row.locator(".sample-library__select").click();
+  await expect(row).toContainText("USE");
+
+  await row.getByRole("button", {
+    name: "Remove sample qa-tone.wav",
+  }).click();
+  await expect(row).toHaveCount(0);
+
+  await input.setInputFiles(file);
+  row = samplePanel.locator(".sample-library__row").filter({
+    hasText: "qa-tone.wav",
+  });
+  await expect(row).toContainText("PREP");
+
+  await row.locator(".sample-library__select").click();
+  await expect(row).toContainText("USE");
+});
+
+test("corrupt active IndexedDB project fails closed and can recover via Save As", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForProjectReady(page);
+
+  await corruptActiveProjectSchema(page);
+  await page.reload();
+
+  await expect(page.locator(".create-surface")).toBeVisible();
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).toContainText("SAVE ERROR");
+
+  const dialog = await openProjectDialog(page);
+  await expect(dialog.locator(".project-error")).toContainText(
+    "Unsupported project schema version",
+  );
+
+  await dialog
+    .locator(".project-copy input")
+    .fill("Recovered QA Project");
+  await dialog.getByRole("button", {
+    name: "SAVE AS",
+  }).click();
+
+  await expect(
+    page.locator(".project-readout--interactive strong"),
+  ).toHaveText("Recovered QA Project");
+
+  await page.reload();
+  await waitForProjectReady(page);
+  await expect(
+    page.locator(".project-readout--interactive strong"),
+  ).toHaveText("Recovered QA Project");
+});
+
+test("rapid mode churn and transport cleanup do not produce runtime errors", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await page.goto("/");
+
+  await page.getByRole("button", {
+    name: "Start transport",
+  }).click();
+
+  const sequence = [
+    "ARRANGE",
+    "CREATE",
+    "LIVE",
+    "MIX",
+    "SEQUENCE",
+    "EXPORT",
+    "SOUND",
+    "CREATE",
+  ] as const;
+
+  for (let round = 0; round < 3; round += 1) {
+    for (const label of sequence) {
+      const mode = MODES.find((entry) => entry[1] === label)!;
+      await page.getByRole("button", {
+        name: "Mode " + mode[0] + ": " + mode[1],
+      }).click();
+    }
+  }
+
+  await expect(page.locator(".create-surface")).toBeVisible();
+  await page.getByRole("button", {
+    name: "Stop and return to loop start",
+  }).click();
+
+  expect(errors).toEqual([]);
 });
 
 test("offline shell reloads and an unvisited lazy mode remains available", async ({
