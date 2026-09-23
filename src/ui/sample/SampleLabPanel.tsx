@@ -241,13 +241,14 @@ export function SampleLabPanel({
   const playSpec = async (
     spec: ReturnType<typeof sampleLabStore.sliceSpec>,
     padIndex?: number,
+    loop = false,
   ) => {
     if (!spec) return;
     if (padIndex !== undefined) {
       sampleLabStore.recordPad(padIndex, 0.92);
     }
     try {
-      await sampleLabPlayer.play(spec, 0.92);
+      await sampleLabPlayer.play(spec, 0.92, loop);
     } catch (error) {
       setStatus(
         "AUDITION FAILED / " +
@@ -255,6 +256,13 @@ export function SampleLabPanel({
       );
     }
   };
+
+  useEffect(
+    () => () => {
+      sampleLabPlayer.stop();
+    },
+    [],
+  );
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
@@ -676,11 +684,30 @@ export function SampleLabPanel({
                 </MachineButton>
                 <MachineButton
                   compact
+                  active={lab.loopPreview}
                   onClick={() =>
-                    void playSpec(sampleLabStore.regionSpec())
+                    sampleLabStore.setLoopPreview(!lab.loopPreview)
+                  }
+                >
+                  {lab.loopPreview ? "LOOP ON" : "LOOP OFF"}
+                </MachineButton>
+                <MachineButton
+                  compact
+                  onClick={() =>
+                    void playSpec(
+                      sampleLabStore.regionSpec(),
+                      undefined,
+                      lab.loopPreview,
+                    )
                   }
                 >
                   ▶ REGION
+                </MachineButton>
+                <MachineButton
+                  compact
+                  onClick={() => sampleLabPlayer.stop()}
+                >
+                  ■ STOP
                 </MachineButton>
               </div>
             </div>
