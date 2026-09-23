@@ -203,6 +203,7 @@ export class LocalProjectDatabase {
     document: SynthProjectDocument,
     assets: readonly PersistedAudioAsset[],
     expectedRevision?: number,
+    activate = true,
   ): Promise<void> {
     assertProjectDocument(document);
     const db = await this.open();
@@ -299,10 +300,12 @@ export class LocalProjectDatabase {
         for (const asset of assets) {
           assetStore.put(clonePersistedAsset(asset));
         }
-        metaStore.put({
-          key: ACTIVE_PROJECT_KEY,
-          value: document.id,
-        } satisfies MetaRecord);
+        if (activate) {
+          metaStore.put({
+            key: ACTIVE_PROJECT_KEY,
+            value: document.id,
+          } satisfies MetaRecord);
+        }
       };
     });
   }
