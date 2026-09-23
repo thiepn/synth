@@ -343,6 +343,25 @@ export class ModulationStore {
     this.publish();
   }
 
+  replaceAutomationLane(nextLane: AutomationLane): void {
+    const lane = cloneLane(nextLane);
+    const index = this.automationLanes.findIndex(
+      (entry) => entry.targetId === lane.targetId,
+    );
+
+    if (index < 0) {
+      this.automationLanes = [...this.automationLanes, lane];
+    } else {
+      this.automationLanes = [
+        ...this.automationLanes.slice(0, index),
+        lane,
+        ...this.automationLanes.slice(index + 1),
+      ];
+    }
+
+    this.publish();
+  }
+
   resolveTarget(
     targetId: string,
     baseValue: number,
