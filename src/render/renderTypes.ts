@@ -83,6 +83,8 @@ export type RenderTailMode = "none" | "auto" | "fixed";
 export interface RenderOptions {
   sampleRate: 44_100 | 48_000;
   includeMastering: boolean;
+  /** Default true. Internal freeze/flatten renders can bypass it. */
+  includeSafetyLimiter?: boolean;
   tailMode: RenderTailMode;
   fixedTailSeconds?: number;
   stemVoice?: DrumVoiceId;
