@@ -128,6 +128,14 @@ export class AudioTransport {
   }
 
   /**
+   * Precise musical position for external-performance capture.
+   * Uses the same Web Audio clock as the scheduler rather than the UI frame snapshot.
+   */
+  getCurrentAbsoluteTick(): number {
+    return this.currentAbsoluteTick();
+  }
+
+  /**
    * Unlock/resume Web Audio from an explicit user gesture without starting
    * transport playback. Used by direct instrument audition.
    */
