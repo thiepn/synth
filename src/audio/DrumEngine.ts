@@ -33,6 +33,8 @@ import {
 } from "../sequencer/playbackRules";
 import { drumSoundStore } from "./drumSoundModel";
 import { sampleAssetStore } from "./SampleAssetStore";
+import { performanceStore } from "../performance/PerformanceStore";
+import { applyPerformanceToHits } from "../performance/performancePlayback";
 
 export interface DrumMacros {
   punch: number;
@@ -59,6 +61,7 @@ interface MasterGraph {
   compressor: DynamicsCompressorNode;
   convolver: ConvolverNode;
   wet: GainNode;
+  performanceFilter: BiquadFilterNode;
   master: GainNode;
   limiter: DynamicsCompressorNode;
 }
@@ -140,6 +143,8 @@ export class DrumEngine {
   private auditionVoiceIds = new Set<number>();
   private sequencerEditTimer: number | null = null;
   private soundEditTimer: number | null = null;
+  private performanceEditTimer: number | null = null;
+  private repeatSourceHits: PatternPlaybackHit[] = [];
   private nextVoiceId = 1;
   private currentTransportEpoch = -1;
 
@@ -186,6 +191,16 @@ export class DrumEngine {
         this.soundEditTimer = null;
         audioTransport.invalidateScheduledEvents();
       }, 32);
+    });
+
+    performanceStore.subscribe(() => {
+      this.applyGraphMacros();
+      if (this.performanceEditTimer !== null) return;
+
+      this.performanceEditTimer = globalThis.setTimeout(() => {
+        this.performanceEditTimer = null;
+        audioTransport.invalidateScheduledEvents();
+      }, 16);
     });
   }
 
@@ -420,6 +435,38 @@ export class DrumEngine {
         swing = sequencer.pattern.groove?.swing ?? 0;
       }
 
+      let performanceVelocityScale = 1;
+      const performanceSnapshot = performanceStore.getSnapshot();
+      if (performanceSnapshot.active) {
+        const performanceState = performanceStore.resolveAtTick(
+          pulse.absoluteTick,
+        );
+
+        if (
+          performanceState.momentary.repeat ||
+          performanceState.momentary.stutter
+        ) {
+          if (this.repeatSourceHits.length > 0) {
+            hits = this.repeatSourceHits.map((hit) => ({ ...hit }));
+          }
+        } else if (hits.length > 0) {
+          this.repeatSourceHits = hits.map((hit) => ({ ...hit }));
+        }
+
+        const performancePattern =
+          arrangementResolved?.pattern ??
+          sequencerStore.getSnapshot().pattern;
+        const performed = applyPerformanceToHits(
+          hits,
+          performancePattern,
+          stepIndex,
+          pulse.absoluteTick,
+          performanceState,
+        );
+        hits = performed.hits;
+        performanceVelocityScale = performed.velocityScale;
+      }
+
       const swingOffsetUs = swingOffsetUsForStep(
         stepIndex,
         transport.bpm,
@@ -446,7 +493,10 @@ export class DrumEngine {
               ? 0.68 + arrangementEnergy * 0.42
               : 1;
           const ratchetVelocity =
-            Math.min(1, hit.velocity * energyScale) *
+            Math.min(
+              1,
+              hit.velocity * energyScale * performanceVelocityScale,
+            ) *
             Math.max(0.58, 1 - index * 0.09);
           const ratchetTime = baseTime + index * ratchetSpacing;
 
@@ -505,6 +555,7 @@ export class DrumEngine {
       this.cancelAuditionVoices(context.currentTime);
     } else {
       this.cancelTransportVoices(context.currentTime, true);
+      this.repeatSourceHits = [];
     }
   }
 
@@ -521,6 +572,7 @@ export class DrumEngine {
     const compressor = context.createDynamicsCompressor();
     const convolver = context.createConvolver();
     const wet = context.createGain();
+    const performanceFilter = context.createBiquadFilter();
     const master = context.createGain();
     const limiter = context.createDynamicsCompressor();
 
@@ -538,6 +590,9 @@ export class DrumEngine {
     limiter.release.value = 0.06;
 
     convolver.buffer = this.createImpulseResponse(context);
+    performanceFilter.type = "lowpass";
+    performanceFilter.frequency.value = 20_000;
+    performanceFilter.Q.value = 0.5;
     master.gain.value = this.master * 0.92;
 
     input.connect(drive);
@@ -547,7 +602,8 @@ export class DrumEngine {
     convolver.connect(wet);
     wet.connect(compressor);
 
-    compressor.connect(master);
+    compressor.connect(performanceFilter);
+    performanceFilter.connect(master);
     master.connect(limiter);
     limiter.connect(context.destination);
 
@@ -558,6 +614,7 @@ export class DrumEngine {
       compressor,
       convolver,
       wet,
+      performanceFilter,
       master,
       limiter,
     };
@@ -573,9 +630,29 @@ export class DrumEngine {
     if (!this.graph) return;
 
     const now = this.graph.context.currentTime;
-    this.graph.drive.curve = createDriveCurve(this.macros.grit);
+    const performance = performanceStore.getSnapshot();
+    const live = performance.active ? performance.macros : null;
+    const drive = clamp01(
+      this.macros.grit + (live?.drive ?? 0) * 0.68,
+    );
+    const space = clamp01(
+      this.macros.space + (live?.space ?? 0) * 0.58,
+    );
+    const filterAmount = live?.filter ?? 1;
+    const minFilterHz = 360;
+    const maxFilterHz = 20_000;
+    const filterHz =
+      minFilterHz *
+      Math.pow(maxFilterHz / minFilterHz, clamp01(filterAmount));
+
+    this.graph.drive.curve = createDriveCurve(drive);
     this.graph.wet.gain.setTargetAtTime(
-      this.macros.space * 0.34,
+      space * 0.34,
+      now,
+      0.018,
+    );
+    this.graph.performanceFilter.frequency.setTargetAtTime(
+      filterHz,
       now,
       0.018,
     );
