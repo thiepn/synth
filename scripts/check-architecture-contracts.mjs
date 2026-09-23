@@ -200,6 +200,45 @@ if (
   failures.push("Obsolete ModePlaceholder file still exists.");
 }
 
+const sequencerStoreSource = readFileSync(
+  resolve(srcRoot, "sequencer/SequencerStore.ts"),
+  "utf8",
+);
+if (
+  sequencerStoreSource.includes("runtimePreview") ||
+  sequencerStoreSource.includes("setRuntimePreview")
+) {
+  failures.push(
+    "SequencerStore still owns playback-only runtime preview state.",
+  );
+}
+
+if (
+  sources.some(
+    (path) =>
+      projectPath(path).endsWith(
+        "performance/CreativePlaybackBridge.tsx",
+      ),
+  )
+) {
+  failures.push(
+    "Obsolete React CreativePlaybackBridge still exists.",
+  );
+}
+
+const drumEngineSource = readFileSync(
+  resolve(srcRoot, "audio/DrumEngine.ts"),
+  "utf8",
+);
+if (
+  !drumEngineSource.includes("creativePatternResolver") ||
+  drumEngineSource.includes("resolvePerformancePattern")
+) {
+  failures.push(
+    "DrumEngine is not using the canonical creative-pattern resolver.",
+  );
+}
+
 if (failures.length > 0) {
   throw new Error(
     "Architecture consolidation contract failed:\n- " +
