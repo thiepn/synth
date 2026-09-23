@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   projectStore,
   type ProjectSnapshot,
 } from "./ProjectStore";
 
 export function useProjectSnapshot(): ProjectSnapshot {
-  return useSyncExternalStore(
-    projectStore.subscribe,
-    projectStore.getSnapshot,
-    projectStore.getSnapshot,
-  );
+  return useStoreSnapshot(projectStore);
 }
