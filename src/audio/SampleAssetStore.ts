@@ -1,5 +1,5 @@
-import type
-import { errorMessage } from "../runtime/errors"; { AssetReference } from "../domain/contracts";
+import type { AssetReference } from "../domain/contracts";
+import { errorMessage } from "../runtime/errors";
 
 export type SampleDecodeStatus =
   | "raw"
