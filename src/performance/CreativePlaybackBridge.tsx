@@ -5,7 +5,7 @@ import { generateChaos } from "../generation/chaosEngine";
 import { useBeatMorphSnapshot } from "../morph/useBeatMorph";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../sequencer/useSequencer";
-import type { ModeId } from "../ui/pulse/Primitives";
+import type { ModeId } from "../app/modeModel";
 import { usePerformanceSnapshot } from "./usePerformance";
 
 export function CreativePlaybackBridge({
