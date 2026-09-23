@@ -40,6 +40,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 29 — Sample Lab, Chopping & Creative Sampling:** complete
 - **Phase 30 — Resampling, Bounce, Freeze & Internal Audio Workflow:** complete
 - **Phase 31 — MIDI, Pad Performance & External Control:** complete
+- **Phase 32 — Project Document & Local Persistence Foundation:** complete
+- **Next: Phase 33 — Project Library, Version History, Backup & Data Resilience**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -706,6 +708,28 @@ See [Phase 30 implementation notes](docs/phase-30/PHASE_30.md).
 - clean unsupported-browser fallback
 
 See [Phase 31 implementation notes](docs/phase-31/PHASE_31.md).
+
+### Phase 32 — Project Document & Local Persistence Foundation
+
+- versioned ProjectDocument v1
+- explicit canonical restore APIs instead of private-field/state replay hacks
+- complete Pattern / DrumEngine / sound / mixer / modulation / mastering persistence
+- Beat Family + ARRANGE foundation + ARRANGE Pattern-catalog persistence
+- full creative Generation History persistence
+- MIDI mapping/profile persistence without persisting live device handles
+- IndexedDB projects / assets / meta stores
+- raw sample bytes stored separately from project JSON
+- atomic project + referenced-asset writes
+- active-project restoration on startup
+- transient workspace isolation across project loads
+- rollback bundle on failed project opening
+- debounced autosave with in-flight change serial protection
+- filtering of runtime-only transport / meter / hardware updates
+- explicit Save / Rename / Save As / local project switching
+- real project header controller replacing the static SYN-7F2 placeholder
+- clean session-only fallback when IndexedDB is unavailable
+
+See [Phase 32 implementation notes](docs/phase-32/PHASE_32.md).
 
 ## Phase 0 architecture
 
