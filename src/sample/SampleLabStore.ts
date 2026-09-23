@@ -571,7 +571,11 @@ export class SampleLabStore {
         (entry) => entry.id === event.sliceId,
       );
       const pad = DRUM_PADS[event.padIndex];
-      const lane = SEQUENCER_LANES[event.padIndex];
+      const lane = pad
+        ? SEQUENCER_LANES.find(
+            (entry) => entry.voice === pad.voice,
+          )
+        : undefined;
       const spec = slice ? this.sliceSpec(slice) : undefined;
       if (!slice || !pad || !lane || !spec) continue;
 
@@ -694,7 +698,7 @@ export class SampleLabStore {
         region.gainDb +
           (region.normalize ? region.normalizeGainDb : 0),
         -36,
-        18,
+        12,
       ),
       pitchSemitones: region.pitchSemitones,
       playbackRate: region.playbackRate,
