@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Pattern } from "../../domain/contracts";
 import { drumEngine } from "../../audio/DrumEngine";
 import { useTransportSnapshot } from "../../audio/useTransport";
@@ -61,10 +61,6 @@ export function ChaosPanel({
   );
   const previewPattern = chaos.result?.pattern;
 
-  useEffect(() => {
-    chaosStore.setBasePattern(pattern);
-  }, [pattern]);
-
   const previewGeometry = useMemo(
     () => (previewPattern ? deriveRhythmGlyph(previewPattern) : undefined),
     [previewPattern],
@@ -89,7 +85,6 @@ export function ChaosPanel({
         previewPattern,
       );
 
-    sequencerStore.setRuntimePreview(undefined);
     sequencerStore.restorePatternSnapshot(prepared.pattern);
     const applied = sequencerStore.getSnapshot().pattern;
 
