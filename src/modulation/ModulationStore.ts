@@ -362,6 +362,20 @@ export class ModulationStore {
     this.publish();
   }
 
+  replaceAutomationLanesForPrefix(
+    prefix: string,
+    lanes: readonly AutomationLane[],
+  ): void {
+    const retained = this.automationLanes.filter(
+      (lane) => !lane.targetId.startsWith(prefix),
+    );
+    this.automationLanes = [
+      ...retained,
+      ...lanes.map(cloneLane),
+    ];
+    this.publish();
+  }
+
   resolveTarget(
     targetId: string,
     baseValue: number,
