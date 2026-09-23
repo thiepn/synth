@@ -48,12 +48,18 @@ function dosTimeDate(date: Date): { time: number; date: number } {
   };
 }
 
+function ownedArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
 export function createStoreZip(
   entries: readonly ZipEntry[],
 ): Blob {
   const now = dosTimeDate(new Date());
-  const localParts: Uint8Array[] = [];
-  const centralParts: Uint8Array[] = [];
+  const localParts: ArrayBuffer[] = [];
+  const centralParts: ArrayBuffer[] = [];
   let localOffset = 0;
 
   for (const entry of entries) {
@@ -75,7 +81,7 @@ export function createStoreZip(
     lv.setUint16(28, 0, true);
     new Uint8Array(local, 30).set(name);
 
-    localParts.push(new Uint8Array(local), entry.bytes);
+    localParts.push(local, ownedArrayBuffer(entry.bytes));
 
     const central = new ArrayBuffer(46 + name.length);
     const cv = new DataView(central);
@@ -98,7 +104,7 @@ export function createStoreZip(
     cv.setUint32(42, localOffset, true);
     new Uint8Array(central, 46).set(name);
 
-    centralParts.push(new Uint8Array(central));
+    centralParts.push(central);
     localOffset += local.byteLength + entry.bytes.byteLength;
   }
 
@@ -119,7 +125,7 @@ export function createStoreZip(
   ev.setUint16(20, 0, true);
 
   return new Blob(
-    [...localParts, ...centralParts, new Uint8Array(end)],
+    [...localParts, ...centralParts, end],
     { type: "application/zip" },
   );
 }
