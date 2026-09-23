@@ -620,8 +620,29 @@ export class ProjectStore {
     subscribe(sequencerStore.subscribe);
     subscribe(drumSoundStore.subscribe);
     subscribe(sampleAssetStore.subscribe);
-    subscribe(mixerStore.subscribe);
-    subscribe(masteringStore.subscribe);
+
+    let mixerSignature =
+      this.mixerPersistenceSignature();
+    this.unsubscribers.push(
+      mixerStore.subscribe(() => {
+        const next = this.mixerPersistenceSignature();
+        if (next === mixerSignature) return;
+        mixerSignature = next;
+        this.markDirty();
+      }),
+    );
+
+    let masteringSignature =
+      this.masteringPersistenceSignature();
+    this.unsubscribers.push(
+      masteringStore.subscribe(() => {
+        const next = this.masteringPersistenceSignature();
+        if (next === masteringSignature) return;
+        masteringSignature = next;
+        this.markDirty();
+      }),
+    );
+
     subscribe(beatFamilyStore.subscribe);
     subscribe(arrangementFoundationStore.subscribe);
     subscribe(arrangementStore.subscribe);
@@ -635,6 +656,19 @@ export class ProjectStore {
       meter: transport.meter,
       loopBars: transport.loopBars,
     });
+  }
+
+  private mixerPersistenceSignature(): string {
+    return JSON.stringify({
+      state: mixerStore.currentState(),
+      locks: mixerStore.currentLocks(),
+    });
+  }
+
+  private masteringPersistenceSignature(): string {
+    return JSON.stringify(
+      masteringStore.currentState(),
+    );
   }
 
   private enginePersistenceSignature(): string {
