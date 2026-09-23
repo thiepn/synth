@@ -158,6 +158,8 @@ export class PerformanceStore {
     this.active = active;
     if (!active) {
       this.clearTransient(false);
+      this.recording = false;
+      this.recordingEvents = [];
     }
     this.publish();
   }
@@ -274,11 +276,15 @@ export class PerformanceStore {
   }
 
   recordSceneLaunch(sectionId: string, tick: number): void {
+    const before = this.recordingEvents.length;
     this.record({
       type: "scene",
       tick,
       sectionId,
     });
+    if (this.recordingEvents.length !== before) {
+      this.publish();
+    }
   }
 
   startRecording(): void {
