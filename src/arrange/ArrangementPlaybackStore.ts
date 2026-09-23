@@ -2,6 +2,7 @@ import {
   audioTransport,
   type TransportStatus,
 } from "../audio/AudioTransport";
+import { ticksPerBeat } from "../audio/transportMath";
 import { arrangementStore } from "./ArrangementStore";
 
 export interface ArrangementPlaybackSnapshot {
@@ -15,6 +16,7 @@ export interface ArrangementPlaybackSnapshot {
   currentOccurrenceId?: string;
   currentPatternId?: string;
   currentEnergy: number;
+  queuedSectionId?: string;
   revision: number;
 }
 
@@ -32,6 +34,8 @@ export class ArrangementPlaybackStore {
   private currentOccurrenceId: string | undefined;
   private currentPatternId: string | undefined;
   private currentEnergy = 0;
+  private queuedSectionId: string | undefined;
+  private queuedTransportTick: number | undefined;
   private lastArrangementMusicalRevision =
     arrangementStore.getSnapshot().musicalRevision;
   private revision = 0;
@@ -115,11 +119,38 @@ export class ArrangementPlaybackStore {
         ? section.startTick + section.lengthTicks
         : arrangement.totalTicks;
     this.engaged = true;
+    this.queuedSectionId = undefined;
+    this.queuedTransportTick = undefined;
     this.resolveCurrentState();
     this.publish();
 
     await audioTransport.start();
     this.handleTransportUpdate();
+  }
+
+  queueSection(sectionId: string): number | undefined {
+    const arrangement = arrangementStore.getSnapshot();
+    const section = arrangement.blueprint?.sections.find(
+      (entry) => entry.id === sectionId,
+    );
+    if (!section) return undefined;
+
+    if (!this.engaged) {
+      void this.start(sectionId, false);
+      return 0;
+    }
+
+    const transport = audioTransport.getSnapshot();
+    const beatTicks = ticksPerBeat(transport.meter);
+    const barTicks = beatTicks * Math.max(1, transport.meter.numerator);
+    const targetTick =
+      Math.ceil((transport.position.absoluteTick + 1) / barTicks) * barTicks;
+
+    this.queuedSectionId = sectionId;
+    this.queuedTransportTick = targetTick;
+    audioTransport.invalidateScheduledEvents();
+    this.publish();
+    return targetTick;
   }
 
   pause(): void {
@@ -161,12 +192,36 @@ export class ArrangementPlaybackStore {
     this.currentOccurrenceId = undefined;
     this.currentPatternId = undefined;
     this.currentEnergy = 0;
+    this.queuedSectionId = undefined;
+    this.queuedTransportTick = undefined;
     audioTransport.stop();
     this.publish();
   }
 
   resolveTransportTick(transportAbsoluteTick: number) {
     if (!this.engaged) return null;
+
+    if (
+      this.queuedSectionId &&
+      this.queuedTransportTick !== undefined &&
+      transportAbsoluteTick >= this.queuedTransportTick
+    ) {
+      const section = arrangementStore
+        .getSnapshot()
+        .blueprint?.sections.find(
+          (entry) => entry.id === this.queuedSectionId,
+        );
+
+      if (section) {
+        this.startOffsetTick =
+          section.startTick - Math.max(0, transportAbsoluteTick);
+        this.playheadTick = section.startTick;
+      }
+
+      this.queuedSectionId = undefined;
+      this.queuedTransportTick = undefined;
+    }
+
     const arrangementTick =
       this.startOffsetTick + Math.max(0, transportAbsoluteTick);
     if (
@@ -312,6 +367,7 @@ export class ArrangementPlaybackStore {
       currentOccurrenceId: this.currentOccurrenceId,
       currentPatternId: this.currentPatternId,
       currentEnergy: this.currentEnergy,
+      queuedSectionId: this.queuedSectionId,
       revision: this.revision,
     };
   }
