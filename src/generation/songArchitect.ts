@@ -58,6 +58,7 @@ export interface SongArchitectCandidate {
   displaySeed: string;
   shape: ArrangementShapeId;
   sourceMode: Exclude<SongArchitectSourceMode, "auto">;
+  sourceRefId: string;
   family: BeatFamilyGenerationResult;
   result: SceneSectionGenerationResult;
   occurrences: SongArchitectOccurrence[];
@@ -331,6 +332,7 @@ function resolveFamily(
   request: SongArchitectRequest,
 ): {
   mode: Exclude<SongArchitectSourceMode, "auto">;
+  sourceRefId: string;
   family: BeatFamilyGenerationResult;
 } {
   if (
@@ -345,6 +347,7 @@ function resolveFamily(
 
     return {
       mode: "evolve",
+      sourceRefId: request.evolution.id,
       family: familyFromEvolution(request.evolution),
     };
   }
@@ -357,6 +360,7 @@ function resolveFamily(
 
   return {
     mode: "family",
+    sourceRefId: request.family.family.id,
     family: cloneFamilyResult(request.family),
   };
 }
@@ -428,7 +432,10 @@ function buildOccurrences(
     section.startTick = cursor;
     let sectionLength = 0;
 
-    const sequence = section.patternSequence.map((patternId) => ({
+    const sequence: Array<{
+      patternId: string;
+      kind: SongArchitectOccurrence["kind"];
+    }> = section.patternSequence.map((patternId) => ({
       patternId,
       kind:
         patternId === section.fillPatternId
@@ -515,9 +522,13 @@ export function generateSongCandidate(
   const lockedIndexes = new Set(
     request.lockedSectionIndexes ?? [],
   );
+  const previousForLocks =
+    request.previous?.sourceRefId === source.sourceRefId
+      ? request.previous
+      : undefined;
   const merged = replaceLockedSections(
     generated,
-    request.previous,
+    previousForLocks,
     lockedIndexes,
   );
   const built = buildOccurrences(
@@ -572,6 +583,7 @@ export function generateSongCandidate(
     displaySeed,
     shape: request.shape,
     sourceMode: source.mode,
+    sourceRefId: source.sourceRefId,
     family: source.family,
     result: built.result,
     occurrences: built.occurrences,
