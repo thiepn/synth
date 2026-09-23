@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -31,3 +31,9 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Install Chromium for adversarial QA
+        run: npm run qa:e2e:install
+
+      - name: Production browser QA
+        run: npm run qa:e2e
