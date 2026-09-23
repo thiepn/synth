@@ -16,29 +16,32 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function monoAt(buffer: AudioBuffer, index: number): number {
-  let value = 0;
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
-    value += buffer.getChannelData(channel)[index] ?? 0;
-  }
-  return value / Math.max(1, buffer.numberOfChannels);
-}
-
-export function analyzeSampleBuffer(
-  buffer: AudioBuffer,
+export function analyzeSampleChannels(
+  channelsInput: readonly Float32Array[],
+  sampleRateInput: number,
   waveformBins = 512,
 ): SampleAnalysis {
+  const channels =
+    channelsInput.length > 0
+      ? channelsInput
+      : [new Float32Array(1)];
+  const sampleRate = Math.max(1, sampleRateInput);
+  const length = Math.max(
+    1,
+    Math.min(...channels.map((channel) => channel.length || 1)),
+  );
   const bins = Math.max(64, Math.min(2048, Math.round(waveformBins)));
   const waveform = Array.from({ length: bins }, () => 0);
-  const bucketSize = Math.max(1, Math.floor(buffer.length / bins));
+  const bucketSize = Math.max(1, Math.ceil(length / bins));
 
   let peak = 0;
   let sumSquares = 0;
   let sampleCount = 0;
 
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
-    const data = buffer.getChannelData(channel);
-    for (let index = 0; index < data.length; index += 1) {
+  for (const data of channels) {
+    const boundedLength = Math.min(length, data.length);
+
+    for (let index = 0; index < boundedLength; index += 1) {
       const value = data[index] ?? 0;
       const abs = Math.abs(value);
       peak = Math.max(peak, abs);
@@ -48,15 +51,21 @@ export function analyzeSampleBuffer(
 
     for (let bin = 0; bin < bins; bin += 1) {
       const start = bin * bucketSize;
-      const end =
-        bin === bins - 1
-          ? data.length
-          : Math.min(data.length, start + bucketSize);
+      if (start >= boundedLength) break;
+      const end = Math.min(boundedLength, start + bucketSize);
       let localPeak = 0;
+
       for (let index = start; index < end; index += 1) {
-        localPeak = Math.max(localPeak, Math.abs(data[index] ?? 0));
+        localPeak = Math.max(
+          localPeak,
+          Math.abs(data[index] ?? 0),
+        );
       }
-      waveform[bin] = Math.max(waveform[bin] ?? 0, localPeak);
+
+      waveform[bin] = Math.max(
+        waveform[bin] ?? 0,
+        localPeak,
+      );
     }
   }
 
@@ -65,37 +74,60 @@ export function analyzeSampleBuffer(
     Math.max(0, Math.min(1, value / maximum)),
   );
 
-  const windowSize = Math.max(128, Math.round(buffer.sampleRate * 0.012));
-  const hopSize = Math.max(64, Math.round(buffer.sampleRate * 0.006));
+  const windowSize = Math.max(
+    128,
+    Math.round(sampleRate * 0.012),
+  );
+  const hopSize = Math.max(
+    64,
+    Math.round(sampleRate * 0.006),
+  );
   const energies: number[] = [];
   const flux: number[] = [];
+  const channelCount = Math.max(1, channels.length);
 
-  for (let start = 0; start < buffer.length; start += hopSize) {
-    const end = Math.min(buffer.length, start + windowSize);
+  for (let start = 0; start < length; start += hopSize) {
+    const end = Math.min(length, start + windowSize);
     let energy = 0;
+
     for (let index = start; index < end; index += 1) {
-      const value = monoAt(buffer, index);
-      energy += value * value;
+      let mono = 0;
+      for (const data of channels) {
+        mono += data[index] ?? 0;
+      }
+      mono /= channelCount;
+      energy += mono * mono;
     }
-    energies.push(Math.sqrt(energy / Math.max(1, end - start)));
+
+    energies.push(
+      Math.sqrt(energy / Math.max(1, end - start)),
+    );
   }
 
   for (let index = 0; index < energies.length; index += 1) {
     const previous = energies[index - 1] ?? 0;
-    flux.push(Math.max(0, (energies[index] ?? 0) - previous));
+    flux.push(
+      Math.max(0, (energies[index] ?? 0) - previous),
+    );
   }
 
   const mean =
-    flux.reduce((sum, value) => sum + value, 0) / Math.max(1, flux.length);
-  const variance =
-    flux.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) /
+    flux.reduce((sum, value) => sum + value, 0) /
     Math.max(1, flux.length);
+  const variance =
+    flux.reduce(
+      (sum, value) => sum + Math.pow(value - mean, 2),
+      0,
+    ) / Math.max(1, flux.length);
   const threshold = mean + Math.sqrt(variance) * 1.1;
   const minSpacingFrames = Math.max(
     1,
-    Math.round((buffer.sampleRate * 0.055) / hopSize),
+    Math.round((sampleRate * 0.055) / hopSize),
   );
-  const candidates: Array<{ index: number; value: number }> = [];
+  const candidates: Array<{
+    index: number;
+    value: number;
+  }> = [];
 
   for (let index = 1; index < flux.length - 1; index += 1) {
     const value = flux[index] ?? 0;
@@ -114,7 +146,9 @@ export function analyzeSampleBuffer(
   for (const candidate of candidates) {
     if (
       accepted.every(
-        (index) => Math.abs(index - candidate.index) >= minSpacingFrames,
+        (index) =>
+          Math.abs(index - candidate.index) >=
+          minSpacingFrames,
       )
     ) {
       accepted.push(candidate.index);
@@ -126,12 +160,30 @@ export function analyzeSampleBuffer(
   return {
     waveform: normalizedWaveform,
     transientsSeconds: accepted.map(
-      (index) => (index * hopSize) / buffer.sampleRate,
+      (index) => (index * hopSize) / sampleRate,
     ),
     peak,
-    rms: Math.sqrt(sumSquares / Math.max(1, sampleCount)),
-    durationSeconds: buffer.duration,
+    rms: Math.sqrt(
+      sumSquares / Math.max(1, sampleCount),
+    ),
+    durationSeconds: length / sampleRate,
   };
+}
+
+export function analyzeSampleBuffer(
+  buffer: AudioBuffer,
+  waveformBins = 512,
+): SampleAnalysis {
+  const channels = Array.from(
+    { length: buffer.numberOfChannels },
+    (_, channel) => buffer.getChannelData(channel),
+  );
+
+  return analyzeSampleChannels(
+    channels,
+    buffer.sampleRate,
+    waveformBins,
+  );
 }
 
 export function equalSliceRanges(
@@ -160,17 +212,17 @@ export function beatSliceRanges(
   const end = Math.max(start + 0.001, endSeconds);
   const safeBpm = clamp(bpm, 30, 300);
   const safeBeats = clamp(beatsPerSlice, 0.25, 16);
-  const length = (60 / safeBpm) * safeBeats;
+  const sliceLength = (60 / safeBpm) * safeBeats;
   const ranges: SampleSliceRange[] = [];
 
   for (
     let cursor = start;
     cursor < end - 0.0005 && ranges.length < 32;
-    cursor += length
+    cursor += sliceLength
   ) {
     ranges.push({
       startSeconds: cursor,
-      endSeconds: Math.min(end, cursor + length),
+      endSeconds: Math.min(end, cursor + sliceLength),
     });
   }
 
@@ -187,25 +239,42 @@ export function transientSliceRanges(
 ): SampleSliceRange[] {
   const start = Math.max(0, startSeconds);
   const end = Math.max(start + 0.001, endSeconds);
-  const max = Math.max(1, Math.min(32, Math.round(maximumSlices)));
+  const max = Math.max(
+    1,
+    Math.min(32, Math.round(maximumSlices)),
+  );
   const cuts = [
     start,
     ...transientSeconds.filter(
-      (value) => value > start + 0.015 && value < end - 0.015,
+      (value) =>
+        value > start + 0.015 &&
+        value < end - 0.015,
     ),
     end,
   ]
     .sort((a, b) => a - b)
-    .filter((value, index, values) =>
-      index === 0 || Math.abs(value - (values[index - 1] ?? 0)) > 0.012,
+    .filter(
+      (value, index, values) =>
+        index === 0 ||
+        Math.abs(
+          value - (values[index - 1] ?? 0),
+        ) > 0.012,
     );
 
   const ranges: SampleSliceRange[] = [];
-  for (let index = 0; index < cuts.length - 1 && ranges.length < max; index += 1) {
+  for (
+    let index = 0;
+    index < cuts.length - 1 &&
+    ranges.length < max;
+    index += 1
+  ) {
     const from = cuts[index] ?? start;
     const to = cuts[index + 1] ?? end;
     if (to - from < 0.012) continue;
-    ranges.push({ startSeconds: from, endSeconds: to });
+    ranges.push({
+      startSeconds: from,
+      endSeconds: to,
+    });
   }
 
   if (ranges.length === 0) {
@@ -228,22 +297,41 @@ export function normalizeGainDb(
 ): number {
   const start = Math.max(
     0,
-    Math.min(buffer.length - 1, Math.floor(startSeconds * buffer.sampleRate)),
+    Math.min(
+      buffer.length - 1,
+      Math.floor(startSeconds * buffer.sampleRate),
+    ),
   );
   const end = Math.max(
     start + 1,
-    Math.min(buffer.length, Math.ceil(endSeconds * buffer.sampleRate)),
+    Math.min(
+      buffer.length,
+      Math.ceil(endSeconds * buffer.sampleRate),
+    ),
   );
   let peak = 0;
 
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+  for (
+    let channel = 0;
+    channel < buffer.numberOfChannels;
+    channel += 1
+  ) {
     const data = buffer.getChannelData(channel);
     for (let index = start; index < end; index += 1) {
-      peak = Math.max(peak, Math.abs(data[index] ?? 0));
+      peak = Math.max(
+        peak,
+        Math.abs(data[index] ?? 0),
+      );
     }
   }
 
   if (peak <= 0.000001) return 0;
   const target = Math.pow(10, targetPeakDb / 20);
-  return Math.max(-24, Math.min(24, 20 * Math.log10(target / peak)));
+  return Math.max(
+    -24,
+    Math.min(
+      24,
+      20 * Math.log10(target / peak),
+    ),
+  );
 }
