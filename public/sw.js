@@ -6,7 +6,12 @@ const CACHE_PREFIX = "synth-shell-";
 const SCOPE_URL = new URL(self.registration.scope);
 const ROOT_URL = new URL("./", SCOPE_URL).href;
 const MANIFEST_URL = new URL("./manifest.webmanifest", SCOPE_URL).href;
-const ICON_URL = new URL("./icons/synth.svg", SCOPE_URL).href;
+const ICON_URLS = [
+  "./icons/synth.svg",
+  "./icons/synth-180.png",
+  "./icons/synth-192.png",
+  "./icons/synth-512.png",
+].map((path) => new URL(path, SCOPE_URL).href);
 
 function sameScope(url) {
   return (
@@ -37,7 +42,7 @@ async function precacheShell() {
 
   await cache.put(ROOT_URL, rootResponse.clone());
   const html = await rootResponse.text();
-  const urls = new Set([MANIFEST_URL, ICON_URL]);
+  const urls = new Set([MANIFEST_URL, ...ICON_URLS]);
   const pattern = /(?:src|href)=["']([^"'#]+)["']/g;
   let match;
 
