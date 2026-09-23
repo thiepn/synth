@@ -7,7 +7,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -27,23 +27,7 @@ jobs:
           node-version: "22"
 
       - name: Install
-        run: npm install --no-audit --no-fund
-
-      - name: Freeze generated npm dependency graph
-        if: github.event_name == 'pull_request' && github.head_ref == 'rc/phase-39' && hashFiles('package-lock.json') != ''
-        shell: bash
-        run: |
-          if git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
-            echo "package-lock.json already tracked."
-            exit 0
-          fi
-          git fetch origin "$GITHUB_HEAD_REF"
-          git reset --hard "origin/$GITHUB_HEAD_REF"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore(rc): freeze npm dependency graph"
-          git push origin HEAD:"$GITHUB_HEAD_REF"
+        run: npm ci --no-audit --no-fund
 
       - name: Production build
         run: npm run build
