@@ -7,8 +7,25 @@ import {
   DRUM_PADS,
   type DrumVoiceId,
 } from "../music/foundationPattern";
+import {
+  MIXER_EQ_MAX_DB,
+  MIXER_EQ_MIN_DB,
+  MIXER_GAIN_MAX_DB,
+  MIXER_GAIN_MIN_DB,
+} from "../mix/mixerModel";
 
-export type ModulationTargetScope = "engine" | "voice";
+export type ModulationTargetScope = "engine" | "voice" | "mixer";
+
+export type MixerParameterId =
+  | "gainDb"
+  | "pan"
+  | "lowDb"
+  | "midDb"
+  | "highDb"
+  | "compression"
+  | "saturation"
+  | "reverbSend"
+  | "sidechain";
 
 export interface ModulationTargetDefinition {
   id: string;
@@ -20,6 +37,7 @@ export interface ModulationTargetDefinition {
   defaultValue: number;
   voice?: DrumVoiceId;
   param?: DrumMaterialParam;
+  mixerParam?: MixerParameterId | "masterGainDb";
 }
 
 const ENGINE_TARGETS: ModulationTargetDefinition[] = [
@@ -109,8 +127,120 @@ const VOICE_TARGETS: ModulationTargetDefinition[] = DRUM_PADS.flatMap(
     })),
 );
 
+const MIXER_PARAMETERS: ReadonlyArray<{
+  id: MixerParameterId;
+  label: string;
+  short: string;
+  min: number;
+  max: number;
+  defaultValue: number;
+}> = [
+  {
+    id: "gainDb",
+    label: "Gain",
+    short: "GAIN",
+    min: MIXER_GAIN_MIN_DB,
+    max: MIXER_GAIN_MAX_DB,
+    defaultValue: 0,
+  },
+  {
+    id: "pan",
+    label: "Pan",
+    short: "PAN",
+    min: -1,
+    max: 1,
+    defaultValue: 0,
+  },
+  {
+    id: "lowDb",
+    label: "Low EQ",
+    short: "LOW",
+    min: MIXER_EQ_MIN_DB,
+    max: MIXER_EQ_MAX_DB,
+    defaultValue: 0,
+  },
+  {
+    id: "midDb",
+    label: "Mid EQ",
+    short: "MID",
+    min: MIXER_EQ_MIN_DB,
+    max: MIXER_EQ_MAX_DB,
+    defaultValue: 0,
+  },
+  {
+    id: "highDb",
+    label: "High EQ",
+    short: "HIGH",
+    min: MIXER_EQ_MIN_DB,
+    max: MIXER_EQ_MAX_DB,
+    defaultValue: 0,
+  },
+  {
+    id: "compression",
+    label: "Compression",
+    short: "COMP",
+    min: 0,
+    max: 1,
+    defaultValue: 0,
+  },
+  {
+    id: "saturation",
+    label: "Saturation",
+    short: "SAT",
+    min: 0,
+    max: 1,
+    defaultValue: 0,
+  },
+  {
+    id: "reverbSend",
+    label: "Reverb Send",
+    short: "VERB",
+    min: 0,
+    max: 1,
+    defaultValue: 1,
+  },
+  {
+    id: "sidechain",
+    label: "Sidechain",
+    short: "SIDE",
+    min: 0,
+    max: 1,
+    defaultValue: 0,
+  },
+];
+
+const MIXER_TARGETS: ModulationTargetDefinition[] = [
+  {
+    id: "mixer.master.gainDb",
+    label: "Mixer / Master Gain",
+    shortLabel: "MASTER GAIN",
+    scope: "mixer",
+    min: MIXER_GAIN_MIN_DB,
+    max: MIXER_GAIN_MAX_DB,
+    defaultValue: 0,
+    mixerParam: "masterGainDb",
+  },
+  ...DRUM_PADS.flatMap((pad) =>
+    MIXER_PARAMETERS.map((param) => ({
+      id: "mixer." + pad.voice + "." + param.id,
+      label: pad.label + " / " + param.label,
+      shortLabel: pad.code + " " + param.short,
+      scope: "mixer" as const,
+      min: param.min,
+      max: param.max,
+      defaultValue: param.defaultValue,
+      voice: pad.voice,
+      mixerParam: param.id,
+    })),
+  ),
+];
+
 export const MODULATION_TARGETS: readonly ModulationTargetDefinition[] =
-  Object.freeze([...ENGINE_TARGETS, ...VOICE_TARGETS]);
+  Object.freeze([
+    ...ENGINE_TARGETS,
+    ...VOICE_TARGETS,
+    ...MIXER_TARGETS,
+  ]);
 
 const TARGETS_BY_ID = new Map(
   MODULATION_TARGETS.map((target) => [target.id, target]),
@@ -140,4 +270,38 @@ export function engineTargetId(
     | "filter",
 ): string {
   return "engine." + macro;
+}
+
+
+export function mixerTargetId(
+  voice: DrumVoiceId,
+  param: MixerParameterId,
+): string {
+  return "mixer." + voice + "." + param;
+}
+
+export function mixerMasterTargetId(): string {
+  return "mixer.master.gainDb";
+}
+
+export function normalizeTargetValue(
+  targetId: string,
+  value: number,
+): number {
+  const target = modulationTarget(targetId);
+  if (!target || target.max <= target.min) return 0;
+  return Math.max(
+    0,
+    Math.min(1, (value - target.min) / (target.max - target.min)),
+  );
+}
+
+export function denormalizeTargetValue(
+  targetId: string,
+  value: number,
+): number {
+  const target = modulationTarget(targetId);
+  if (!target) return value;
+  const normalized = Math.max(0, Math.min(1, value));
+  return target.min + normalized * (target.max - target.min);
 }
