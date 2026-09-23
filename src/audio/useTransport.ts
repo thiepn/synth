@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
+import { eventTargetConsumesKeyboard } from "../input/domInputGuards";
 import {
   audioTransport,
   type TransportSnapshot,
@@ -22,12 +23,7 @@ export function useTransportLifecycle(
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Space" || event.repeat) return;
 
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.matches("input, textarea, select, button, [role='slider']"))
-      ) {
+      if (eventTargetConsumesKeyboard(event.target)) {
         return;
       }
 
