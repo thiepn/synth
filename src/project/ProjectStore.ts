@@ -189,7 +189,17 @@ export class ProjectStore {
     if (projectId === this.projectId) return true;
 
     if (this.dirty) {
-      await this.saveNow();
+      if (this.saveStatus === "conflict") {
+        this.lastError =
+          "Save As or reload the conflicted project before switching projects.";
+        this.publish();
+        return false;
+      }
+      try {
+        await this.saveNow();
+      } catch {
+        return false;
+      }
     }
 
     const rollback = this.captureCurrentBundle();
@@ -244,6 +254,11 @@ export class ProjectStore {
 
     try {
       await this.saveNow();
+      if (this.projectId) {
+        await localProjectDatabase.setActiveProjectId(
+          this.projectId,
+        );
+      }
       return this.projectId;
     } catch (error) {
       this.projectId = previousId;
@@ -638,6 +653,11 @@ export class ProjectStore {
     this.dirty = true;
     this.changeSerial += 1;
     await this.performSave();
+    if (this.projectId) {
+      await localProjectDatabase.setActiveProjectId(
+        this.projectId,
+      );
+    }
   }
 
   private async performSave(): Promise<void> {
@@ -661,7 +681,7 @@ export class ProjectStore {
         document,
         assets,
         this.documentRevision,
-        true,
+        false,
       );
 
       this.documentRevision = nextRevision;
