@@ -186,7 +186,10 @@ export class RenderStore {
       const snapshot = createRenderSnapshot(request.range);
       if (!this.isActive(task)) return undefined;
 
-      const entries = [];
+      const entries: Array<{
+        name: string;
+        bytes: Uint8Array;
+      }> = [];
       const analyses: Partial<Record<DrumVoiceId, RenderAnalysis>> = {};
 
       for (const pad of DRUM_PADS) {
