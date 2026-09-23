@@ -66,6 +66,9 @@ function MomentaryPad({
     } catch {
       // Pointer capture may already have been released by the browser.
     }
+    window.setTimeout(() => {
+      interaction.current = null;
+    }, 0);
   };
 
   return (
@@ -102,7 +105,10 @@ function MomentaryPad({
         event.preventDefault();
         releaseAction();
       }}
-      onBlur={releaseAction}
+      onBlur={() => {
+        releaseAction();
+        interaction.current = null;
+      }}
       onClick={() => {
         if (interaction.current) {
           interaction.current = null;
