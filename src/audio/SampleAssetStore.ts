@@ -107,6 +107,16 @@ export class SampleAssetStore {
 
   readonly getSnapshot = (): SampleAssetSnapshot => this.snapshot;
 
+  clearProjectAssets(): void {
+    if (this.states.size === 0 && this.bytes.size === 0) return;
+    this.states.clear();
+    this.bytes.clear();
+    this.decoded = new WeakMap();
+    this.reversed = new WeakMap();
+    this.decodePromises = new WeakMap();
+    this.publish();
+  }
+
   async importFile(file: File): Promise<SampleAssetState> {
     if (!isSupportedAudioFile(file)) {
       throw new Error("Choose a browser-decodable audio file.");
