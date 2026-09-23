@@ -356,6 +356,7 @@ export type HistoryOperation =
   | "remix"
   | "chaos"
   | "evolve"
+  | "sampleLab"
   | "manualEdit"
   | "generateKit"
   | "generateTransition"
