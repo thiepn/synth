@@ -728,6 +728,19 @@ export class SequencerStore {
     this.applyGeneratedPattern(nextPattern);
   }
 
+  restoreProjectPattern(nextPattern: Pattern): void {
+    const restored = clonePattern(nextPattern);
+    this.validatePatternShape(restored);
+    this.runtimePreview = undefined;
+    this.pattern = restored;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastCoalesceKey = null;
+    this.lastCoalesceAt = 0;
+    this.activeGestureKey = null;
+    this.publish();
+  }
+
   restorePatternSnapshot(nextPattern: Pattern): void {
     const allowedLengths = new Set(
       SEQUENCER_LENGTH_OPTIONS.map(
