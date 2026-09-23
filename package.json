@@ -7,11 +7,12 @@
     "predev": "node scripts/generate-pwa-icons.mjs",
     "dev": "vite",
     "prebuild": "node scripts/generate-pwa-icons.mjs",
-    "build": "npm run check:interaction && tsc --noEmit && vite build",
+    "build": "npm run check:interaction && npm run check:performance && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:interaction": "node scripts/check-interaction-contracts.mjs",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
-    "postbuild": "npm run check:bundle"
+    "postbuild": "npm run check:bundle",
+    "check:performance": "node scripts/check-performance-contracts.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
