@@ -48,6 +48,58 @@ if (localPatternClones.length > 0) {
   );
 }
 
+const localArrangementClones = sources
+  .filter(
+    (path) =>
+      projectPath(path) !==
+      "src/domain/arrangementClone.ts",
+  )
+  .filter((path) =>
+    /function\s+clone(?:Arrangement)?Blueprint\s*\(/.test(
+      content(path),
+    ),
+  )
+  .map(projectPath);
+
+if (localArrangementClones.length > 0) {
+  failures.push(
+    "Local ARRANGE blueprint clone implementations remain: " +
+      localArrangementClones.join(", "),
+  );
+}
+
+const localFamilyClones = sources
+  .filter(
+    (path) =>
+      projectPath(path) !== "src/domain/familyClone.ts",
+  )
+  .filter((path) =>
+    /function\s+cloneBeatFamily\s*\(/.test(content(path)),
+  )
+  .map(projectPath);
+
+if (localFamilyClones.length > 0) {
+  failures.push(
+    "Local BeatFamily clone implementations remain: " +
+      localFamilyClones.join(", "),
+  );
+}
+
+const legacyModeImports = sources
+  .filter((path) =>
+    /import\s*\{[\s\S]*?\b(?:MODES|ModeId|ModeDefinition)\b[\s\S]*?\}\s*from\s*["'][^"']*pulse\/Primitives["']/.test(
+      content(path),
+    ),
+  )
+  .map(projectPath);
+
+if (legacyModeImports.length > 0) {
+  failures.push(
+    "Mode identity is still imported from UI primitives: " +
+      legacyModeImports.join(", "),
+  );
+}
+
 const directSyncStoreHooks = sources
   .filter(
     (path) =>
