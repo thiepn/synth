@@ -125,6 +125,7 @@ export class ProjectStore {
   private changeSerial = 0;
   private persistedAssetIds = new Set<string>();
   private autosaveTimer: number | undefined;
+  private autosaveIdleHandle: number | undefined;
   private savePromise: Promise<void> | undefined;
   private unsubscribers: Array<() => void> = [];
   private lifecycleInstalled = false;
@@ -951,14 +952,44 @@ export class ProjectStore {
     this.clearAutosaveTimer();
     this.autosaveTimer = globalThis.setTimeout(() => {
       this.autosaveTimer = undefined;
-      void this.saveNow();
+
+      const idleHost = globalThis as typeof globalThis & {
+        requestIdleCallback?: (
+          callback: () => void,
+          options?: { timeout?: number },
+        ) => number;
+      };
+
+      if (idleHost.requestIdleCallback) {
+        this.autosaveIdleHandle =
+          idleHost.requestIdleCallback(
+            () => {
+              this.autosaveIdleHandle = undefined;
+              void this.saveNow();
+            },
+            { timeout: 1_000 },
+          );
+      } else {
+        void this.saveNow();
+      }
     }, AUTOSAVE_DELAY_MS);
   }
 
   private clearAutosaveTimer(): void {
-    if (this.autosaveTimer === undefined) return;
-    globalThis.clearTimeout(this.autosaveTimer);
-    this.autosaveTimer = undefined;
+    if (this.autosaveTimer !== undefined) {
+      globalThis.clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = undefined;
+    }
+
+    if (this.autosaveIdleHandle !== undefined) {
+      const idleHost = globalThis as typeof globalThis & {
+        cancelIdleCallback?: (handle: number) => void;
+      };
+      idleHost.cancelIdleCallback?.(
+        this.autosaveIdleHandle,
+      );
+      this.autosaveIdleHandle = undefined;
+    }
   }
 
   private installSubscriptions(): void {
