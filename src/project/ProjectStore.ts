@@ -449,8 +449,8 @@ export class ProjectStore {
       chaosStore.reset();
       evolutionStore.clear();
       songArchitectStore.clear();
-      performanceStore.setActive(false);
-      sampleLabStore.clear();
+      performanceStore.resetProjectTransientState();
+      sampleLabStore.resetProjectTransientState();
       renderStore.cancel();
       renderStore.resetStatus();
       resampleStore.resetProjectTransientState();
