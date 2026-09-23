@@ -4,6 +4,8 @@ import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
 import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
 import { SoundSurface } from "./ui/surfaces/SoundSurface";
 import { ArrangeSurface } from "./ui/surfaces/ArrangeSurface";
+import { PerformanceSurface } from "./ui/surfaces/PerformanceSurface";
+import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { audioTransport } from "./audio/AudioTransport";
 import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
@@ -27,6 +29,7 @@ export function App() {
   return (
     <div className="synth-app">
       <TransportLifecycle mode={mode} />
+      <CreativePlaybackBridge mode={modeId} />
       <UtilityRail mode={mode} />
 
       <main className="synth-workspace">
@@ -38,6 +41,8 @@ export function App() {
           <SoundSurface />
         ) : modeId === "arrange" ? (
           <ArrangeSurface />
+        ) : modeId === "live" ? (
+          <PerformanceSurface />
         ) : (
           <ModePlaceholder mode={mode} />
         )}
@@ -48,7 +53,7 @@ export function App() {
         onChange={(next) => {
           if (next === modeId) return;
 
-          if (modeId === "arrange") {
+          if (modeId === "arrange" || modeId === "live") {
             arrangementPlaybackStore.stop();
           } else if (next === "arrange") {
             audioTransport.stop();
@@ -106,7 +111,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 22</span>
+        <span>PHASE 23</span>
       </div>
     </nav>
   );
