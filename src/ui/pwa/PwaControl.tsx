@@ -13,6 +13,7 @@ export function PwaControl() {
   const project = useProjectSnapshot();
   const [helpOpen, setHelpOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!helpOpen) return;
@@ -31,6 +32,9 @@ export function PwaControl() {
       if (event.key !== "Escape") return;
       event.preventDefault();
       setHelpOpen(false);
+      window.requestAnimationFrame(() => {
+        triggerRef.current?.focus();
+      });
     };
 
     document.addEventListener("pointerdown", close);
@@ -127,6 +131,7 @@ export function PwaControl() {
       className="pwa-control-shell"
     >
       <button
+        ref={triggerRef}
         type="button"
         className="pwa-control"
         onClick={() => setHelpOpen((value) => !value)}
