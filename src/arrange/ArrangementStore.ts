@@ -514,7 +514,11 @@ export class ArrangementStore {
     kind: ArrangementOccurrence["kind"];
     cycleIndex: number;
   }> {
-    const main = section.patternSequence.map((patternId, cycleIndex) => ({
+    const main: Array<{
+      patternId: string;
+      kind: ArrangementOccurrence["kind"];
+      cycleIndex: number;
+    }> = section.patternSequence.map((patternId, cycleIndex) => ({
       patternId,
       kind:
         section.fillPatternId === patternId &&
