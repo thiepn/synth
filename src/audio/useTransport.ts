@@ -1,15 +1,12 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   audioTransport,
   type TransportSnapshot,
 } from "./AudioTransport";
 
 export function useTransportSnapshot(): TransportSnapshot {
-  return useSyncExternalStore(
-    audioTransport.subscribe,
-    audioTransport.getSnapshot,
-    audioTransport.getSnapshot,
-  );
+  return useStoreSnapshot(audioTransport);
 }
 
 export function useTransportLifecycle(
