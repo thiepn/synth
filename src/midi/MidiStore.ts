@@ -1,5 +1,5 @@
-import {
-import { errorMessage } from "../runtime/errors"; audioTransport } from "../audio/AudioTransport";
+import { audioTransport } from "../audio/AudioTransport";
+import { errorMessage } from "../runtime/errors";
 import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import type { StepEvent } from "../domain/contracts";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
