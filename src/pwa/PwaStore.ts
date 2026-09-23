@@ -1,5 +1,6 @@
-type Listener = () => void;
 import { errorMessage } from "../runtime/errors";
+
+type Listener = () => void;
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
