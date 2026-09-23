@@ -1,9 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const buildId =
-  process.env.GITHUB_SHA?.slice(0, 12) ??
-  ("local-" + Date.now().toString(36));
+const buildId = "build-" + Date.now().toString(36);
 
 export default defineConfig({
   base: "./",
