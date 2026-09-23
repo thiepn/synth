@@ -10,7 +10,6 @@ import {
 } from "../music/foundationPattern";
 import { sequencerStore } from "../sequencer/SequencerStore";
 import {
-  analyzeSampleBuffer,
   beatSliceRanges,
   equalSliceRanges,
   normalizeGainDb,
@@ -18,6 +17,9 @@ import {
   type SampleAnalysis,
   type SampleSliceRange,
 } from "./sampleAnalysis";
+import {
+  sampleAnalysisWorkerClient,
+} from "./sampleAnalysisClient";
 
 export type SampleSliceMode =
   | "transient"
@@ -193,6 +195,7 @@ export class SampleLabStore {
   private takes: ChopTake[] = [];
   private eventSerial = 1;
   private takeSerial = 1;
+  private loadSerial = 0;
   private revision = 0;
   private snapshot = this.buildSnapshot();
 
@@ -204,9 +207,17 @@ export class SampleLabStore {
   readonly getSnapshot = (): SampleLabSnapshot => this.snapshot;
 
   async loadAsset(assetId: string): Promise<void> {
+    const loadSerial = ++this.loadSerial;
     const context = await audioTransport.unlockAudio();
     const buffer = await sampleAssetStore.ensureDecoded(context, assetId);
-    const analysis = analyzeSampleBuffer(buffer, 768);
+    const analysis = await sampleAnalysisWorkerClient.analyze(
+      buffer,
+      768,
+    );
+
+    if (loadSerial !== this.loadSerial) {
+      return;
+    }
 
     this.activeAssetId = assetId;
     this.analysis = analysis;
@@ -230,6 +241,7 @@ export class SampleLabStore {
   }
 
   resetProjectTransientState(): void {
+    this.loadSerial += 1;
     this.activeAssetId = undefined;
     this.analysis = undefined;
     this.region = undefined;
@@ -253,6 +265,7 @@ export class SampleLabStore {
   }
 
   clear(): void {
+    this.loadSerial += 1;
     this.activeAssetId = undefined;
     this.analysis = undefined;
     this.region = undefined;
