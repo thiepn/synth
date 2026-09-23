@@ -9,11 +9,28 @@ const packageJson = JSON.parse(
   ),
 );
 
+const packageLock = JSON.parse(
+  readFileSync(
+    resolve(root, "package-lock.json"),
+    "utf8",
+  ),
+);
+
 const failures = [];
 
 if (packageJson.version !== "1.0.0-rc.1") {
   failures.push(
     "package version must be 1.0.0-rc.1 during Phase 39.",
+  );
+}
+
+if (
+  packageLock.lockfileVersion !== 3 ||
+  packageLock.version !== packageJson.version ||
+  packageLock.packages?.[""]?.version !== packageJson.version
+) {
+  failures.push(
+    "package-lock.json must be lockfile v3 and match the RC package version.",
   );
 }
 
