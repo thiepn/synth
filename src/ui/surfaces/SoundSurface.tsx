@@ -42,6 +42,7 @@ import {
   TransportStatusLabel,
 } from "../transport/TransportUI";
 import { SampleSourcePanel } from "../sound/SampleSourcePanel";
+import { ModulationPanel } from "../modulation/ModulationPanel";
 
 function paramLabel(
   voice: DrumVoiceId,
@@ -580,6 +581,8 @@ export function SoundSurface() {
       </section>
 
       <SampleSourcePanel voice={selectedVoice} />
+
+      <ModulationPanel selectedVoice={selectedVoice} />
 
       <section className="sound-evolution-panel" aria-labelledby="sound-evolution-title">
         <div className="machine-section-label">

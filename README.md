@@ -32,7 +32,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 21 — Beat Morph & Remix Engine:** complete
 - **Phase 22 — Chaos Engine & Controlled Randomness:** complete
 - **Phase 23 — Performance Engine, Live Macros & Jam Capture:** complete
-- **Next: Phase 24 — Modulation, Automation & Parameter Routing**
+- **Phase 24 — Modulation, Automation & Parameter Routing:** complete
+- **Next: Phase 25 — EVOLVE: Long-Form Beat Development Engine**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -543,6 +544,24 @@ See [Phase 22 implementation notes](docs/phase-22/PHASE_22.md).
 - no Sequencer Undo pollution from performance overlays
 
 See [Phase 23 implementation notes](docs/phase-23/PHASE_23.md).
+
+### Phase 24 — Modulation, Automation & Parameter Routing
+
+- canonical runtime parameter registry
+- engine + per-voice drum-material modulation targets
+- tempo-synced LFO / Envelope / Sample & Hold / Smooth Random / Step Mod sources
+- deterministic random modulation
+- bipolar/unipolar source behavior
+- routable ± depth matrix
+- multiple sources per target
+- loopable Hold / Linear / Smooth automation lanes
+- touch/pointer automation drawing and point coalescing
+- live Base / Automation / Modulation value feedback
+- runtime resolution inside DrumEngine
+- base → automation → modulation → LIVE overlay → clamp precedence
+- no saved drum-spec mutation or Sequencer Undo pollution
+
+See [Phase 24 implementation notes](docs/phase-24/PHASE_24.md).
 
 ## Phase 0 architecture
 

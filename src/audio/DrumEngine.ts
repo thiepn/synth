@@ -31,13 +31,21 @@ import {
   normalizedFlamOffsetUs,
   normalizedRatchetCount,
 } from "../sequencer/playbackRules";
-import { drumSoundStore } from "./drumSoundModel";
+import {
+  DRUM_MATERIAL_PARAMS,
+  drumSoundStore,
+} from "./drumSoundModel";
 import { sampleAssetStore } from "./SampleAssetStore";
 import { performanceStore } from "../performance/PerformanceStore";
 import { applyPerformanceToHits } from "../performance/performancePlayback";
 import { chaosStore } from "../chaos/ChaosStore";
 import { generateChaos } from "../generation/chaosEngine";
 import { beatMorphStore } from "../morph/BeatMorphStore";
+import { modulationStore } from "../modulation/ModulationStore";
+import {
+  engineTargetId,
+  voiceTargetId,
+} from "../modulation/parameterRegistry";
 
 export interface DrumMacros {
   punch: number;
@@ -150,6 +158,7 @@ export class DrumEngine {
   private repeatSourceHits: PatternPlaybackHit[] = [];
   private performancePatternCacheKey = "";
   private performancePatternCache: Pattern | undefined;
+  private modulationTick = 0;
   private nextVoiceId = 1;
   private currentTransportEpoch = -1;
 
@@ -199,6 +208,16 @@ export class DrumEngine {
     });
 
     performanceStore.subscribe(() => {
+      this.applyGraphMacros();
+      if (this.performanceEditTimer !== null) return;
+
+      this.performanceEditTimer = globalThis.setTimeout(() => {
+        this.performanceEditTimer = null;
+        audioTransport.invalidateScheduledEvents();
+      }, 16);
+    });
+
+    modulationStore.subscribe(() => {
       this.applyGraphMacros();
       if (this.performanceEditTimer !== null) return;
 
@@ -403,6 +422,8 @@ export class DrumEngine {
       this.currentTransportEpoch = pulse.epoch;
 
       const transport = audioTransport.getSnapshot();
+      this.modulationTick = Math.max(0, pulse.absoluteTick);
+      this.applyGraphMacros();
       const arrangementPlayback =
         arrangementPlaybackStore.getSnapshot();
       const arrangementResolved =
@@ -685,13 +706,35 @@ export class DrumEngine {
     const now = this.graph.context.currentTime;
     const performance = performanceStore.getSnapshot();
     const live = performance.active ? performance.macros : null;
+    const modulatedDrive = modulationStore.resolveTarget(
+      engineTargetId("grit"),
+      this.macros.grit,
+      this.modulationTick,
+    ).value;
+    const modulatedSpace = modulationStore.resolveTarget(
+      engineTargetId("space"),
+      this.macros.space,
+      this.modulationTick,
+    ).value;
+    const modulatedFilter = modulationStore.resolveTarget(
+      engineTargetId("filter"),
+      1,
+      this.modulationTick,
+    ).value;
+    const modulatedMaster = modulationStore.resolveTarget(
+      engineTargetId("master"),
+      this.master,
+      this.modulationTick,
+    ).value;
     const drive = clamp01(
-      this.macros.grit + (live?.drive ?? 0) * 0.68,
+      modulatedDrive + (live?.drive ?? 0) * 0.68,
     );
     const space = clamp01(
-      this.macros.space + (live?.space ?? 0) * 0.58,
+      modulatedSpace + (live?.space ?? 0) * 0.58,
     );
-    const filterAmount = live?.filter ?? 1;
+    const filterAmount = clamp01(
+      modulatedFilter * (live?.filter ?? 1),
+    );
     const minFilterHz = 360;
     const maxFilterHz = 20_000;
     const filterHz =
@@ -710,7 +753,7 @@ export class DrumEngine {
       0.018,
     );
     this.graph.master.gain.setTargetAtTime(
-      this.master * 0.92,
+      modulatedMaster * 0.92,
       now,
       0.012,
     );
@@ -1016,7 +1059,18 @@ export class DrumEngine {
   }
 
   private material(voice: DrumVoiceId): DrumMaterialSpec {
-    return drumSoundStore.getSpec(voice);
+    const base = drumSoundStore.getSpec(voice);
+    const next: DrumMaterialSpec = { ...base };
+
+    for (const param of DRUM_MATERIAL_PARAMS) {
+      next[param] = modulationStore.resolveTarget(
+        voiceTargetId(voice, param),
+        base[param],
+        this.modulationTick,
+      ).value;
+    }
+
+    return next;
   }
 
   private materialDecay(
@@ -1024,17 +1078,32 @@ export class DrumEngine {
     min: number,
     range: number,
   ): number {
+    const macro = modulationStore.resolveTarget(
+      engineTargetId("decay"),
+      this.macros.decay,
+      this.modulationTick,
+    ).value;
     return min + range * clamp01(
-      spec.decay * 0.72 + this.macros.decay * 0.28,
+      spec.decay * 0.72 + macro * 0.28,
     );
   }
 
   private materialTone(spec: DrumMaterialSpec): number {
-    return clamp01(spec.tone * 0.72 + this.macros.tone * 0.28);
+    const macro = modulationStore.resolveTarget(
+      engineTargetId("tone"),
+      this.macros.tone,
+      this.modulationTick,
+    ).value;
+    return clamp01(spec.tone * 0.72 + macro * 0.28);
   }
 
   private materialImpact(spec: DrumMaterialSpec): number {
-    return clamp01(spec.impact * 0.68 + this.macros.punch * 0.32);
+    const macro = modulationStore.resolveTarget(
+      engineTargetId("punch"),
+      this.macros.punch,
+      this.modulationTick,
+    ).value;
+    return clamp01(spec.impact * 0.68 + macro * 0.32);
   }
 
   private scheduleKick(
