@@ -45,7 +45,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 34 — PWA, Offline Runtime & Installability Hardening:** complete
 - **Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening:** complete
 - **Phase 36 — Performance, Battery & Scale Hardening:** complete
-- **Next: Phase 37 — Architecture Consolidation & Product Simplification**
+- **Phase 37 — Architecture Consolidation & Product Simplification:** complete
+- **Next: Phase 38 — Comprehensive Product Audit & Adversarial QA**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -815,6 +816,27 @@ See [Phase 35 implementation notes](docs/phase-35/PHASE_35.md).
 - CI action runtimes updated to current checkout/setup-node majors
 
 See [Phase 36 implementation notes](docs/phase-36/PHASE_36.md).
+
+### Phase 37 — Architecture Consolidation & Product Simplification
+
+- canonical Pattern / provenance deep-clone utilities
+- canonical ARRANGE blueprint and Beat Family clone utilities
+- one shared external-store React subscription hook
+- app-level mode identity rather than UI-owned mode definitions
+- dead ModePlaceholder surface removed
+- one PlaybackCoordinator for Pattern-vs-ARRANGE transport commands
+- App, header, Space key and external/MIDI transport routed through the coordinator
+- one CreativePatternResolver for CREATE/LIVE/ARRANGE CHAOS + Morph playback
+- React CreativePlaybackBridge deleted
+- Sequencer runtime-preview side channel deleted
+- CHAOS base Pattern synchronization moved out of React
+- one global keyboard-target guard
+- one runtime error-normalization utility
+- one canonical ProjectDocument schema version source
+- CI architecture contract prevents duplicate ownership from returning
+- consolidation is net-negative in implementation code while preserving features
+
+See [Phase 37 implementation notes](docs/phase-37/PHASE_37.md).
 
 ## Phase 0 architecture
 
