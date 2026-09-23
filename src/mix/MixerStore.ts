@@ -100,6 +100,21 @@ export class MixerStore {
 
   readonly getSnapshot = (): MixerSnapshot => this.snapshot;
 
+  restoreProjectState(
+    state: MixerState,
+    locks: MixerLocks,
+  ): void {
+    this.state = cloneMixerState(state);
+    this.locks = cloneMixerLocks(locks);
+    this.preview = undefined;
+    this.previewActive = false;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastHistoryKey = null;
+    this.lastHistoryAt = 0;
+    this.publish();
+  }
+
   setPreview(plan: MixArchitectPlan | undefined): void {
     this.preview = clonePlan(plan);
     this.previewActive = Boolean(plan);
