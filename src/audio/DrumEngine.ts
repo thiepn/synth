@@ -47,6 +47,7 @@ import {
   voiceTargetId,
 } from "../modulation/parameterRegistry";
 import { evolutionStore } from "../evolve/EvolutionStore";
+import { songArchitectStore } from "../song/SongArchitectStore";
 
 export interface DrumMacros {
   punch: number;
@@ -229,6 +230,15 @@ export class DrumEngine {
     });
 
     evolutionStore.subscribe(() => {
+      if (this.sequencerEditTimer !== null) return;
+
+      this.sequencerEditTimer = globalThis.setTimeout(() => {
+        this.sequencerEditTimer = null;
+        audioTransport.invalidateScheduledEvents();
+      }, 16);
+    });
+
+    songArchitectStore.subscribe(() => {
       if (this.sequencerEditTimer !== null) return;
 
       this.sequencerEditTimer = globalThis.setTimeout(() => {
@@ -442,8 +452,12 @@ export class DrumEngine {
               pulse.absoluteTick,
             )
           : null;
-      const evolutionResolved =
+      const songResolved =
         !arrangementPlayback.engaged
+          ? songArchitectStore.resolveAtTick(pulse.absoluteTick)
+          : null;
+      const evolutionResolved =
+        !arrangementPlayback.engaged && !songResolved
           ? evolutionStore.resolveAtTick(pulse.absoluteTick)
           : null;
 
@@ -471,6 +485,19 @@ export class DrumEngine {
         );
         swing = arrangementPattern.groove?.swing ?? 0;
         arrangementEnergy = arrangementResolved.energy;
+      } else if (songResolved) {
+        activePattern = songResolved.pattern;
+        stepIndex = Math.floor(
+          songResolved.localTick /
+            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        );
+        hits = getPatternHitsForAbsoluteStep(
+          activePattern,
+          stepIndex,
+          songResolved.occurrenceIndex * 1024,
+        );
+        swing = activePattern.groove?.swing ?? 0;
+        arrangementEnergy = songResolved.energy;
       } else if (evolutionResolved) {
         activePattern = evolutionResolved.pattern;
         stepIndex = Math.floor(
@@ -550,7 +577,7 @@ export class DrumEngine {
 
         for (let index = 0; index < ratchets; index += 1) {
           const energyScale =
-            arrangementPlayback.engaged
+            arrangementPlayback.engaged || songResolved
               ? 0.68 + arrangementEnergy * 0.42
               : 1;
           const ratchetVelocity =
