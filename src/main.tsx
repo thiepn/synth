@@ -17,6 +17,7 @@ import "./style-dna.css";
 import "./beat-morph.css";
 import "./chaos.css";
 import "./performance.css";
+import "./modulation.css";
 
 const root = document.getElementById("root");
 
