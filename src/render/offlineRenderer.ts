@@ -311,6 +311,7 @@ function graphFor(
   context: OfflineAudioContext,
   snapshot: RenderSnapshot,
   includeMastering: boolean,
+  includeSafetyLimiter: boolean,
 ): OfflineGraph {
   const input = context.createGain();
   const channels = new Map<DrumVoiceId, OfflineTrackGraph>();
@@ -427,8 +428,12 @@ function graphFor(
   widthLeftToRight.connect(widthMerger, 0, 1);
 
   widthMerger.connect(masterOutput);
-  masterOutput.connect(limiter);
-  limiter.connect(context.destination);
+  if (includeMastering || includeSafetyLimiter) {
+    masterOutput.connect(limiter);
+    limiter.connect(context.destination);
+  } else {
+    masterOutput.connect(context.destination);
+  }
 
   const masterState = snapshot.masteringState;
   const mastered = includeMastering && masterState.enabled;
@@ -1063,7 +1068,11 @@ function scheduleSample(
   );
 
   source.connect(gain);
-  gain.connect(channelInput(graph, voice));
+  gain.connect(
+    spec.renderedClip
+      ? graph.masterInputTrim
+      : channelInput(graph, voice),
+  );
   source.start(at, start, sourceDuration);
   source.stop(at + audibleDuration + 0.012);
   return audibleDuration;
@@ -1365,6 +1374,7 @@ export async function renderSnapshot(
     context,
     snapshot,
     options.includeMastering,
+    options.includeSafetyLimiter !== false,
   );
 
   const controlStartTick = renderStartTick;
