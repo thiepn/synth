@@ -18,6 +18,7 @@ import {
   blobZipEntry,
   createStoreZip,
 } from "./zipStore";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 type Listener = () => void;
 
@@ -309,3 +310,8 @@ export class RenderStore {
 }
 
 export const renderStore = new RenderStore();
+
+registerProjectTransientReset(
+  "renderStore",
+  () => { renderStore.cancel(); renderStore.resetStatus(); },
+);
