@@ -42,7 +42,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 31 — MIDI, Pad Performance & External Control:** complete
 - **Phase 32 — Project Document & Local Persistence Foundation:** complete
 - **Phase 33 — Project Library, Version History, Backup & Data Resilience:** complete
-- **Next: Phase 34 — PWA, Offline Runtime & Installability Hardening**
+- **Phase 34 — PWA, Offline Runtime & Installability Hardening:** complete
+- **Next: Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -750,6 +751,26 @@ See [Phase 32 implementation notes](docs/phase-32/PHASE_32.md).
 - expanded project Library UI for versions/backups/duplicate/delete/conflicts
 
 See [Phase 33 implementation notes](docs/phase-33/PHASE_33.md).
+
+### Phase 34 — PWA, Offline Runtime & Installability Hardening
+
+- subpath-safe relative Vite production build
+- per-commit Service Worker build identity
+- standalone Web App Manifest
+- generated 180 / 192 / 512 raster install icons
+- maskable-safe 512 icon + SVG fallback
+- Apple touch/icon metadata
+- versioned offline app-shell Service Worker
+- network-first navigation with offline root fallback
+- cache-first same-scope static assets
+- controlled waiting-worker update activation
+- project-safe update flow that saves before reload
+- automatic install prompt where supported
+- manual iOS/Android/desktop install guidance otherwise
+- online/offline + installed-mode status in the header
+- GitHub Pages production deployment workflow
+
+See [Phase 34 implementation notes](docs/phase-34/PHASE_34.md).
 
 ## Phase 0 architecture
 

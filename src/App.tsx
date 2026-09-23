@@ -9,7 +9,9 @@ import { MixSurface } from "./ui/surfaces/MixSurface";
 import { MasterExportSurface } from "./ui/surfaces/MasterExportSurface";
 import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { projectStore } from "./project/ProjectStore";
+import { pwaStore } from "./pwa/PwaStore";
 import { ProjectControl } from "./ui/project/ProjectControl";
+import { PwaControl } from "./ui/pwa/PwaControl";
 import { audioTransport } from "./audio/AudioTransport";
 import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
@@ -27,6 +29,7 @@ export function App() {
 
   useEffect(() => {
     void projectStore.initialize();
+    void pwaStore.initialize();
   }, []);
 
   const mode = useMemo(
@@ -97,6 +100,7 @@ function UtilityRail({ mode }: { mode: ModeDefinition }) {
           <i />
           <i />
         </span>
+        <PwaControl />
       </div>
 
       <ProjectControl />
@@ -129,7 +133,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 33</span>
+        <span>PHASE 34</span>
       </div>
     </nav>
   );
