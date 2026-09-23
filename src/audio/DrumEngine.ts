@@ -316,6 +316,23 @@ export class DrumEngine {
 
   readonly getSnapshot = (): DrumEngineSnapshot => this.snapshot;
 
+  restoreProjectState(state: {
+    master: number;
+    macros: DrumMacros;
+  }): void {
+    this.master = clamp01(state.master);
+    this.macros = {
+      punch: clamp01(state.macros.punch),
+      tone: clamp01(state.macros.tone),
+      decay: clamp01(state.macros.decay),
+      grit: clamp01(state.macros.grit),
+      space: clamp01(state.macros.space),
+    };
+    this.lastError = undefined;
+    this.applyGraphMacros();
+    this.publish();
+  }
+
   async triggerNow(
     voice: DrumVoiceId,
     velocity = 0.82,
