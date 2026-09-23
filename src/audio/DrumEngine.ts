@@ -50,6 +50,7 @@ import { evolutionStore } from "../evolve/EvolutionStore";
 import { songArchitectStore } from "../song/SongArchitectStore";
 import { mixerStore } from "../mix/MixerStore";
 import { dbToMixerGain } from "../mix/mixerModel";
+import { masteringStore } from "../master/MasteringStore";
 
 export interface DrumMacros {
   punch: number;
@@ -97,6 +98,17 @@ interface MasterGraph {
   wet: GainNode;
   performanceFilter: BiquadFilterNode;
   master: GainNode;
+  masterInputTrim: GainNode;
+  masterLow: BiquadFilterNode;
+  masterHigh: BiquadFilterNode;
+  masterGlue: DynamicsCompressorNode;
+  widthSplitter: ChannelSplitterNode;
+  widthLeftDirect: GainNode;
+  widthRightToLeft: GainNode;
+  widthRightDirect: GainNode;
+  widthLeftToRight: GainNode;
+  widthMerger: ChannelMergerNode;
+  masterOutput: GainNode;
   limiter: DynamicsCompressorNode;
   masterMeter: AnalyserNode;
   masterMeterBuffer: Float32Array<ArrayBuffer>;
@@ -279,6 +291,10 @@ export class DrumEngine {
         audioTransport.invalidateScheduledEvents();
       }, 16);
     });
+
+    masteringStore.subscribe(() => {
+      this.applyGraphMacros();
+    });
   }
 
   readonly subscribe = (listener: StoreListener): (() => void) => {
@@ -446,13 +462,7 @@ export class DrumEngine {
 
   setMaster(value: number): void {
     this.master = clamp01(value);
-    if (this.graph) {
-      this.graph.master.gain.setTargetAtTime(
-        this.master * 0.92,
-        this.graph.context.currentTime,
-        0.012,
-      );
-    }
+    this.applyGraphMacros();
     this.publish();
   }
 
@@ -742,6 +752,17 @@ export class DrumEngine {
     const wet = context.createGain();
     const performanceFilter = context.createBiquadFilter();
     const master = context.createGain();
+    const masterInputTrim = context.createGain();
+    const masterLow = context.createBiquadFilter();
+    const masterHigh = context.createBiquadFilter();
+    const masterGlue = context.createDynamicsCompressor();
+    const widthSplitter = context.createChannelSplitter(2);
+    const widthLeftDirect = context.createGain();
+    const widthRightToLeft = context.createGain();
+    const widthRightDirect = context.createGain();
+    const widthLeftToRight = context.createGain();
+    const widthMerger = context.createChannelMerger(2);
+    const masterOutput = context.createGain();
     const limiter = context.createDynamicsCompressor();
     const masterMeter = context.createAnalyser();
     masterMeter.fftSize = 128;
@@ -765,6 +786,26 @@ export class DrumEngine {
     performanceFilter.frequency.value = 20_000;
     performanceFilter.Q.value = 0.5;
     master.gain.value = this.master * 0.92;
+
+    masterInputTrim.gain.value = 1;
+    masterLow.type = "lowshelf";
+    masterLow.frequency.value = 120;
+    masterLow.gain.value = 0;
+    masterHigh.type = "highshelf";
+    masterHigh.frequency.value = 8_000;
+    masterHigh.gain.value = 0;
+
+    masterGlue.threshold.value = 0;
+    masterGlue.knee.value = 0;
+    masterGlue.ratio.value = 1;
+    masterGlue.attack.value = 0.02;
+    masterGlue.release.value = 0.18;
+
+    widthLeftDirect.gain.value = 1;
+    widthRightToLeft.gain.value = 0;
+    widthRightDirect.gain.value = 1;
+    widthLeftToRight.gain.value = 0;
+    masterOutput.gain.value = 1;
 
     input.connect(drive);
     drive.connect(compressor);
@@ -846,7 +887,24 @@ export class DrumEngine {
 
     compressor.connect(performanceFilter);
     performanceFilter.connect(master);
-    master.connect(limiter);
+    master.connect(masterInputTrim);
+    masterInputTrim.connect(masterLow);
+    masterLow.connect(masterHigh);
+    masterHigh.connect(masterGlue);
+    masterGlue.connect(widthSplitter);
+
+    widthSplitter.connect(widthLeftDirect, 0);
+    widthLeftDirect.connect(widthMerger, 0, 0);
+    widthSplitter.connect(widthRightToLeft, 1);
+    widthRightToLeft.connect(widthMerger, 0, 0);
+
+    widthSplitter.connect(widthRightDirect, 1);
+    widthRightDirect.connect(widthMerger, 0, 1);
+    widthSplitter.connect(widthLeftToRight, 0);
+    widthLeftToRight.connect(widthMerger, 0, 1);
+
+    widthMerger.connect(masterOutput);
+    masterOutput.connect(limiter);
     limiter.connect(masterMeter);
     masterMeter.connect(context.destination);
 
@@ -860,6 +918,17 @@ export class DrumEngine {
       wet,
       performanceFilter,
       master,
+      masterInputTrim,
+      masterLow,
+      masterHigh,
+      masterGlue,
+      widthSplitter,
+      widthLeftDirect,
+      widthRightToLeft,
+      widthRightDirect,
+      widthLeftToRight,
+      widthMerger,
+      masterOutput,
       limiter,
       masterMeter,
       masterMeterBuffer,
@@ -934,6 +1003,77 @@ export class DrumEngine {
         dbToMixerGain(mixerMasterGain),
       now,
       0.012,
+    );
+
+    const mastering = masteringStore.resolveForPlayback();
+    const masterState = mastering.state;
+    const enabled = masterState.enabled;
+
+    this.graph.masterInputTrim.gain.setTargetAtTime(
+      enabled ? dbToGain(masterState.inputTrimDb) : 1,
+      now,
+      0.02,
+    );
+    this.graph.masterLow.gain.setTargetAtTime(
+      enabled ? masterState.lowDb : 0,
+      now,
+      0.025,
+    );
+    this.graph.masterHigh.gain.setTargetAtTime(
+      enabled ? masterState.highDb : 0,
+      now,
+      0.025,
+    );
+
+    const glue = enabled ? clamp01(masterState.glue) : 0;
+    this.graph.masterGlue.threshold.setTargetAtTime(
+      glue > 0 ? -4 - glue * 18 : 0,
+      now,
+      0.025,
+    );
+    this.graph.masterGlue.knee.setTargetAtTime(
+      glue * 10,
+      now,
+      0.025,
+    );
+    this.graph.masterGlue.ratio.setTargetAtTime(
+      1 + glue * 4.5,
+      now,
+      0.025,
+    );
+    this.graph.masterGlue.attack.setTargetAtTime(
+      0.008 + (1 - glue) * 0.018,
+      now,
+      0.025,
+    );
+    this.graph.masterGlue.release.setTargetAtTime(
+      0.12 + glue * 0.16,
+      now,
+      0.025,
+    );
+
+    const width = enabled ? masterState.width : 1;
+    const direct = (1 + width) * 0.5;
+    const cross = (1 - width) * 0.5;
+    this.graph.widthLeftDirect.gain.setTargetAtTime(direct, now, 0.025);
+    this.graph.widthRightDirect.gain.setTargetAtTime(direct, now, 0.025);
+    this.graph.widthRightToLeft.gain.setTargetAtTime(cross, now, 0.025);
+    this.graph.widthLeftToRight.gain.setTargetAtTime(cross, now, 0.025);
+
+    this.graph.masterOutput.gain.setTargetAtTime(
+      enabled
+        ? dbToGain(
+            masterState.outputGainDb +
+              mastering.previewLevelMatchDb,
+          )
+        : 1,
+      now,
+      0.02,
+    );
+    this.graph.limiter.threshold.setTargetAtTime(
+      enabled ? masterState.ceilingDb : -1.5,
+      now,
+      0.02,
     );
   }
 
