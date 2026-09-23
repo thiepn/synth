@@ -2,6 +2,7 @@ import { arrangementFoundationStore } from "../arrange/ArrangementFoundationStor
 import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import { arrangementStore } from "../arrange/ArrangementStore";
 import { audioTransport } from "../audio/AudioTransport";
+import { drumEngine } from "../audio/DrumEngine";
 import { sampleAssetStore } from "../audio/SampleAssetStore";
 import { drumSoundStore } from "../audio/drumSoundModel";
 import { chaosStore } from "../chaos/ChaosStore";
@@ -348,6 +349,7 @@ export class ProjectStore {
       this.projectId ?? "project-recovery-session";
     const transport = audioTransport.getSnapshot();
     const drumSound = drumSoundStore.getSnapshot();
+    const engine = drumEngine.getSnapshot();
     const mixer = mixerStore.getSnapshot();
     const modulation = modulationStore.getSnapshot();
     const family = beatFamilyStore.getSnapshot();
@@ -374,6 +376,10 @@ export class ProjectStore {
       pattern: structuredClone(
         sequencerStore.getSnapshot().pattern,
       ),
+      engine: {
+        master: engine.master,
+        macros: { ...engine.macros },
+      },
       drumSound: withoutRevision(drumSound),
       mixer: {
         state: mixerStore.currentState(),
@@ -474,6 +480,9 @@ export class ProjectStore {
       drumSoundStore.restoreProjectState(
         document.drumSound,
       );
+      drumEngine.restoreProjectState(
+        document.engine,
+      );
       modulationStore.restoreProjectState(
         document.modulation,
       );
@@ -572,6 +581,17 @@ export class ProjectStore {
       }),
     );
 
+    let engineSignature =
+      this.enginePersistenceSignature();
+    this.unsubscribers.push(
+      drumEngine.subscribe(() => {
+        const next = this.enginePersistenceSignature();
+        if (next === engineSignature) return;
+        engineSignature = next;
+        this.markDirty();
+      }),
+    );
+
     let modulationSignature =
       this.modulationPersistenceSignature();
     this.unsubscribers.push(
@@ -614,6 +634,14 @@ export class ProjectStore {
       bpm: transport.bpm,
       meter: transport.meter,
       loopBars: transport.loopBars,
+    });
+  }
+
+  private enginePersistenceSignature(): string {
+    const engine = drumEngine.getSnapshot();
+    return JSON.stringify({
+      master: engine.master,
+      macros: engine.macros,
     });
   }
 
