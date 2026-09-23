@@ -6,13 +6,6 @@ import {
   useRef,
 } from "react";
 import type { RhythmGlyphGeometry } from "../../visual/rhythmGlyph";
-export {
-  MODES,
-} from "../../app/modeModel";
-export type {
-  ModeDefinition,
-  ModeId,
-} from "../../app/modeModel";
 
 interface MachineButtonProps {
   children: ReactNode;
