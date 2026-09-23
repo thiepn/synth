@@ -270,31 +270,49 @@ export function ModulationPanel({
               </div>
 
               <div className="modulation-source-controls">
-                <SignalRail
-                  label="RATE"
-                  value={railFromRate(selectedSource.rateBeats)}
-                  minLabel="1/8"
-                  maxLabel="16B"
-                  tone="ice"
-                  onChange={(value) =>
-                    modulationStore.updateSource(selectedSource.id, {
-                      rateBeats: rateFromRail(value),
-                    })
-                  }
-                />
-                <div className="modulation-value-readout">
-                  {rateLabel(selectedSource.rateBeats)}
-                </div>
+                {selectedSource.kind === "external" ? (
+                  <>
+                    <SignalRail
+                      label="HARDWARE VALUE"
+                      value={(selectedSource.externalValue ?? 0) * 100}
+                      minLabel="0"
+                      maxLabel="127"
+                      tone="ice"
+                      disabled
+                    />
+                    <div className="modulation-value-readout">
+                      EXTERNAL / MIDI-OWNED SOURCE
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <SignalRail
+                      label="RATE"
+                      value={railFromRate(selectedSource.rateBeats)}
+                      minLabel="1/8"
+                      maxLabel="16B"
+                      tone="ice"
+                      onChange={(value) =>
+                        modulationStore.updateSource(selectedSource.id, {
+                          rateBeats: rateFromRail(value),
+                        })
+                      }
+                    />
+                    <div className="modulation-value-readout">
+                      {rateLabel(selectedSource.rateBeats)}
+                    </div>
 
-                <SignalRail
-                  label="PHASE"
-                  value={selectedSource.phase * 100}
-                  onChange={(value) =>
-                    modulationStore.updateSource(selectedSource.id, {
-                      phase: value / 100,
-                    })
-                  }
-                />
+                    <SignalRail
+                      label="PHASE"
+                      value={selectedSource.phase * 100}
+                      onChange={(value) =>
+                        modulationStore.updateSource(selectedSource.id, {
+                          phase: value / 100,
+                        })
+                      }
+                    />
+                  </>
+                )}
 
                 {selectedSource.kind === "lfo" ? (
                   <div className="modulation-choice-row">
@@ -383,12 +401,17 @@ export function ModulationPanel({
                   </MachineButton>
                   <MachineButton
                     compact
-                    disabled={modulation.sources.length <= 1}
+                    disabled={
+                      modulation.sources.length <= 1 ||
+                      selectedSource.kind === "external"
+                    }
                     onClick={() =>
                       modulationStore.removeSource(selectedSource.id)
                     }
                   >
-                    DELETE
+                    {selectedSource.kind === "external"
+                      ? "MIDI OWNED"
+                      : "DELETE"}
                   </MachineButton>
                 </div>
               </div>
