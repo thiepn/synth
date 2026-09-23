@@ -9,6 +9,8 @@ import { clonePattern } from "../domain/patternClone";
 import { cloneBeatFamily } from "../domain/familyClone";
 import {
   cloneArrangementBlueprint,
+  cloneScene,
+  cloneSectionBlueprint,
 } from "../domain/arrangementClone";
 import type {
   BeatFamilyGenerationResult,
@@ -319,7 +321,7 @@ function replaceLockedSections(
     );
     const oldRole = oldSection.role;
 
-    result.blueprint.sections[index] = cloneSection(oldSection);
+    result.blueprint.sections[index] = cloneSectionBlueprint(oldSection);
 
     if (oldScene) {
       result.blueprint.scenes = result.blueprint.scenes.filter(
