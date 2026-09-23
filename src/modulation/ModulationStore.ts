@@ -84,6 +84,44 @@ export class ModulationStore {
 
   readonly getSnapshot = (): ModulationSnapshot => this.snapshot;
 
+  restoreProjectState(state: {
+    sources: ModulationSource[];
+    routes: ModulationRoute[];
+    automationLanes: AutomationLane[];
+    selectedSourceId?: string;
+    selectedTargetId: string;
+  }): void {
+    this.sources = state.sources.map(cloneSource);
+    this.routes = state.routes.map(cloneRoute);
+    this.automationLanes = state.automationLanes.map(cloneLane);
+    this.selectedSourceId =
+      state.selectedSourceId &&
+      this.sources.some((source) => source.id === state.selectedSourceId)
+        ? state.selectedSourceId
+        : this.sources[0]?.id;
+    this.selectedTargetId =
+      state.selectedTargetId || "engine.filter";
+
+    const sourceOrdinals = this.sources
+      .map((source) => /^mod-source-(\d+)$/.exec(source.id)?.[1])
+      .filter((value): value is string => Boolean(value))
+      .map(Number);
+    const routeOrdinals = this.routes
+      .map((route) => /^mod-route-(\d+)$/.exec(route.id)?.[1])
+      .filter((value): value is string => Boolean(value))
+      .map(Number);
+    const pointOrdinals = this.automationLanes
+      .flatMap((lane) => lane.points)
+      .map((point) => /^automation-point-(\d+)$/.exec(point.id)?.[1])
+      .filter((value): value is string => Boolean(value))
+      .map(Number);
+
+    this.sourceSerial = Math.max(1, ...sourceOrdinals.map((value) => value + 1));
+    this.routeSerial = Math.max(1, ...routeOrdinals.map((value) => value + 1));
+    this.pointSerial = Math.max(1, ...pointOrdinals.map((value) => value + 1));
+    this.publish();
+  }
+
   addSource(kind: ModulationSourceKind): string {
     const id =
       "mod-source-" +
