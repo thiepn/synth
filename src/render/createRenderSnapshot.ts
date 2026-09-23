@@ -4,6 +4,7 @@ import { sampleAssetStore } from "../audio/SampleAssetStore";
 import { drumSoundStore } from "../audio/drumSoundModel";
 import { arrangementStore } from "../arrange/ArrangementStore";
 import type {
+  DrumMaterialSpec,
   Pattern,
   SampleSoundSpec,
   SoundSpec,
@@ -285,7 +286,7 @@ export function createRenderSnapshot(
       lane.voice,
       { ...sounds.specs[lane.voice] },
     ]),
-  ) as Record<DrumVoiceId, typeof sounds.specs[DrumVoiceId]>;
+  ) as Record<DrumVoiceId, DrumMaterialSpec>;
 
   return {
     id:
