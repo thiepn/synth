@@ -20,6 +20,7 @@ import {
 import {
   sampleAnalysisWorkerClient,
 } from "./sampleAnalysisClient";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 export type SampleSliceMode =
   | "transient"
@@ -853,3 +854,8 @@ export class SampleLabStore {
 
 export const sampleLabStore = new SampleLabStore();
 export const SAMPLE_LAB_PAD_BANK_SIZE = PAD_BANK_SIZE;
+
+registerProjectTransientReset(
+  "sampleLabStore",
+  () => sampleLabStore.resetProjectTransientState(),
+);
