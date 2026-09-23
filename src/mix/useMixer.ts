@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   mixerStore,
   type MixerSnapshot,
 } from "./MixerStore";
 
 export function useMixerSnapshot(): MixerSnapshot {
-  return useSyncExternalStore(
-    mixerStore.subscribe,
-    mixerStore.getSnapshot,
-    mixerStore.getSnapshot,
-  );
+  return useStoreSnapshot(mixerStore);
 }
