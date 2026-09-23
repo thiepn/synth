@@ -337,6 +337,21 @@ export class PerformanceStore {
   }
 
   resolveAtTick(tick: number): PerformanceResolvedState {
+    if (!this.active) {
+      return {
+        macros: { ...DEFAULT_MACROS },
+        momentary: {
+          drop: false,
+          break: false,
+          build: false,
+          repeat: false,
+          stutter: false,
+        },
+        fillActive: false,
+        trackMutes: new Set<string>(),
+      };
+    }
+
     const momentary: Record<PerformanceMomentaryId, boolean> = {
       drop: false,
       break: false,
