@@ -1,12 +1,13 @@
 import {
-  cloneGenerationProvenance,
   clonePattern,
 } from "../domain/patternClone";
+import {
+  cloneArrangementBlueprint,
+} from "../domain/arrangementClone";
 import type {
   ArrangementBlueprint,
   FillPlacement,
   Pattern,
-  Scene,
   SectionBlueprint,
   TransitionPlacement,
 } from "../domain/contracts";
@@ -46,32 +47,6 @@ export interface ArrangementSnapshot {
 type Listener = () => void;
 
 const ARRANGEMENT_HISTORY_LIMIT = 60;
-
-function cloneScene(scene: Scene): Scene {
-  return {
-    ...scene,
-    patternIds: [...scene.patternIds],
-    provenance: cloneGenerationProvenance(scene.provenance),
-  };
-}
-
-function cloneSection(section: SectionBlueprint): SectionBlueprint {
-  return {
-    ...section,
-    patternSequence: [...section.patternSequence],
-  };
-}
-
-function cloneBlueprint(
-  blueprint: ArrangementBlueprint,
-): ArrangementBlueprint {
-  return {
-    ...blueprint,
-    scenes: blueprint.scenes.map(cloneScene),
-    sections: blueprint.sections.map(cloneSection),
-    provenance: cloneGenerationProvenance(blueprint.provenance),
-  };
-}
 
 function defaultFillPlacement(
   section: SectionBlueprint,
@@ -116,7 +91,7 @@ export class ArrangementStore {
   exportProjectState(): ArrangementProjectState {
     return {
       blueprint: this.blueprint
-        ? cloneBlueprint(this.blueprint)
+        ? cloneArrangementBlueprint(this.blueprint)
         : undefined,
       sourceFoundationId: this.sourceFoundationId,
       selectedSectionId: this.selectedSectionId,
@@ -127,7 +102,7 @@ export class ArrangementStore {
 
   restoreProjectState(state: ArrangementProjectState): void {
     this.blueprint = state.blueprint
-      ? cloneBlueprint(state.blueprint)
+      ? cloneArrangementBlueprint(state.blueprint)
       : undefined;
     this.sourceFoundationId = state.sourceFoundationId;
     this.selectedSectionId =
@@ -164,7 +139,7 @@ export class ArrangementStore {
     blueprint: ArrangementBlueprint,
     patterns: readonly BeatFamilyPattern[],
   ): void {
-    const next = cloneBlueprint(blueprint);
+    const next = cloneArrangementBlueprint(blueprint);
     next.sections = next.sections.map((section) => ({
       ...section,
       fillPlacement:
@@ -389,11 +364,11 @@ export class ArrangementStore {
   undo(): void {
     if (!this.blueprint || this.undoStack.length === 0) return;
 
-    this.redoStack.push(cloneBlueprint(this.blueprint));
+    this.redoStack.push(cloneArrangementBlueprint(this.blueprint));
     const previous = this.undoStack.pop();
     if (!previous) return;
 
-    this.blueprint = cloneBlueprint(previous);
+    this.blueprint = cloneArrangementBlueprint(previous);
     if (
       this.selectedSectionId &&
       !this.blueprint.sections.some(
@@ -413,11 +388,11 @@ export class ArrangementStore {
   redo(): void {
     if (!this.blueprint || this.redoStack.length === 0) return;
 
-    this.undoStack.push(cloneBlueprint(this.blueprint));
+    this.undoStack.push(cloneArrangementBlueprint(this.blueprint));
     const next = this.redoStack.pop();
     if (!next) return;
 
-    this.blueprint = cloneBlueprint(next);
+    this.blueprint = cloneArrangementBlueprint(next);
     if (
       this.selectedSectionId &&
       !this.blueprint.sections.some(
@@ -487,7 +462,7 @@ export class ArrangementStore {
       now - this.lastUndoAt < 900;
 
     if (!shouldCoalesce) {
-      this.undoStack.push(cloneBlueprint(this.blueprint));
+      this.undoStack.push(cloneArrangementBlueprint(this.blueprint));
       if (this.undoStack.length > ARRANGEMENT_HISTORY_LIMIT) {
         this.undoStack.shift();
       }
@@ -624,7 +599,7 @@ export class ArrangementStore {
   private buildSnapshot(): ArrangementSnapshot {
     return {
       blueprint: this.blueprint
-        ? cloneBlueprint(this.blueprint)
+        ? cloneArrangementBlueprint(this.blueprint)
         : undefined,
       sourceFoundationId: this.sourceFoundationId,
       selectedSectionId: this.selectedSectionId,
