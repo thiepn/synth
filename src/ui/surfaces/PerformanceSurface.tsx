@@ -29,6 +29,7 @@ import {
   TransportPulseSpine,
   TransportStatusLabel,
 } from "../transport/TransportUI";
+import { MidiPanel } from "../midi/MidiPanel";
 
 function eventTargetIsInput(target: EventTarget | null): boolean {
   return (
@@ -552,6 +553,8 @@ export function PerformanceSurface() {
           </div>
         ) : null}
       </div>
+
+      <MidiPanel />
 
       <p className="performance-status" aria-live="polite">
         {status}
