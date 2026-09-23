@@ -6,7 +6,12 @@ import type {
   StepEvent,
   StyleVector,
 } from "../domain/contracts";
+
 import {
+  clonePattern,
+  clonePatternLane,
+  cloneStepEvent,
+} from "../domain/patternClone";import {
   FOUNDATION_STEP_TICKS,
 } from "../music/foundationPattern";
 import {
@@ -98,50 +103,6 @@ function clamp01(value: number): number {
 
 function lerp(a: number, b: number, amount: number): number {
   return a + (b - a) * clamp01(amount);
-}
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags
-      ? [...event.generatorTags]
-      : undefined,
-    grooveBase: event.grooveBase
-      ? { ...event.grooveBase }
-      : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
 }
 
 export function styleIdForPattern(
@@ -343,7 +304,7 @@ function blendEvent(
     );
 
     event = {
-      ...cloneEvent(eventA),
+      ...cloneStepEvent(eventA),
       id: eventA.id,
       tick: step * FOUNDATION_STEP_TICKS,
       durationTicks:
@@ -381,7 +342,7 @@ function blendEvent(
       eventA.probability * (1 - dimensions.rhythm);
     if (probability <= 0.001) return undefined;
     event = {
-      ...cloneEvent(eventA),
+      ...cloneStepEvent(eventA),
       probability,
       grooveBase: undefined,
     };
@@ -390,7 +351,7 @@ function blendEvent(
       (eventB?.probability ?? 1) * dimensions.rhythm;
     if (!eventB || probability <= 0.001) return undefined;
     event = {
-      ...cloneEvent(eventB),
+      ...cloneStepEvent(eventB),
       id:
         "evt-morph-" +
         shortSeed(seed) +
@@ -608,7 +569,7 @@ export function morphPatterns(
 
   const lanes = a.lanes.map((laneA) => {
     const laneB = bByLane.get(laneA.id);
-    if (!laneB) return cloneLane(laneA);
+    if (!laneB) return clonePatternLane(laneA);
 
     const laneDimensions: BeatMorphDimensions = {
       rhythm: laneA.lock.rhythm
@@ -659,7 +620,7 @@ export function morphPatterns(
     }
 
     return {
-      ...cloneLane(laneA),
+      ...clonePatternLane(laneA),
       kitSlotId:
         laneA.lock.sound || laneDimensions.rhythm < 0.5
           ? laneA.kitSlotId
