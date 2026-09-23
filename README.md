@@ -43,7 +43,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 32 — Project Document & Local Persistence Foundation:** complete
 - **Phase 33 — Project Library, Version History, Backup & Data Resilience:** complete
 - **Phase 34 — PWA, Offline Runtime & Installability Hardening:** complete
-- **Next: Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening**
+- **Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening:** complete
+- **Next: Phase 36 — Performance, Battery & Scale Hardening**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -771,6 +772,28 @@ See [Phase 33 implementation notes](docs/phase-33/PHASE_33.md).
 - GitHub Pages production deployment workflow
 
 See [Phase 34 implementation notes](docs/phase-34/PHASE_34.md).
+
+### Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening
+
+- keyboard skip navigation and polite mode-change announcements
+- seven-mode roving keyboard mode navigation
+- repaired seven-mode mobile bottom rail
+- mobile header keeps project + Play/Stop reachable
+- safe-area handling for installed/mobile layouts
+- restored browser pinch zoom
+- 44 px coarse-pointer interaction targets
+- reduced-motion / increased-contrast / forced-colors adaptations
+- keyboard-operable LIVE momentary pads and Chaos × Energy surface
+- keyboard-equivalent automation point authoring
+- keyboard Sample Lab pad audition and manual cuts
+- roving-focus Sequencer matrix with Arrow/Home/End navigation
+- keyboard Pattern Paint with one-action Undo semantics
+- accessible non-drag ARRANGE section reorder path
+- Escape + focus return for project/PWA popovers
+- Pages deploy preflight so disabled Pages does not fail the build
+- production interaction regression contract checks
+
+See [Phase 35 implementation notes](docs/phase-35/PHASE_35.md).
 
 ## Phase 0 architecture
 
