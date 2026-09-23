@@ -146,28 +146,32 @@ export function applyPerformanceToHits(
           : phase === 2
             ? "snare"
             : "percussion";
-    addIfMissing(
-      filtered,
-      generatedHit(
-        pattern,
-        fillVoice,
-        absoluteStep,
-        0.58 + phase * 0.08,
-        phase === 3 ? 2 : 1,
-      ),
+    const fillHit = generatedHit(
+      pattern,
+      fillVoice,
+      absoluteStep,
+      0.58 + phase * 0.08,
+      phase === 3 ? 2 : 1,
     );
+    if (
+      fillHit &&
+      !state.trackMutes.has(fillHit.laneId) &&
+      !(dropActive && (fillHit.voice === "kick" || fillHit.voice === "tom"))
+    ) {
+      addIfMissing(filtered, fillHit);
+    }
   }
 
   if (buildActive && absoluteStep % 2 === 1) {
-    addIfMissing(
-      filtered,
-      generatedHit(
-        pattern,
-        "closedHat",
-        absoluteStep,
-        0.48 + (absoluteStep % 4 === 3 ? 0.16 : 0),
-      ),
+    const buildHit = generatedHit(
+      pattern,
+      "closedHat",
+      absoluteStep,
+      0.48 + (absoluteStep % 4 === 3 ? 0.16 : 0),
     );
+    if (buildHit && !state.trackMutes.has(buildHit.laneId)) {
+      addIfMissing(filtered, buildHit);
+    }
   }
 
   if (state.momentary.stutter) {
