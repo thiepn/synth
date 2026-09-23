@@ -32,6 +32,7 @@ type Listener = () => void;
 
 export type ResampleArtifactKind =
   | "pattern"
+  | "arrangement"
   | "section"
   | "selection"
   | "track"
