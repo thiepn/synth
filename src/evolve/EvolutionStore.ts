@@ -11,6 +11,7 @@ import {
   type EvolutionSegment,
 } from "../generation/evolutionEngine";
 import { shortSeed } from "../generation/prng";
+import { registerProjectTransientReset } from "../project/transientResetRegistry";
 
 type Listener = () => void;
 
@@ -299,3 +300,8 @@ export class EvolutionStore {
 }
 
 export const evolutionStore = new EvolutionStore();
+
+registerProjectTransientReset(
+  "evolutionStore",
+  () => evolutionStore.clear(),
+);
