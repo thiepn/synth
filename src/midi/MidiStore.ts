@@ -343,7 +343,7 @@ export class MidiStore {
     this.selectedInputId = input.id;
     this.desiredInputName = input.name ?? input.id;
     input.onmidimessage = (event) => {
-      this.handleMessage(input, event.data);
+      this.handleMessage(input, event.data ?? undefined);
     };
     this.lastError = undefined;
     this.publish();
