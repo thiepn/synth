@@ -11,7 +11,6 @@ import type {
 } from "../domain/contracts";
 import { mixerStore } from "../mix/MixerStore";
 import {
-  FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
   type DrumVoiceId,
 } from "../music/foundationPattern";
