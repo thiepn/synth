@@ -919,6 +919,132 @@ export class DrumEngine {
     );
   }
 
+  private channelInput(voice: DrumVoiceId): AudioNode {
+    const graph = this.graph;
+    if (!graph) {
+      throw new Error("Drum graph is not initialized.");
+    }
+
+    return graph.channels.get(voice)?.input ?? graph.input;
+  }
+
+  private applyMixerGraph(now: number): void {
+    const graph = this.graph;
+    if (!graph) return;
+
+    for (const pad of DRUM_PADS) {
+      const channel = graph.channels.get(pad.voice);
+      if (!channel) continue;
+
+      const state = mixerStore.resolveChannel(
+        pad.voice,
+        this.modulationTick,
+      );
+
+      channel.low.gain.setTargetAtTime(
+        state.lowDb,
+        now,
+        0.02,
+      );
+      channel.mid.gain.setTargetAtTime(
+        state.midDb,
+        now,
+        0.02,
+      );
+      channel.high.gain.setTargetAtTime(
+        state.highDb,
+        now,
+        0.02,
+      );
+      channel.pan.pan.setTargetAtTime(
+        state.pan,
+        now,
+        0.018,
+      );
+      channel.fader.gain.setTargetAtTime(
+        state.muted ? 0 : dbToMixerGain(state.gainDb),
+        now,
+        0.015,
+      );
+      channel.send.gain.setTargetAtTime(
+        state.muted ? 0 : state.reverbSend,
+        now,
+        0.025,
+      );
+
+      const compression = clamp01(state.compression);
+      channel.compressor.threshold.setTargetAtTime(
+        -1 - compression * 31,
+        now,
+        0.025,
+      );
+      channel.compressor.knee.setTargetAtTime(
+        compression * 12,
+        now,
+        0.025,
+      );
+      channel.compressor.ratio.setTargetAtTime(
+        1 + compression * 8,
+        now,
+        0.025,
+      );
+      channel.compressor.attack.setTargetAtTime(
+        0.002 + (1 - compression) * 0.01,
+        now,
+        0.025,
+      );
+      channel.compressor.release.setTargetAtTime(
+        0.06 + compression * 0.16,
+        now,
+        0.025,
+      );
+
+      if (
+        Math.abs(channel.lastSaturation - state.saturation) >
+        0.002
+      ) {
+        channel.saturation.curve = createDriveCurve(
+          state.saturation * 0.72,
+        );
+        channel.lastSaturation = state.saturation;
+      }
+    }
+  }
+
+  private scheduleSidechainDuck(at: number): void {
+    const graph = this.graph;
+    if (!graph) return;
+
+    for (const pad of DRUM_PADS) {
+      if (pad.voice === "kick") continue;
+      const channel = graph.channels.get(pad.voice);
+      if (!channel) continue;
+
+      const amount = mixerStore.resolveChannel(
+        pad.voice,
+        this.modulationTick,
+      ).sidechain;
+      if (amount <= 0.001) continue;
+
+      const minimum = Math.max(
+        0.28,
+        1 - amount * 0.7,
+      );
+      const release = 0.055 + amount * 0.16;
+
+      channel.duck.gain.cancelScheduledValues(at);
+      channel.duck.gain.setValueAtTime(1, at);
+      channel.duck.gain.linearRampToValueAtTime(
+        minimum,
+        at + 0.004,
+      );
+      channel.duck.gain.exponentialRampToValueAtTime(
+        1,
+        at + release,
+      );
+    }
+  }
+
   private createNoiseBuffer(context: AudioContext): AudioBuffer {
     if (this.noiseBuffer) return this.noiseBuffer;
 
@@ -1158,7 +1284,7 @@ export class DrumEngine {
 
     source.connect(sampleGain);
     sampleGain.connect(kill);
-    kill.connect(graph.input);
+    kill.connect(this.channelInput(voice));
 
     source.start(at, start, sourceDuration);
     source.stop(stopAt + 0.012);
@@ -1352,7 +1478,7 @@ export class DrumEngine {
     click.connect(clickFilter);
     clickFilter.connect(clickEnvelope);
     clickEnvelope.connect(kill);
-    kill.connect(graph.input);
+    kill.connect(this.channelInput("kick"));
 
     body.start(at);
     sub.start(at);
@@ -1467,7 +1593,7 @@ export class DrumEngine {
     snapNoise.connect(snapFilter);
     snapFilter.connect(snapEnvelope);
     snapEnvelope.connect(kill);
-    kill.connect(graph.input);
+    kill.connect(this.channelInput("snare"));
 
     body.start(at);
     ring.start(at);
@@ -1553,7 +1679,7 @@ export class DrumEngine {
     envelope.connect(kill);
     body.connect(bodyEnvelope);
     bodyEnvelope.connect(kill);
-    kill.connect(graph.input);
+    kill.connect(this.channelInput("clap"));
 
     noise.start(at);
     body.start(at);
@@ -1591,7 +1717,7 @@ export class DrumEngine {
     const amp = velocityGain(velocity) * Math.max(0, levelGain);
 
     const kill = context.createGain();
-    kill.connect(graph.input);
+    kill.connect(this.channelInput(voice));
 
     const metallicBus = context.createGain();
     metallicBus.gain.value =
@@ -1728,7 +1854,7 @@ export class DrumEngine {
     attack.connect(attackFilter);
     attackFilter.connect(attackEnvelope);
     attackEnvelope.connect(kill);
-    kill.connect(graph.input);
+    kill.connect(this.channelInput("tom"));
 
     body.start(at);
     attack.start(at);
@@ -1815,7 +1941,7 @@ export class DrumEngine {
     texture.connect(textureFilter);
     textureFilter.connect(textureEnvelope);
     textureEnvelope.connect(kill);
-    kill.connect(graph.input);
+    kill.connect(this.channelInput("percussion"));
 
     carrier.start(at);
     modulator.start(at);
@@ -1850,7 +1976,7 @@ export class DrumEngine {
     const decay = this.materialDecay(spec, 0.45, 1.9);
     const amp = velocityGain(velocity) * Math.max(0, levelGain);
     const kill = context.createGain();
-    kill.connect(graph.input);
+    kill.connect(this.channelInput("crash"));
 
     const metalBus = context.createGain();
     metalBus.gain.value =
