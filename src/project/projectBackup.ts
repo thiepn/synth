@@ -290,6 +290,24 @@ export async function readProjectBackup(
         "Backup audio SHA-256 mismatch: " + assetId,
       );
     }
+    if (
+      assetId.toLowerCase() !==
+      ("audio-" + actualHash.slice(0, 24)).toLowerCase()
+    ) {
+      throw new Error(
+        "Backup audio content does not match its asset ID: " +
+          assetId,
+      );
+    }
+    if (
+      state.reference.byteLength !== undefined &&
+      state.reference.byteLength !== bytes.byteLength
+    ) {
+      throw new Error(
+        "Backup audio byte length does not match metadata: " +
+          assetId,
+      );
+    }
 
     const bytesCopy = new Uint8Array(bytes.byteLength);
     bytesCopy.set(bytes);
