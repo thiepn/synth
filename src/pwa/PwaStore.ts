@@ -53,6 +53,7 @@ export class PwaStore {
   private listeners = new Set<Listener>();
   private supported = canUseServiceWorker();
   private initialized = false;
+  private initializing: Promise<void> | undefined;
   private registered = false;
   private online =
     typeof navigator === "undefined" ? true : navigator.onLine;
@@ -75,6 +76,17 @@ export class PwaStore {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
+    if (this.initializing) return this.initializing;
+
+    this.initializing = this.initializeInternal();
+    try {
+      await this.initializing;
+    } finally {
+      this.initializing = undefined;
+    }
+  }
+
+  private async initializeInternal(): Promise<void> {
     this.installLifecycle();
 
     if (!this.supported) {
