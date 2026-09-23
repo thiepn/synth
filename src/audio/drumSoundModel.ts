@@ -850,6 +850,7 @@ export class DrumSoundStore {
   private buildSnapshot(): DrumSoundSnapshot {
     return {
       specs: cloneSpecs(this.specs),
+      sourceStates: cloneSourceStates(this.sourceStates),
       activeKit: cloneActiveKit(this.activeKit),
       morphA: cloneMorphEndpoint(this.morphA),
       morphB: cloneMorphEndpoint(this.morphB),
