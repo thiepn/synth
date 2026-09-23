@@ -9,7 +9,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type LazyExoticComponent,
 } from "react";
-import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { projectStore } from "./project/ProjectStore";
 import { pwaStore } from "./pwa/PwaStore";
 import { ProjectControl } from "./ui/project/ProjectControl";
@@ -126,7 +125,6 @@ export function App() {
       </a>
       <AccessibilityBridge modeLabel={mode.label} />
       <TransportLifecycle mode={mode} />
-      <CreativePlaybackBridge mode={modeId} />
       <UtilityRail mode={mode} />
 
       <main
