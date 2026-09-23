@@ -6,6 +6,7 @@ import {
   type AutomationPoint,
   type ModulationResolution,
   type ModulationRoute,
+  type ModulationRouteMode,
   type ModulationSource,
   type ModulationSourceKind,
 } from "./modulationEngine";
@@ -106,6 +107,66 @@ export class ModulationStore {
     this.publish();
   }
 
+  ensureExternalSource(
+    sourceId: string,
+    name: string,
+  ): string {
+    const existing = this.sources.find(
+      (source) => source.id === sourceId,
+    );
+    if (existing) {
+      if (existing.kind !== "external") {
+        throw new Error(
+          "Source ID " + sourceId + " is already used by a non-external source.",
+        );
+      }
+
+      if (existing.name !== name) {
+        this.updateSource(sourceId, { name });
+      }
+      return sourceId;
+    }
+
+    const source = createDefaultSource("external", sourceId);
+    source.name = name.trim().slice(0, 48) || "External";
+    source.externalValue = 0;
+    this.sources = [...this.sources, source];
+    this.publish();
+    return sourceId;
+  }
+
+  setExternalSourceValue(
+    sourceId: string,
+    value: number,
+  ): void {
+    const index = this.sources.findIndex(
+      (source) => source.id === sourceId,
+    );
+    if (index < 0) return;
+
+    const source = this.sources[index];
+    if (!source || source.kind !== "external") return;
+    const nextValue = clamp01(value);
+
+    if (
+      Math.abs((source.externalValue ?? 0) - nextValue) <
+      0.0005
+    ) {
+      return;
+    }
+
+    const next = {
+      ...source,
+      externalValue: nextValue,
+    };
+    this.sources = [
+      ...this.sources.slice(0, index),
+      next,
+      ...this.sources.slice(index + 1),
+    ];
+    this.publish();
+  }
+
   selectSource(sourceId: string): void {
     if (!this.sources.some((source) => source.id === sourceId)) return;
     if (this.selectedSourceId === sourceId) return;
@@ -148,6 +209,10 @@ export class ModulationStore {
         patch.stepValues === undefined
           ? [...source.stepValues]
           : patch.stepValues.map(clamp01).slice(0, 32),
+      externalValue:
+        patch.externalValue === undefined
+          ? source.externalValue
+          : clamp01(patch.externalValue),
     };
 
     this.sources = [
@@ -158,7 +223,12 @@ export class ModulationStore {
     this.publish();
   }
 
-  addRoute(sourceId: string, targetId: string, depth = 0.5): string | undefined {
+  addRoute(
+    sourceId: string,
+    targetId: string,
+    depth = 0.5,
+    mode: ModulationRouteMode = "add",
+  ): string | undefined {
     if (!this.sources.some((source) => source.id === sourceId)) {
       return undefined;
     }
@@ -184,6 +254,7 @@ export class ModulationStore {
         targetId,
         depth: clampDepth(depth),
         enabled: true,
+        mode,
       },
     ];
     this.selectedTargetId = targetId;
@@ -200,7 +271,9 @@ export class ModulationStore {
 
   updateRoute(
     routeId: string,
-    patch: Partial<Pick<ModulationRoute, "depth" | "enabled" | "targetId">>,
+    patch: Partial<
+      Pick<ModulationRoute, "depth" | "enabled" | "targetId" | "mode">
+    >,
   ): void {
     const index = this.routes.findIndex((route) => route.id === routeId);
     if (index < 0) return;
