@@ -37,6 +37,8 @@ jobs:
             echo "package-lock.json already tracked."
             exit 0
           fi
+          git fetch origin "$GITHUB_HEAD_REF"
+          git reset --hard "origin/$GITHUB_HEAD_REF"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
