@@ -730,7 +730,7 @@ export class SequencerStore {
 
   restoreProjectPattern(nextPattern: Pattern): void {
     const restored = clonePattern(nextPattern);
-    this.validatePatternShape(restored);
+    this.validatePatternShape(restored, "Project");
     this.runtimePreview = undefined;
     this.pattern = restored;
     this.undoStack = [];
@@ -738,31 +738,12 @@ export class SequencerStore {
     this.lastCoalesceKey = null;
     this.lastCoalesceAt = 0;
     this.activeGestureKey = null;
+    this.revision += 1;
     this.publish();
   }
 
   restorePatternSnapshot(nextPattern: Pattern): void {
-    const allowedLengths = new Set(
-      SEQUENCER_LENGTH_OPTIONS.map(
-        (steps) => steps * FOUNDATION_STEP_TICKS,
-      ),
-    );
-
-    if (nextPattern.ppq !== this.pattern.ppq) {
-      throw new Error("History Pattern PPQ does not match the sequencer.");
-    }
-
-    if (!allowedLengths.has(nextPattern.lengthTicks)) {
-      throw new Error("History Pattern length is not supported by Sequencer V2.");
-    }
-
-    const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
-    const missingLane = SEQUENCER_LANES.find(
-      (definition) => !nextLaneIds.has(definition.id),
-    );
-    if (missingLane) {
-      throw new Error("History Pattern is missing lane " + missingLane.id);
-    }
+    this.validatePatternShape(nextPattern, "History");
 
     const monitoringById = new Map(
       this.pattern.lanes.map((lane) => [
@@ -965,6 +946,44 @@ export class SequencerStore {
     this.lastCoalesceAt = coalesceKey === null ? 0 : now;
     this.revision += 1;
     this.publish();
+  }
+
+  private validatePatternShape(
+    pattern: Pattern,
+    sourceLabel: string,
+  ): void {
+    const allowedLengths = new Set(
+      SEQUENCER_LENGTH_OPTIONS.map(
+        (steps) => steps * FOUNDATION_STEP_TICKS,
+      ),
+    );
+
+    if (pattern.ppq !== this.pattern.ppq) {
+      throw new Error(
+        sourceLabel + " Pattern PPQ does not match the sequencer.",
+      );
+    }
+
+    if (!allowedLengths.has(pattern.lengthTicks)) {
+      throw new Error(
+        sourceLabel +
+          " Pattern length is not supported by Sequencer V2.",
+      );
+    }
+
+    const nextLaneIds = new Set(
+      pattern.lanes.map((lane) => lane.id),
+    );
+    const missingLane = SEQUENCER_LANES.find(
+      (definition) => !nextLaneIds.has(definition.id),
+    );
+    if (missingLane) {
+      throw new Error(
+        sourceLabel +
+          " Pattern is missing lane " +
+          missingLane.id,
+      );
+    }
   }
 
   private pushUndo(): void {
