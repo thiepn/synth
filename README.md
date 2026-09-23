@@ -37,7 +37,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 26 — Song Architect & Long-Form Arrangement Generation:** complete
 - **Phase 27 — Mix Architect, Auto-Mix & Production Engine:** complete
 - **Phase 28 — Mastering, Rendering & Export Engine:** complete
-- **Next: Phase 29 — Sample Lab, Chopping & Creative Sampling**
+- **Phase 29 — Sample Lab, Chopping & Creative Sampling:** complete
+- **Next: Phase 30 — Resampling, Bounce, Freeze & Flatten**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -645,6 +646,25 @@ See [Phase 27 implementation notes](docs/phase-27/PHASE_27.md).
 - dedicated MASTER + EXPORT surface
 
 See [Phase 28 implementation notes](docs/phase-28/PHASE_28.md).
+
+### Phase 29 — Sample Lab, Chopping & Creative Sampling
+
+- immutable source-audio workflow
+- high-resolution waveform + transient analysis
+- non-destructive trim / fades / gain / normalize / reverse / pitch / rate
+- safe loop audition
+- transient / equal / beat / manual slicing
+- waveform zoom / pan and manual cut editing
+- eight-pad slice banks with pointer/touch + keys 1–8
+- stable slice identities inside recorded chop takes
+- BANK → KIT mapping into the existing eight drum voices
+- selected slice → selected drum voice
+- chop take → ordinary editable Pattern with one history action
+- explicit RENDER NEW SAMPLE derivative creation
+- unified imported/rendered asset hashing and deduplication
+- canonical SampleSoundSpec rate/fade playback parity across live + offline rendering
+
+See [Phase 29 implementation notes](docs/phase-29/PHASE_29.md).
 
 ## Phase 0 architecture
 

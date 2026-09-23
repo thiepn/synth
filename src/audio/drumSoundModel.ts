@@ -335,6 +335,23 @@ export class DrumSoundStore {
     return cloneSourceState(this.sourceStates[voice]);
   }
 
+  assignSampleSpec(
+    voice: DrumVoiceId,
+    sample: SampleSoundSpec,
+    mode: DrumSourceMode = "sample",
+  ): void {
+    this.sourceStates = {
+      ...this.sourceStates,
+      [voice]: {
+        ...this.sourceStates[voice],
+        mode,
+        sample: cloneSampleSpec(sample),
+      },
+    };
+    this.syncActiveKitSoundSpec(voice, true);
+    this.publish();
+  }
+
   assignSample(
     voice: DrumVoiceId,
     assetId: string,

@@ -1013,9 +1013,13 @@ function scheduleSample(
   const start = spec.reversed
     ? Math.max(0, buffer.duration - selectedEnd)
     : selectedStart;
-  const playbackRate = Math.pow(
+  const pitchRate = Math.pow(
     2,
     Math.max(-24, Math.min(24, spec.pitchSemitones)) / 12,
+  );
+  const playbackRate = Math.max(
+    0.125,
+    Math.min(8, pitchRate * (spec.playbackRate ?? 1)),
   );
   const audibleDuration = sourceDuration / playbackRate;
 
@@ -1027,26 +1031,36 @@ function scheduleSample(
     MIN_GAIN,
     clamp01(velocity) * dbToGain(spec.gainDb),
   );
+  const fadeIn = Math.max(
+    0.0005,
+    Math.min(
+      audibleDuration * 0.45,
+      spec.fadeInSeconds ?? Math.min(0.0015, audibleDuration * 0.12),
+    ),
+  );
+  const fadeOut = Math.max(
+    0.0005,
+    Math.min(
+      audibleDuration * 0.45,
+      spec.fadeOutSeconds ?? Math.min(0.006, audibleDuration * 0.12),
+    ),
+  );
+
   gain.gain.setValueAtTime(MIN_GAIN, at);
   gain.gain.linearRampToValueAtTime(
     peak,
-    at + Math.min(0.0015, audibleDuration * 0.12),
+    at + fadeIn,
   );
-  if (audibleDuration > 0.012) {
+  if (audibleDuration > fadeIn + fadeOut + 0.001) {
     gain.gain.setValueAtTime(
       peak,
-      Math.max(at + 0.002, at + audibleDuration - 0.006),
-    );
-    gain.gain.exponentialRampToValueAtTime(
-      MIN_GAIN,
-      at + audibleDuration,
-    );
-  } else {
-    gain.gain.exponentialRampToValueAtTime(
-      MIN_GAIN,
-      at + Math.max(0.002, audibleDuration),
+      at + audibleDuration - fadeOut,
     );
   }
+  gain.gain.exponentialRampToValueAtTime(
+    MIN_GAIN,
+    at + audibleDuration,
+  );
 
   source.connect(gain);
   gain.connect(channelInput(graph, voice));

@@ -112,11 +112,25 @@ export class SampleAssetStore {
       throw new Error("Choose a browser-decodable audio file.");
     }
 
-    if (file.size <= 0) {
-      throw new Error("The selected audio file is empty.");
+    return this.importBytes(
+      await file.arrayBuffer(),
+      file.name,
+      file.type || "audio/unknown",
+    );
+  }
+
+  async importBytes(
+    dataInput: ArrayBuffer,
+    name: string,
+    mimeType = "audio/wav",
+  ): Promise<SampleAssetState> {
+    const data = dataInput.slice(0);
+
+    if (data.byteLength <= 0) {
+      throw new Error("The audio asset is empty.");
     }
 
-    if (file.size > MAX_SAMPLE_BYTES) {
+    if (data.byteLength > MAX_SAMPLE_BYTES) {
       throw new Error("Sample files are limited to 64 MB.");
     }
 
@@ -124,7 +138,6 @@ export class SampleAssetStore {
       throw new Error("Web Crypto is required for deterministic sample IDs.");
     }
 
-    const data = await file.arrayBuffer();
     const digest = await globalThis.crypto.subtle.digest(
       "SHA-256",
       data,
@@ -141,8 +154,8 @@ export class SampleAssetStore {
       reference: {
         id,
         kind: "audio",
-        mimeType: file.type || "audio/unknown",
-        name: file.name,
+        mimeType,
+        name: name.trim() || "Rendered Sample.wav",
         byteLength: data.byteLength,
         contentHash,
       },
@@ -150,7 +163,7 @@ export class SampleAssetStore {
       waveform: [],
     };
 
-    this.bytes.set(id, data.slice(0));
+    this.bytes.set(id, data);
     this.states.set(id, state);
     this.publish();
     return cloneAsset(state);

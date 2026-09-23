@@ -42,6 +42,7 @@ import {
   TransportStatusLabel,
 } from "../transport/TransportUI";
 import { SampleSourcePanel } from "../sound/SampleSourcePanel";
+import { SampleLabPanel } from "../sample/SampleLabPanel";
 import { ModulationPanel } from "../modulation/ModulationPanel";
 
 function paramLabel(
@@ -581,6 +582,8 @@ export function SoundSurface() {
       </section>
 
       <SampleSourcePanel voice={selectedVoice} />
+
+      <SampleLabPanel selectedVoice={selectedVoice} />
 
       <ModulationPanel selectedVoice={selectedVoice} />
 
