@@ -359,7 +359,7 @@ export function ArrangeSurface() {
                     ", section " +
                     (index + 1) +
                     " of " +
-                    arrangement.blueprint.sections.length +
+                    (arrangement.blueprint?.sections.length ?? 0) +
                     ". Select to edit. Reorder controls are available in Section Edit."
                   }
                 >
