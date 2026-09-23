@@ -2,6 +2,9 @@ import { audioTransport } from "../audio/AudioTransport";
 import { drumEngine } from "../audio/DrumEngine";
 import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import { chaosStore } from "../chaos/ChaosStore";
+import {
+  playbackCoordinator,
+} from "../playback/PlaybackCoordinator";
 import type { DrumVoiceId } from "../music/foundationPattern";
 import {
   performanceStore,
@@ -63,15 +66,9 @@ export class InputActionRouter {
       case "transport":
         if (normalized <= 0.001) return;
         if (target.action === "stop") {
-          arrangementPlaybackStore.stop();
-          audioTransport.stop();
+          playbackCoordinator.stopAll();
         } else {
-          const arrangement = arrangementPlaybackStore.getSnapshot();
-          if (arrangement.engaged) {
-            await arrangementPlaybackStore.toggle();
-          } else {
-            await audioTransport.toggle();
-          }
+          await playbackCoordinator.toggleCurrentPlayback();
         }
         return;
     }
