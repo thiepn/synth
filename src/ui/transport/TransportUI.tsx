@@ -10,13 +10,14 @@ import {
 } from "../../audio/useTransport";
 import { PPQ, type Meter } from "../../domain/contracts";
 import {
-  arrangementPlaybackStore,
-} from "../../arrange/ArrangementPlaybackStore";
-import {
   useArrangementPlaybackSnapshot,
   useArrangementSnapshot,
 } from "../../arrange/useArrangement";
-import type { ModeDefinition } from "../pulse/Primitives";
+import type { ModeDefinition } from "../../app/modeModel";
+import {
+  playbackCoordinator,
+  playbackTargetForContext,
+} from "../../playback/PlaybackCoordinator";
 import { PulseSpine } from "../pulse/Primitives";
 
 const METERS: Meter[] = [
@@ -46,28 +47,14 @@ function statusLabel(status: TransportStatus): string {
   }
 }
 
-const toggleArrangeFromKeyboard = () => {
-  void arrangementPlaybackStore.toggle();
-};
-
 export function TransportLifecycle({
   mode,
 }: {
   mode: ModeDefinition;
 }): null {
-  const arrangementPlayback = useArrangementPlaybackSnapshot();
-  const arrangement = useArrangementSnapshot();
-  const arrangementTransport =
-    mode.id === "arrange" ||
-    ((mode.id === "mix" || mode.id === "archive") &&
-      Boolean(arrangement.blueprint)) ||
-    (mode.id === "live" && arrangementPlayback.engaged);
-
-  useTransportLifecycle(
-    arrangementTransport
-      ? toggleArrangeFromKeyboard
-      : undefined,
-  );
+  useTransportLifecycle(() => {
+    void playbackCoordinator.toggleForMode(mode.id);
+  });
   return null;
 }
 
@@ -75,17 +62,18 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
   const snapshot = useTransportSnapshot();
   const arrangementPlayback = useArrangementPlaybackSnapshot();
   const arrangement = useArrangementSnapshot();
-  const arrangeMode = mode.id === "arrange";
-  const productionArrangementMode =
-    (mode.id === "mix" || mode.id === "archive") &&
-    Boolean(arrangement.blueprint);
   const arrangementTransport =
-    arrangeMode ||
-    productionArrangementMode ||
-    (mode.id === "live" && arrangementPlayback.engaged);
-  const transportPlaying = arrangementTransport
-    ? arrangementPlayback.engaged && snapshot.status === "running"
-    : snapshot.desiredPlaying;
+    playbackTargetForContext({
+      modeId: mode.id,
+      arrangement,
+      arrangementPlayback,
+    }) === "arrangement";
+  const transportPlaying =
+    playbackCoordinator.isPlayingForMode(
+      mode.id,
+      snapshot,
+      arrangementPlayback,
+    );
   const meterValue = `${snapshot.meter.numerator}/${snapshot.meter.denominator}`;
 
   const changeMeter = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -111,9 +99,7 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
         type="button"
         className={transportPlaying ? "transport-key is-playing" : "transport-key"}
         onClick={() =>
-          arrangementTransport
-            ? void arrangementPlaybackStore.toggle()
-            : void audioTransport.toggle()
+          void playbackCoordinator.toggleForMode(mode.id)
         }
         aria-label={transportPlaying ? "Pause transport" : "Start transport"}
         title="Play/Pause · Space"
@@ -125,9 +111,7 @@ export function TransportControls({ mode }: { mode: ModeDefinition }) {
         type="button"
         className="transport-key"
         onClick={() =>
-          arrangementTransport
-            ? arrangementPlaybackStore.stop()
-            : audioTransport.stop()
+          playbackCoordinator.stopForMode(mode.id)
         }
         aria-label="Stop and return to loop start"
         title="Stop"
