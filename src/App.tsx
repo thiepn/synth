@@ -14,13 +14,14 @@ import { pwaStore } from "./pwa/PwaStore";
 import { ProjectControl } from "./ui/project/ProjectControl";
 import { PwaControl } from "./ui/pwa/PwaControl";
 import { AccessibilityBridge } from "./accessibility/AccessibilityBridge";
-import { audioTransport } from "./audio/AudioTransport";
-import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
   MODES,
   type ModeDefinition,
   type ModeId,
-} from "./ui/pulse/Primitives";
+} from "./app/modeModel";
+import {
+  playbackCoordinator,
+} from "./playback/PlaybackCoordinator";
 import {
   TransportControls,
   TransportLifecycle,
@@ -144,21 +145,10 @@ export function App() {
         onChange={(next) => {
           if (next === modeId) return;
 
-          if (
-            modeId === "arrange" ||
-            modeId === "live" ||
-            modeId === "mix" ||
-            modeId === "archive"
-          ) {
-            arrangementPlaybackStore.stop();
-          } else if (
-            next === "arrange" ||
-            next === "mix" ||
-            next === "archive"
-          ) {
-            audioTransport.stop();
-          }
-
+          playbackCoordinator.prepareModeChange(
+            modeId,
+            next,
+          );
           setModeId(next);
         }}
       />
