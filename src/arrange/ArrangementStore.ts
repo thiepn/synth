@@ -1,3 +1,4 @@
+import { clonePattern } from "../domain/patternClone";
 import type {
   ArrangementBlueprint,
   FillPlacement,
