@@ -1,4 +1,5 @@
-import { audioTransport } from "../audio/AudioTransport";
+import {
+import { errorMessage } from "../runtime/errors"; audioTransport } from "../audio/AudioTransport";
 import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import type { StepEvent } from "../domain/contracts";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
@@ -389,7 +390,7 @@ export class MidiStore {
     } catch (error) {
       this.status = "error";
       this.lastError =
-        error instanceof Error ? error.message : String(error);
+        errorMessage(error);
       this.publish();
     }
   }
