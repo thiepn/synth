@@ -213,6 +213,39 @@ if (
   );
 }
 
+const runtimePreviewCallers = sources
+  .filter((path) =>
+    /setRuntimePreview\s*\(/.test(content(path)),
+  )
+  .map(projectPath);
+
+if (runtimePreviewCallers.length > 0) {
+  failures.push(
+    "Obsolete runtime-preview callers remain: " +
+      runtimePreviewCallers.join(", "),
+  );
+}
+
+const chaosBaseOwners = sources
+  .filter((path) => {
+    const project = projectPath(path);
+    return (
+      project !== "src/chaos/ChaosStore.ts" &&
+      project !== "src/playback/CreativePatternResolver.ts"
+    );
+  })
+  .filter((path) =>
+    /chaosStore\.setBasePattern\s*\(/.test(content(path)),
+  )
+  .map(projectPath);
+
+if (chaosBaseOwners.length > 0) {
+  failures.push(
+    "CHAOS base Pattern synchronization has multiple owners: " +
+      chaosBaseOwners.join(", "),
+  );
+}
+
 if (
   sources.some(
     (path) =>
