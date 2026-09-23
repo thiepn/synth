@@ -617,7 +617,17 @@ export class ProjectStore {
       }),
     );
 
-    subscribe(sequencerStore.subscribe);
+    let sequencerSignature =
+      this.sequencerPersistenceSignature();
+    this.unsubscribers.push(
+      sequencerStore.subscribe(() => {
+        const next = this.sequencerPersistenceSignature();
+        if (next === sequencerSignature) return;
+        sequencerSignature = next;
+        this.markDirty();
+      }),
+    );
+
     subscribe(drumSoundStore.subscribe);
     subscribe(sampleAssetStore.subscribe);
 
@@ -656,6 +666,12 @@ export class ProjectStore {
       meter: transport.meter,
       loopBars: transport.loopBars,
     });
+  }
+
+  private sequencerPersistenceSignature(): string {
+    return JSON.stringify(
+      sequencerStore.getSnapshot().pattern,
+    );
   }
 
   private mixerPersistenceSignature(): string {
