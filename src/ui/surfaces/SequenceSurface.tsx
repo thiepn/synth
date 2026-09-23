@@ -10,6 +10,7 @@ import {
 import { TRANSPORT_SCHEDULER_CONFIG } from "../../audio/AudioTransport";
 import { drumEngine } from "../../audio/DrumEngine";
 import { useTransportSnapshot } from "../../audio/useTransport";
+import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import type { StepEvent } from "../../domain/contracts";
 import { swingOffsetUsForStep } from "../../groove/grooveEngine";
 import {
@@ -102,12 +103,7 @@ export function SequenceSurface() {
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.matches("input, textarea, select, [role='slider']"))
-      ) {
+      if (eventTargetConsumesKeyboard(event.target)) {
         return;
       }
 
