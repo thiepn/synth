@@ -6,6 +6,7 @@ import { SoundSurface } from "./ui/surfaces/SoundSurface";
 import { ArrangeSurface } from "./ui/surfaces/ArrangeSurface";
 import { PerformanceSurface } from "./ui/surfaces/PerformanceSurface";
 import { MixSurface } from "./ui/surfaces/MixSurface";
+import { MasterExportSurface } from "./ui/surfaces/MasterExportSurface";
 import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
 import { audioTransport } from "./audio/AudioTransport";
 import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
@@ -46,6 +47,8 @@ export function App() {
           <PerformanceSurface />
         ) : modeId === "mix" ? (
           <MixSurface />
+        ) : modeId === "archive" ? (
+          <MasterExportSurface />
         ) : (
           <ModePlaceholder mode={mode} />
         )}
@@ -56,9 +59,18 @@ export function App() {
         onChange={(next) => {
           if (next === modeId) return;
 
-          if (modeId === "arrange" || modeId === "live") {
+          if (
+            modeId === "arrange" ||
+            modeId === "live" ||
+            modeId === "mix" ||
+            modeId === "archive"
+          ) {
             arrangementPlaybackStore.stop();
-          } else if (next === "arrange") {
+          } else if (
+            next === "arrange" ||
+            next === "mix" ||
+            next === "archive"
+          ) {
             audioTransport.stop();
           }
 
@@ -114,7 +126,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 27</span>
+        <span>PHASE 28</span>
       </div>
     </nav>
   );
