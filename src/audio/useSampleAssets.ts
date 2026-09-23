@@ -1,13 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useStoreSnapshot } from "../ui/store/useStoreSnapshot";
 import {
   sampleAssetStore,
   type SampleAssetSnapshot,
 } from "./SampleAssetStore";
 
 export function useSampleAssetSnapshot(): SampleAssetSnapshot {
-  return useSyncExternalStore(
-    sampleAssetStore.subscribe,
-    sampleAssetStore.getSnapshot,
-    sampleAssetStore.getSnapshot,
-  );
+  return useStoreSnapshot(sampleAssetStore);
 }
