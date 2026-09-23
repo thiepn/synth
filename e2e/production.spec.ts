@@ -134,6 +134,29 @@ async function corruptActiveProjectSchema(page: Page) {
   });
 }
 
+async function indexedDbCount(
+  page: Page,
+  storeName: string,
+): Promise<number> {
+  return page.evaluate(async (storeName) => {
+    const request = indexedDB.open("synth-local-v1", 2);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    const count = await new Promise<number>((resolve, reject) => {
+      const transaction = database.transaction(storeName, "readonly");
+      const request = transaction.objectStore(storeName).count();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    database.close();
+    return count;
+  }, storeName);
+}
+
 test("production shell lazy-loads every mode without runtime errors", async ({
   page,
 }) => {
@@ -498,6 +521,184 @@ test("rapid mode churn and transport cleanup do not produce runtime errors", asy
   }).click();
 
   expect(errors).toEqual([]);
+});
+
+test("conflicted tab can preserve local Pattern work with Save As", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await waitForProjectReady(page);
+
+  const second = await context.newPage();
+  await second.goto("/");
+  await waitForProjectReady(second);
+
+  let secondDialog = await openProjectDialog(second);
+  await secondDialog
+    .locator(".project-version-create input")
+    .fill("Conflict Guard");
+  await secondDialog.getByRole("button", {
+    name: "SNAPSHOT",
+  }).click();
+  await expect(
+    secondDialog.locator(".project-version-list"),
+  ).toContainText("Conflict Guard");
+  await second.keyboard.press("Escape");
+
+  const firstDialog = await openProjectDialog(page);
+  await firstDialog
+    .getByLabel("PROJECT NAME")
+    .fill("Remote Writer");
+  await firstDialog
+    .getByLabel("PROJECT NAME")
+    .press("Enter");
+  await firstDialog.getByRole("button", {
+    name: "SAVE NOW",
+  }).click();
+
+  await expect(
+    second.locator(".project-readout--interactive"),
+  ).toContainText("CONFLICT");
+
+  secondDialog = await openProjectDialog(second);
+  const restoreButton = secondDialog
+    .locator(".project-version-list > div")
+    .filter({ hasText: "Conflict Guard" })
+    .getByRole("button", { name: "RESTORE" });
+  await expect(restoreButton).toBeDisabled();
+  await second.keyboard.press("Escape");
+
+  await second.getByRole("button", {
+    name: "Mode 02: SEQUENCE",
+  }).click();
+  const step = second.locator(
+    '.sequence-step[data-lane-id="lane-kick"][data-step-index="0"]',
+  );
+  const before = await step.getAttribute("aria-pressed");
+  await step.click();
+  await expect(step).not.toHaveAttribute(
+    "aria-pressed",
+    before!,
+  );
+  const localValue = await step.getAttribute("aria-pressed");
+
+  secondDialog = await openProjectDialog(second);
+  await secondDialog
+    .locator(".project-copy input")
+    .fill("Local Preserved");
+  await secondDialog.getByRole("button", {
+    name: "SAVE AS",
+  }).click();
+
+  await expect(
+    second.locator(".project-readout--interactive strong"),
+  ).toHaveText("Local Preserved");
+  await expect(
+    second.locator(".project-readout--interactive"),
+  ).not.toContainText("CONFLICT");
+
+  await second.reload();
+  await waitForProjectReady(second);
+  await second.getByRole("button", {
+    name: "Mode 02: SEQUENCE",
+  }).click();
+  await expect(
+    second.locator(
+      '.sequence-step[data-lane-id="lane-kick"][data-step-index="0"]',
+    ),
+  ).toHaveAttribute("aria-pressed", localValue!);
+
+  await expect(
+    page.locator(".project-readout--interactive strong"),
+  ).toHaveText("Remote Writer");
+});
+
+test("shared audio survives duplicate-project deletion and garbage collection", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForProjectReady(page);
+
+  await page.getByRole("button", {
+    name: "Mode 03: SOUND",
+  }).click();
+
+  const samplePanel = page.locator(".sample-source-panel");
+  await samplePanel
+    .locator("input.sample-file-input")
+    .setInputFiles({
+      name: "shared.wav",
+      mimeType: "audio/wav",
+      buffer: tinyWavBuffer(),
+    });
+
+  const sampleRow = samplePanel
+    .locator(".sample-library__row")
+    .filter({ hasText: "shared.wav" });
+  await sampleRow.locator(".sample-library__select").click();
+  await expect(sampleRow).toContainText("USE");
+
+  let dialog = await openProjectDialog(page);
+  await dialog.getByRole("button", {
+    name: "SAVE NOW",
+  }).click();
+
+  const activeRow = dialog.locator(
+    ".project-library-row.is-active",
+  );
+  const activeName = (
+    await activeRow
+      .locator(".project-library-row__open span")
+      .innerText()
+  ).trim();
+
+  await activeRow
+    .locator(".project-library-row__actions")
+    .getByRole("button", { name: "COPY" })
+    .click();
+
+  const copyRow = dialog
+    .locator(".project-library-row")
+    .filter({ hasText: activeName + " Copy" });
+  await expect(copyRow).toBeVisible();
+  expect(await indexedDbCount(page, "assets")).toBe(1);
+
+  const deleteButton = copyRow
+    .locator(".project-library-row__actions")
+    .getByRole("button", { name: "DELETE" });
+  await deleteButton.click();
+  await copyRow.getByRole("button", {
+    name: "CONFIRM DELETE",
+  }).click();
+
+  await expect(copyRow).toHaveCount(0);
+  expect(await indexedDbCount(page, "assets")).toBe(1);
+  await expect(dialog.locator(".project-error")).toHaveCount(0);
+});
+
+test("storage-unavailable environment remains usable in session-only mode", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(globalThis, "indexedDB", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+
+  await page.goto("/");
+  await waitForProjectReady(page);
+
+  await expect(page.locator(".create-surface")).toBeVisible();
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).toContainText("SESSION ONLY");
+
+  const dialog = await openProjectDialog(page);
+  await expect(dialog).toContainText(
+    "LOCAL STORAGE UNAVAILABLE",
+  );
 });
 
 test("offline shell reloads and an unvisited lazy mode remains available", async ({
