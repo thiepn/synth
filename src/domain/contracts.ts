@@ -225,6 +225,11 @@ export interface SampleSoundSpec {
   trimEndSeconds?: number;
   gainDb: number;
   pitchSemitones: number;
+  /** Additional time-stretch-style playback multiplier independent of pitch control. */
+  playbackRate?: number;
+  /** Non-destructive fade durations in audible/output seconds. */
+  fadeInSeconds?: number;
+  fadeOutSeconds?: number;
   reversed: boolean;
 }
 
