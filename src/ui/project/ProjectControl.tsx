@@ -365,7 +365,15 @@ export function ProjectControl() {
                     </div>
                     <button
                       type="button"
-                      disabled={Boolean(busy)}
+                      disabled={
+                        Boolean(busy) ||
+                        project.saveStatus === "conflict"
+                      }
+                      title={
+                        project.saveStatus === "conflict"
+                          ? "Resolve the project revision conflict before restoring a version."
+                          : undefined
+                      }
                       onClick={() =>
                         void projectStore.restoreVersion(version.id)
                       }
