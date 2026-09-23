@@ -47,6 +47,17 @@ export class MasteringStore {
 
   readonly getSnapshot = (): MasteringSnapshot => this.snapshot;
 
+  restoreProjectState(state: MasteringState): void {
+    this.state = clampMasteringState(state);
+    this.preview = undefined;
+    this.previewActive = false;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastHistoryKey = null;
+    this.lastHistoryAt = 0;
+    this.publish();
+  }
+
   setPreview(plan: MasteringPlan | undefined): void {
     this.preview = clonePlan(plan);
     this.previewActive = Boolean(plan);
