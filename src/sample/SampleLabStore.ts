@@ -281,20 +281,36 @@ export class SampleLabStore {
   async setNormalize(enabled: boolean): Promise<void> {
     if (!this.region || !this.activeAssetId) return;
 
+    const assetId = this.activeAssetId;
+    const startSeconds = this.region.startSeconds;
+    const endSeconds = this.region.endSeconds;
     let normalizeDb = 0;
+
     if (enabled) {
       const context = await audioTransport.unlockAudio();
       const buffer = await sampleAssetStore.ensureDecoded(
         context,
-        this.activeAssetId,
+        assetId,
       );
+
+      if (
+        this.activeAssetId !== assetId ||
+        !this.region ||
+        Math.abs(this.region.startSeconds - startSeconds) > 0.0001 ||
+        Math.abs(this.region.endSeconds - endSeconds) > 0.0001
+      ) {
+        return;
+      }
+
       normalizeDb = normalizeGainDb(
         buffer,
-        this.region.startSeconds,
-        this.region.endSeconds,
+        startSeconds,
+        endSeconds,
         -1,
       );
     }
+
+    if (!this.region || this.activeAssetId !== assetId) return;
 
     this.region = {
       ...this.region,
@@ -666,9 +682,12 @@ export class SampleLabStore {
       assetId: region.assetId,
       trimStartSeconds: startSeconds,
       trimEndSeconds: endSeconds,
-      gainDb:
+      gainDb: clamp(
         region.gainDb +
-        (region.normalize ? region.normalizeGainDb : 0),
+          (region.normalize ? region.normalizeGainDb : 0),
+        -36,
+        18,
+      ),
       pitchSemitones: region.pitchSemitones,
       playbackRate: region.playbackRate,
       fadeInSeconds: Math.min(
