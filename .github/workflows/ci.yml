@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -37,6 +37,9 @@ jobs:
 
       - name: Production browser QA
         run: npm run qa:e2e
+
+      - name: Release-candidate soak
+        run: npm run qa:soak
 
       - name: Upload Playwright failure evidence
         if: failure()
