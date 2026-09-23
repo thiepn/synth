@@ -34,7 +34,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 23 — Performance Engine, Live Macros & Jam Capture:** complete
 - **Phase 24 — Modulation, Automation & Parameter Routing:** complete
 - **Phase 25 — EVOLVE: Long-Form Beat Development Engine:** complete
-- **Next: Phase 26 — Song Architect & Long-Form Arrangement Generation**
+- **Phase 26 — Song Architect & Long-Form Arrangement Generation:** complete
+- **Next: Phase 27 — Mix Architect, Auto-Mix & Production Engine**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -582,6 +583,25 @@ See [Phase 24 implementation notes](docs/phase-24/PHASE_24.md).
 - EVOLVE provenance for source, bar, arc and novelty
 
 See [Phase 25 implementation notes](docs/phase-25/PHASE_25.md).
+
+### Phase 26 — Song Architect & Long-Form Arrangement Generation
+
+- Compact / Standard / Extended song candidates
+- Auto / Beat Family / EVOLVE source selection
+- deterministic song seeds and Try Another
+- EVOLVE material projected into the existing Beat Family vocabulary
+- existing Scene/Section generator reused as the structural engine
+- non-destructive whole-song candidate preview
+- preview duration normalized to include appended transitions
+- section locks that survive full rerolls
+- source-lineage-aware lock preservation
+- targeted one-section reroll
+- candidate energy / route diagnostics
+- COMMIT TO ARRANGE promotes the candidate family + blueprint
+- committed result becomes the existing editable ARRANGE timeline
+- no second persistent song timeline or transport
+
+See [Phase 26 implementation notes](docs/phase-26/PHASE_26.md).
 
 ## Phase 0 architecture
 
