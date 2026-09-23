@@ -275,6 +275,7 @@ export class MidiStore {
   private clockIntervals: number[] = [];
   private lastClockSeconds: number | undefined;
   private lastClockTempoApplySeconds = 0;
+  private lastClockPublishSeconds = 0;
   private lastMessage: string | undefined;
   private lastError: string | undefined;
   private revision = 0;
@@ -456,6 +457,7 @@ export class MidiStore {
     this.lastClockSeconds = undefined;
     this.externalClockBpm = undefined;
     this.lastClockTempoApplySeconds = 0;
+    this.lastClockPublishSeconds = 0;
     this.publish();
   }
 
@@ -689,13 +691,17 @@ export class MidiStore {
       this.learn &&
       (noteOn || cc || pitchBend || channelPressure || polyAftertouch)
     ) {
-      this.captureLearn(
-        input,
-        channel,
-        kind,
-        number,
-      );
-      return;
+      const parameterLearn = this.learn.target.kind === "parameter";
+      const actionCompatible = noteOn || cc;
+      if (parameterLearn || actionCompatible) {
+        this.captureLearn(
+          input,
+          channel,
+          kind,
+          number,
+        );
+        return;
+      }
     }
 
     const matched = this.bindings.filter(
@@ -809,6 +815,7 @@ export class MidiStore {
       30,
       Math.min(300, 60 / Math.max(0.0001, average * 24)),
     );
+    const previousBpm = this.externalClockBpm;
     this.externalClockBpm = bpm;
 
     if (
@@ -819,7 +826,14 @@ export class MidiStore {
       audioTransport.setBpm(Math.round(bpm * 10) / 10);
     }
 
-    this.publish();
+    if (
+      nowSeconds - this.lastClockPublishSeconds >= 0.1 ||
+      previousBpm === undefined ||
+      Math.abs(previousBpm - bpm) >= 0.25
+    ) {
+      this.lastClockPublishSeconds = nowSeconds;
+      this.publish();
+    }
   }
 
   private captureLearn(
