@@ -1128,56 +1128,6 @@ button:disabled {
   color: var(--ash);
 }
 
-.offline-surface {
-  min-height: min(720px, 72vh);
-  display: grid;
-  grid-template-columns: minmax(130px, 0.25fr) 1fr;
-  align-items: stretch;
-  border-top: 1px solid var(--hairline-strong);
-  border-bottom: 1px solid var(--hairline-strong);
-}
-
-.offline-surface__index {
-  display: grid;
-  place-items: center;
-  border-right: 1px solid var(--hairline-strong);
-  color: var(--carbon);
-  font: 800 clamp(5rem, 14vw, 15rem)/1 var(--font-mono);
-  -webkit-text-stroke: 1px var(--etch);
-}
-
-.offline-surface__body {
-  align-self: center;
-  max-width: 840px;
-  padding: clamp(28px, 7vw, 88px);
-}
-
-.offline-surface__body > p:not(.eyebrow) {
-  max-width: 640px;
-  color: var(--ash);
-  font-size: clamp(1rem, 1.5vw, 1.25rem);
-  line-height: 1.5;
-}
-
-.offline-surface .pulse-spine {
-  margin-top: 38px;
-}
-
-.offline-surface__signature {
-  display: grid;
-  grid-template-columns: minmax(180px, 360px) auto;
-  align-items: center;
-  gap: 26px;
-  margin-top: 24px;
-  border-top: 1px solid var(--hairline);
-  padding-top: 20px;
-}
-
-.offline-surface__signature span {
-  color: var(--ash);
-  font: 600 0.62rem/1 var(--font-mono);
-}
-
 @media (max-width: 1020px) {
   .utility-rail {
     grid-template-columns: auto 1fr auto;
@@ -1395,27 +1345,6 @@ button:disabled {
     display: none;
   }
 
-  .offline-surface {
-    min-height: 66vh;
-    display: block;
-  }
-
-  .offline-surface__index {
-    height: 98px;
-    border-right: 0;
-    border-bottom: 1px solid var(--hairline);
-    justify-content: start;
-    padding-left: 6px;
-    font-size: 5.4rem;
-  }
-
-  .offline-surface__body {
-    padding: 34px 0;
-  }
-
-  .offline-surface__signature {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
