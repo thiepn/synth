@@ -98,6 +98,7 @@ export class AudioTransport {
   private pausedAbsoluteTick = 0;
 
   private schedulerTimer: number | null = null;
+  private schedulerWorker: Worker | undefined;
   private frameHandle: number | null = null;
   private lastFramePublishMs = 0;
   private nextScheduledTick = 0;
@@ -439,9 +440,49 @@ export class AudioTransport {
   }
 
   private startScheduler(): void {
-    if (this.schedulerTimer !== null) return;
+    if (
+      this.schedulerTimer !== null ||
+      this.schedulerWorker
+    ) {
+      return;
+    }
 
     this.scheduleWindow();
+
+    if (typeof Worker !== "undefined") {
+      try {
+        const worker = new Worker(
+          new URL(
+            "./transportScheduler.worker.ts",
+            import.meta.url,
+          ),
+          { type: "module" },
+        );
+        worker.onmessage = () => {
+          this.scheduleWindow();
+        };
+        worker.onerror = () => {
+          if (this.schedulerWorker !== worker) return;
+          worker.terminate();
+          this.schedulerWorker = undefined;
+          this.startFallbackScheduler();
+        };
+        worker.postMessage({
+          type: "start",
+          intervalMs: SCHEDULER_INTERVAL_MS,
+        });
+        this.schedulerWorker = worker;
+        return;
+      } catch {
+        // Fall through to the main-thread timer.
+      }
+    }
+
+    this.startFallbackScheduler();
+  }
+
+  private startFallbackScheduler(): void {
+    if (this.schedulerTimer !== null) return;
     this.schedulerTimer = globalThis.setInterval(
       () => this.scheduleWindow(),
       SCHEDULER_INTERVAL_MS,
@@ -449,9 +490,18 @@ export class AudioTransport {
   }
 
   private stopScheduler(): void {
-    if (this.schedulerTimer === null) return;
-    globalThis.clearInterval(this.schedulerTimer);
-    this.schedulerTimer = null;
+    if (this.schedulerWorker) {
+      this.schedulerWorker.postMessage({
+        type: "stop",
+      });
+      this.schedulerWorker.terminate();
+      this.schedulerWorker = undefined;
+    }
+
+    if (this.schedulerTimer !== null) {
+      globalThis.clearInterval(this.schedulerTimer);
+      this.schedulerTimer = null;
+    }
   }
 
   private scheduleWindow(): void {
