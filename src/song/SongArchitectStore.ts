@@ -1,5 +1,8 @@
 import type { ArrangementShapeId, Pattern } from "../domain/contracts";
-import { clonePattern } from "../domain/patternClone";
+import {
+  cloneGenerationProvenance,
+  clonePattern,
+} from "../domain/patternClone";
 import type { BeatFamilyGenerationResult } from "../generation/beatFamilyGenerator";
 import type { EvolutionPlan } from "../generation/evolutionEngine";
 import {
@@ -41,13 +44,9 @@ function cloneCandidate(
         members: candidate.family.family.members.map((member) => ({
           ...member,
         })),
-        provenance: candidate.family.family.provenance
-          ? {
-              ...candidate.family.family.provenance,
-              style: { ...candidate.family.family.provenance.style },
-              intent: { ...candidate.family.family.provenance.intent },
-            }
-          : undefined,
+        provenance: cloneGenerationProvenance(
+          candidate.family.family.provenance,
+        ),
       },
       patterns: candidate.family.patterns.map((entry) => ({
         ...entry,
@@ -67,25 +66,17 @@ function cloneCandidate(
         scenes: candidate.result.blueprint.scenes.map((scene) => ({
           ...scene,
           patternIds: [...scene.patternIds],
-          provenance: scene.provenance
-            ? {
-                ...scene.provenance,
-                style: { ...scene.provenance.style },
-                intent: { ...scene.provenance.intent },
-              }
-            : undefined,
+          provenance: cloneGenerationProvenance(
+            scene.provenance,
+          ),
         })),
         sections: candidate.result.blueprint.sections.map((section) => ({
           ...section,
           patternSequence: [...section.patternSequence],
         })),
-        provenance: candidate.result.blueprint.provenance
-          ? {
-              ...candidate.result.blueprint.provenance,
-              style: { ...candidate.result.blueprint.provenance.style },
-              intent: { ...candidate.result.blueprint.provenance.intent },
-            }
-          : undefined,
+        provenance: cloneGenerationProvenance(
+          candidate.result.blueprint.provenance,
+        ),
       },
       reasons: [...candidate.result.reasons],
     },
