@@ -210,6 +210,16 @@ export class ResampleStore {
 
   readonly getSnapshot = (): ResampleSnapshot => this.snapshot;
 
+  resetProjectTransientState(): void {
+    freezeStore.clear();
+    this.status = "idle";
+    this.phaseLabel = "READY";
+    this.artifacts = [];
+    this.recovery = undefined;
+    this.lastError = undefined;
+    this.publish();
+  }
+
   async renderCopy(
     request: RenderCopyRequest,
   ): Promise<ResampleArtifact | undefined> {
