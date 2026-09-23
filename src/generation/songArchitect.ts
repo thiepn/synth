@@ -8,6 +8,8 @@ import type {
   Scene,
   SectionBlueprint,
 } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
+import { cloneBeatFamily } from "../domain/familyClone";
 import type {
   BeatFamilyGenerationResult,
   BeatFamilyPattern,
@@ -78,42 +80,6 @@ const FAMILY_ROLES: readonly BeatFamilyRole[] = [
   "transition",
 ];
 
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
-}
-
 function cloneFamilyPattern(
   entry: BeatFamilyPattern,
 ): BeatFamilyPattern {
@@ -133,17 +99,7 @@ function cloneFamilyResult(
 ): BeatFamilyGenerationResult {
   return {
     ...result,
-    family: {
-      ...result.family,
-      members: result.family.members.map((member) => ({ ...member })),
-      provenance: result.family.provenance
-        ? {
-            ...result.family.provenance,
-            style: { ...result.family.provenance.style },
-            intent: { ...result.family.provenance.intent },
-          }
-        : undefined,
-    },
+    family: cloneBeatFamily(result.family),
     patterns: result.patterns.map(cloneFamilyPattern),
     reasons: [...result.reasons],
   };
