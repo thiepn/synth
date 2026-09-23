@@ -9,7 +9,8 @@ import type {
   StepEvent,
   StyleVector,
 } from "../domain/contracts";
-import {
+
+import { clonePattern } from "../domain/patternClone";import {
   FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
 } from "../music/foundationPattern";
@@ -82,46 +83,6 @@ const ROLES: readonly {
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
-function cloneEvent(event: StepEvent): StepEvent {
-  return {
-    ...event,
-    generatorTags: event.generatorTags ? [...event.generatorTags] : undefined,
-    grooveBase: event.grooveBase ? { ...event.grooveBase } : undefined,
-  };
-}
-
-function cloneLane(lane: PatternLane): PatternLane {
-  return {
-    ...lane,
-    events: lane.events.map(cloneEvent),
-    lock: { ...lane.lock },
-    regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-  };
-}
-
-function clonePattern(pattern: Pattern): Pattern {
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map(cloneLane),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
-  };
 }
 
 function styleVector(style: BeatStyleId): StyleVector {
