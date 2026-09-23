@@ -71,6 +71,16 @@ export interface MidiInputDescriptor {
   connection: string;
 }
 
+export interface MidiPersistentState {
+  desiredInputName?: string;
+  channelFilter: number | null;
+  bindings: MidiBinding[];
+  profiles: MidiControllerProfile[];
+  recordQuantize: MidiRecordQuantize;
+  overdub: boolean;
+  clockSync: boolean;
+}
+
 export interface MidiControllerProfile {
   id: string;
   name: string;
@@ -260,6 +270,86 @@ export class MidiStore {
   };
 
   readonly getSnapshot = (): MidiSnapshot => this.snapshot;
+
+  exportProjectState(): MidiPersistentState {
+    return {
+      desiredInputName: this.desiredInputName,
+      channelFilter: this.channelFilter,
+      bindings: this.bindings.map(cloneBinding),
+      profiles: this.profiles.map(cloneProfile),
+      recordQuantize: this.recordQuantize,
+      overdub: this.overdub,
+      clockSync: this.clockSync,
+    };
+  }
+
+  restoreProjectState(state: MidiPersistentState): void {
+    if (this.selectedInput?.onmidimessage) {
+      this.selectedInput.onmidimessage = null;
+    }
+    this.selectedInput = undefined;
+    this.selectedInputId = undefined;
+    this.desiredInputName = state.desiredInputName;
+    this.channelFilter =
+      state.channelFilter === null
+        ? null
+        : Math.max(1, Math.min(16, Math.round(state.channelFilter)));
+    this.bindings = state.bindings.map(cloneBinding);
+    this.profiles = state.profiles
+      .map(cloneProfile)
+      .slice(-PROFILE_LIMIT);
+    this.recordQuantize = state.recordQuantize;
+    this.overdub = Boolean(state.overdub);
+    this.clockSync = Boolean(state.clockSync);
+    this.recording = false;
+    this.recordedHits = [];
+    this.learn = undefined;
+    this.clockIntervals = [];
+    this.lastClockSeconds = undefined;
+    this.externalClockBpm = undefined;
+    this.lastClockTempoApplySeconds = 0;
+    this.lastClockPublishSeconds = 0;
+    this.lastMessage = undefined;
+    this.lastError = undefined;
+
+    for (const binding of this.bindings) {
+      if (binding.target.kind !== "parameter") continue;
+      modulationStore.ensureExternalSource(
+        binding.target.sourceId,
+        "MIDI " + binding.number,
+      );
+      const routeId = modulationStore.addRoute(
+        binding.target.sourceId,
+        binding.target.targetId,
+        1,
+        "replace",
+      );
+      if (routeId) {
+        modulationStore.updateRoute(routeId, {
+          depth: 1,
+          mode: "replace",
+        });
+      }
+    }
+
+    const bindingOrdinals = this.bindings
+      .map((binding) => /^midi-binding-(\d+)$/.exec(binding.id)?.[1])
+      .filter((value): value is string => Boolean(value))
+      .map(Number);
+    const profileOrdinals = this.profiles
+      .map((profile) => /^midi-profile-(\d+)$/.exec(profile.id)?.[1])
+      .filter((value): value is string => Boolean(value))
+      .map(Number);
+    this.bindingSerial = Math.max(
+      1,
+      ...bindingOrdinals.map((value) => value + 1),
+    );
+    this.profileSerial = Math.max(
+      1,
+      ...profileOrdinals.map((value) => value + 1),
+    );
+    this.publish();
+  }
 
   async enable(): Promise<void> {
     if (!this.supported) {

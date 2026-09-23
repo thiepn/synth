@@ -90,6 +90,33 @@ export class BeatFamilyStore {
 
   readonly getSnapshot = (): BeatFamilySnapshot => this.snapshot;
 
+  restoreProjectState(
+    state: Omit<BeatFamilySnapshot, "revision">,
+  ): void {
+    this.family = state.family
+      ? {
+          ...state.family,
+          members: state.family.members.map((member) => ({ ...member })),
+          provenance: state.family.provenance
+            ? {
+                ...state.family.provenance,
+                style: { ...state.family.provenance.style },
+                intent: { ...state.family.provenance.intent },
+              }
+            : undefined,
+        }
+      : undefined;
+    this.patterns = state.patterns.map(cloneEntry);
+    this.selectedRole =
+      state.selectedRole &&
+      this.patterns.some((entry) => entry.role === state.selectedRole)
+        ? state.selectedRole
+        : this.patterns[0]?.role;
+    this.coherenceScore = state.coherenceScore;
+    this.displaySeed = state.displaySeed;
+    this.publish();
+  }
+
   apply(result: BeatFamilyGenerationResult): void {
     this.family = {
       ...result.family,

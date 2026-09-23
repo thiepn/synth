@@ -107,6 +107,16 @@ export class SampleAssetStore {
 
   readonly getSnapshot = (): SampleAssetSnapshot => this.snapshot;
 
+  clearProjectAssets(): void {
+    if (this.states.size === 0 && this.bytes.size === 0) return;
+    this.states.clear();
+    this.bytes.clear();
+    this.decoded = new WeakMap();
+    this.reversed = new WeakMap();
+    this.decodePromises = new WeakMap();
+    this.publish();
+  }
+
   async importFile(file: File): Promise<SampleAssetState> {
     if (!isSupportedAudioFile(file)) {
       throw new Error("Choose a browser-decodable audio file.");
@@ -167,6 +177,30 @@ export class SampleAssetStore {
     this.states.set(id, state);
     this.publish();
     return cloneAsset(state);
+  }
+
+  restorePersistedAsset(
+    stateInput: SampleAssetState,
+    bytesInput: ArrayBuffer,
+  ): void {
+    const state = cloneAsset(stateInput);
+    const bytes = bytesInput.slice(0);
+    if (bytes.byteLength <= 0 || bytes.byteLength > MAX_SAMPLE_BYTES) {
+      throw new Error("Persisted sample bytes are invalid.");
+    }
+    if (state.reference.id.length === 0) {
+      throw new Error("Persisted sample ID is invalid.");
+    }
+
+    state.reference = {
+      ...state.reference,
+      byteLength: bytes.byteLength,
+    };
+    state.decodeStatus = "raw";
+    state.lastError = undefined;
+    this.bytes.set(state.reference.id, bytes);
+    this.states.set(state.reference.id, state);
+    this.publish();
   }
 
   getAsset(assetId: string): SampleAssetState | undefined {

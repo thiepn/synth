@@ -153,6 +153,20 @@ export class PerformanceStore {
 
   readonly getSnapshot = (): PerformanceSnapshot => this.snapshot;
 
+  resetProjectTransientState(): void {
+    this.active = false;
+    this.macros = { ...DEFAULT_MACROS };
+    this.windows.clear();
+    this.fillWindow = undefined;
+    this.trackMutes.clear();
+    this.recording = false;
+    this.recordingStartTick = 0;
+    this.recordingEvents = [];
+    this.takes = [];
+    this.takeSerial = 1;
+    this.publish();
+  }
+
   setActive(active: boolean): void {
     if (this.active === active) return;
     this.active = active;

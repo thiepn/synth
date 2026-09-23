@@ -229,6 +229,29 @@ export class SampleLabStore {
     this.publish();
   }
 
+  resetProjectTransientState(): void {
+    this.activeAssetId = undefined;
+    this.analysis = undefined;
+    this.region = undefined;
+    this.slices = [];
+    this.selectedSliceId = undefined;
+    this.sliceMode = "transient";
+    this.equalCount = 8;
+    this.beatBpm = 120;
+    this.beatsPerSlice = 1;
+    this.transientMaxSlices = 16;
+    this.manualCuts = [];
+    this.bankIndex = 0;
+    this.loopPreview = false;
+    this.recording = false;
+    this.recordingStartedAt = 0;
+    this.recordingEvents = [];
+    this.takes = [];
+    this.eventSerial = 1;
+    this.takeSerial = 1;
+    this.publish();
+  }
+
   clear(): void {
     this.activeAssetId = undefined;
     this.analysis = undefined;

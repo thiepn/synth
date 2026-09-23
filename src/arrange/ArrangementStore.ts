@@ -19,6 +19,14 @@ export interface ArrangementOccurrence {
   kind: "pattern" | "fill" | "transition";
 }
 
+export interface ArrangementProjectState {
+  blueprint?: ArrangementBlueprint;
+  sourceFoundationId?: string;
+  selectedSectionId?: string;
+  patterns: Pattern[];
+  edited: boolean;
+}
+
 export interface ArrangementSnapshot {
   blueprint?: ArrangementBlueprint;
   sourceFoundationId?: string;
@@ -142,6 +150,53 @@ export class ArrangementStore {
   };
 
   readonly getSnapshot = (): ArrangementSnapshot => this.snapshot;
+
+  exportProjectState(): ArrangementProjectState {
+    return {
+      blueprint: this.blueprint
+        ? cloneBlueprint(this.blueprint)
+        : undefined,
+      sourceFoundationId: this.sourceFoundationId,
+      selectedSectionId: this.selectedSectionId,
+      patterns: [...this.patternCatalog.values()].map(clonePattern),
+      edited: this.edited,
+    };
+  }
+
+  restoreProjectState(state: ArrangementProjectState): void {
+    this.blueprint = state.blueprint
+      ? cloneBlueprint(state.blueprint)
+      : undefined;
+    this.sourceFoundationId = state.sourceFoundationId;
+    this.selectedSectionId =
+      state.selectedSectionId &&
+      this.blueprint?.sections.some(
+        (section) => section.id === state.selectedSectionId,
+      )
+        ? state.selectedSectionId
+        : this.blueprint?.sections[0]?.id;
+    this.patternCatalog = new Map(
+      state.patterns.map((pattern) => [
+        pattern.id,
+        clonePattern(pattern),
+      ]),
+    );
+    this.edited = Boolean(state.edited);
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastUndoKey = null;
+    this.lastUndoAt = 0;
+
+    const copyOrdinals =
+      this.blueprint?.sections
+        .map((section) => /-copy-(\d+)$/.exec(section.id)?.[1])
+        .filter((value): value is string => Boolean(value))
+        .map(Number) ?? [];
+    this.duplicateCounter = Math.max(0, ...copyOrdinals);
+    this.musicalRevision += 1;
+    this.recalculate();
+    this.publish();
+  }
 
   loadFromFoundation(
     blueprint: ArrangementBlueprint,
