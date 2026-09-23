@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTransportSnapshot } from "../../audio/useTransport";
@@ -47,14 +48,19 @@ function MomentaryPad({
   label: string;
 }) {
   const performance = usePerformanceSnapshot();
+  const interaction = useRef<"pointer" | "keyboard" | null>(null);
   const armed = performance.windows.some(
     (window) => window.id === action && window.endTick === undefined,
   );
 
-  const release = (
+  const releaseAction = () => {
+    performanceStore.releaseMomentary(action);
+  };
+
+  const releasePointer = (
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => {
-    performanceStore.releaseMomentary(action);
+    releaseAction();
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
@@ -71,13 +77,43 @@ function MomentaryPad({
           : "performance-pad performance-pad--momentary"
       }
       aria-pressed={armed}
+      aria-label={label + ". Hold to keep the performance action active."}
       onPointerDown={(event) => {
+        interaction.current = "pointer";
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
         performanceStore.pressMomentary(action);
       }}
-      onPointerUp={release}
-      onPointerCancel={release}
+      onPointerUp={releasePointer}
+      onPointerCancel={releasePointer}
+      onKeyDown={(event) => {
+        if (
+          event.repeat ||
+          (event.key !== " " && event.key !== "Enter")
+        ) {
+          return;
+        }
+        interaction.current = "keyboard";
+        event.preventDefault();
+        performanceStore.pressMomentary(action);
+      }}
+      onKeyUp={(event) => {
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        releaseAction();
+      }}
+      onBlur={releaseAction}
+      onClick={() => {
+        if (interaction.current) {
+          interaction.current = null;
+          return;
+        }
+
+        performanceStore.pressMomentary(action);
+        window.setTimeout(() => {
+          performanceStore.releaseMomentary(action);
+        }, 180);
+      }}
     >
       <span>{label}</span>
       <small>HOLD</small>
@@ -191,6 +227,35 @@ export function PerformanceSurface() {
     }),
     [chaos.config.intensity, performance.macros.energy],
   );
+
+  const nudgeXY = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) => {
+    const step = event.shiftKey ? 0.1 : 0.02;
+    let chaosValue = chaos.config.intensity;
+    let energyValue = performance.macros.energy;
+
+    if (event.key === "ArrowLeft") {
+      chaosValue -= step;
+    } else if (event.key === "ArrowRight") {
+      chaosValue += step;
+    } else if (event.key === "ArrowDown") {
+      energyValue -= step;
+    } else if (event.key === "ArrowUp") {
+      energyValue += step;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    chaosStore.setIntensity(
+      Math.max(0, Math.min(1, chaosValue)),
+    );
+    performanceStore.setMacro(
+      "energy",
+      Math.max(0, Math.min(1, energyValue)),
+    );
+  };
 
   const updateXY = (
     event: ReactPointerEvent<HTMLDivElement>,
@@ -376,15 +441,14 @@ export function PerformanceSurface() {
           <div
             ref={xyRef}
             className="performance-xy"
-            role="slider"
-            aria-label="Chaos and Energy XY performance pad"
-            aria-valuetext={
-              "Chaos " +
-              Math.round(chaos.config.intensity * 100) +
-              ", Energy " +
-              Math.round(performance.macros.energy * 100)
+            role="group"
+            aria-label={
+              "Chaos and Energy XY performance pad. " +
+              "Left and right change Chaos. Up and down change Energy. " +
+              "Hold Shift for larger steps."
             }
             tabIndex={0}
+            onKeyDown={nudgeXY}
             onPointerDown={(event) => {
               event.preventDefault();
               event.currentTarget.setPointerCapture(event.pointerId);
