@@ -35,7 +35,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 24 — Modulation, Automation & Parameter Routing:** complete
 - **Phase 25 — EVOLVE: Long-Form Beat Development Engine:** complete
 - **Phase 26 — Song Architect & Long-Form Arrangement Generation:** complete
-- **Next: Phase 27 — Mix Architect, Auto-Mix & Production Engine**
+- **Phase 27 — Mix Architect, Auto-Mix & Production Engine:** complete
+- **Next: Phase 28 — Mastering, Rendering & Export Engine**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -602,6 +603,26 @@ See [Phase 25 implementation notes](docs/phase-25/PHASE_25.md).
 - no second persistent song timeline or transport
 
 See [Phase 26 implementation notes](docs/phase-26/PHASE_26.md).
+
+### Phase 27 — Mix Architect, Auto-Mix & Production Engine
+
+- real eight-channel Web Audio mixer
+- per-channel gain / pan / 3-band EQ / compression / saturation / reverb send / sidechain
+- real channel + master metering
+- deterministic Balanced / Punchy / Wide / Spacious / Raw Mix Architect
+- role-aware targets from Pattern density and V2 material specs
+- per-channel and master auto-mix locks
+- non-destructive candidate preview
+- level-matched A/B comparison with preview-only compensation
+- generated section-aware gain / ambience automation
+- Mix Architect commit into canonical mixer + Phase 24 automation
+- manual mixer Undo/Redo
+- full ARRANGE playback from MIX when available
+- mixer parameters exposed through the shared Phase 24 parameter registry
+- dedicated responsive MIX surface
+- deliberate mix headroom preserved for mastering
+
+See [Phase 27 implementation notes](docs/phase-27/PHASE_27.md).
 
 ## Phase 0 architecture
 

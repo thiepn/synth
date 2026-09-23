@@ -14,6 +14,7 @@ const copy: Record<ModeDefinition["id"], string> = {
   sound: "Synthesis will be presented as material construction, signal flow, and morphable character.",
   arrange: "Sections will be sculpted as energy and musical transitions rather than a generic DAW timeline.",
   live: "The editor disappears here. Large performance controls will turn Synth into a playable instrument.",
+  mix: "The production console shapes balance, space, dynamics, stereo placement, and section-aware mix movement.",
   archive: "Projects, branches, kits, and beats will be identified by their signal signatures rather than cover cards.",
 };
 
