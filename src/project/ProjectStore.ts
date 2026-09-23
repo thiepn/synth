@@ -1,33 +1,27 @@
 import { arrangementFoundationStore } from "../arrange/ArrangementFoundationStore";
-import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import { arrangementStore } from "../arrange/ArrangementStore";
 import { audioTransport } from "../audio/AudioTransport";
 import { drumEngine } from "../audio/DrumEngine";
 import { sampleAssetStore } from "../audio/SampleAssetStore";
 import { drumSoundStore } from "../audio/drumSoundModel";
-import { chaosStore } from "../chaos/ChaosStore";
-import { evolutionStore } from "../evolve/EvolutionStore";
 import { beatFamilyStore } from "../family/BeatFamilyStore";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
 import { masteringStore } from "../master/MasteringStore";
 import { midiStore } from "../midi/MidiStore";
 import { mixerStore } from "../mix/MixerStore";
 import { modulationStore } from "../modulation/ModulationStore";
-import { beatMorphStore } from "../morph/BeatMorphStore";
-import { performanceStore } from "../performance/PerformanceStore";
 import {
   localProjectDatabase,
   ProjectRevisionConflictError,
 } from "../persistence/LocalProjectDatabase";
-import { renderStore } from "../render/RenderStore";
-import { resampleStore } from "../resample/ResampleStore";
-import { sampleLabStore } from "../sample/SampleLabStore";
 import { sequencerStore } from "../sequencer/SequencerStore";
-import { songArchitectStore } from "../song/SongArchitectStore";
 import {
   createProjectBackup,
   readProjectBackup,
 } from "./projectBackup";
+import {
+  resetLoadedProjectTransientState,
+} from "./transientResetRegistry";
 import {
   SYNTH_PROJECT_DOCUMENT_VERSION,
   assertProjectDocument,
@@ -854,18 +848,8 @@ export class ProjectStore {
     this.clearAutosaveTimer();
 
     try {
-      arrangementPlaybackStore.stop();
       audioTransport.stop();
-
-      beatMorphStore.clear();
-      chaosStore.reset();
-      evolutionStore.clear();
-      songArchitectStore.clear();
-      performanceStore.resetProjectTransientState();
-      sampleLabStore.resetProjectTransientState();
-      renderStore.cancel();
-      renderStore.resetStatus();
-      resampleStore.resetProjectTransientState();
+      resetLoadedProjectTransientState();
 
       sampleAssetStore.clearProjectAssets();
       for (const asset of bundle.assets) {
