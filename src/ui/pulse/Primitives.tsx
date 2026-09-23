@@ -27,7 +27,7 @@ export const MODES: ModeDefinition[] = [
   { id: "sequence", number: "02", label: "SEQUENCE", phase: "PHASE 4" },
   { id: "sound", number: "03", label: "SOUND", phase: "PHASE 11" },
   { id: "arrange", number: "04", label: "ARRANGE", phase: "PHASE 18" },
-  { id: "live", number: "05", label: "LIVE", phase: "PHASE 26" },
+  { id: "live", number: "05", label: "LIVE", phase: "PHASE 23" },
   { id: "archive", number: "06", label: "ARCHIVE", phase: "PHASE 28" },
 ];
 
