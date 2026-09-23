@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTransportSnapshot } from "../../audio/useTransport";
+import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import { arrangementPlaybackStore } from "../../arrange/ArrangementPlaybackStore";
 import { arrangementStore } from "../../arrange/ArrangementStore";
 import {
@@ -31,14 +32,6 @@ import {
   TransportStatusLabel,
 } from "../transport/TransportUI";
 import { MidiPanel } from "../midi/MidiPanel";
-
-function eventTargetIsInput(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      target.matches("input, textarea, select, button, [role='slider']"))
-  );
-}
 
 function MomentaryPad({
   action,
@@ -168,7 +161,7 @@ export function PerformanceSurface() {
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (event.repeat || eventTargetIsInput(event.target)) return;
+      if (event.repeat || eventTargetConsumesKeyboard(event.target)) return;
 
       const action =
         event.key.toLowerCase() === "d"
@@ -195,7 +188,7 @@ export function PerformanceSurface() {
     };
 
     const keyup = (event: KeyboardEvent) => {
-      if (eventTargetIsInput(event.target)) return;
+      if (eventTargetConsumesKeyboard(event.target)) return;
 
       const action =
         event.key.toLowerCase() === "d"
