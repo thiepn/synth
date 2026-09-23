@@ -50,6 +50,7 @@ export interface SampleSlice {
 export interface ChopEvent {
   id: string;
   padIndex: number;
+  sliceId: string;
   timeSeconds: number;
   velocity: number;
 }
@@ -467,13 +468,15 @@ export class SampleLabStore {
   recordPad(padIndex: number, velocity = 0.9): void {
     if (!this.recording) return;
     const bank = this.currentBank();
-    if (!bank[padIndex]) return;
+    const slice = bank[padIndex];
+    if (!slice) return;
 
     const timeSeconds =
       Math.max(0, performance.now() / 1000 - this.recordingStartedAt);
     this.recordingEvents.push({
       id: "chop-event-" + this.eventSerial++,
       padIndex,
+      sliceId: slice.id,
       timeSeconds,
       velocity: clamp(velocity, 0.05, 1),
     });
@@ -536,18 +539,21 @@ export class SampleLabStore {
     const take = this.takes.find((entry) => entry.id === takeId);
     if (!take || take.events.length === 0) return undefined;
 
-    const bank = this.currentBank();
     const mapped = new Map<number, { slice: SampleSlice; laneId: string }>();
 
-    bank.forEach((slice, index) => {
-      const pad = DRUM_PADS[index];
-      const lane = SEQUENCER_LANES[index];
-      const spec = this.sliceSpec(slice);
-      if (!pad || !lane || !spec) return;
+    for (const event of take.events) {
+      if (mapped.has(event.padIndex)) continue;
+      const slice = this.slices.find(
+        (entry) => entry.id === event.sliceId,
+      );
+      const pad = DRUM_PADS[event.padIndex];
+      const lane = SEQUENCER_LANES[event.padIndex];
+      const spec = slice ? this.sliceSpec(slice) : undefined;
+      if (!slice || !pad || !lane || !spec) continue;
 
       drumSoundStore.assignSampleSpec(pad.voice, spec, "sample");
-      mapped.set(index, { slice, laneId: lane.id });
-    });
+      mapped.set(event.padIndex, { slice, laneId: lane.id });
+    }
 
     const current = sequencerStore.getSnapshot().pattern;
     const pattern = clonePattern(current);
