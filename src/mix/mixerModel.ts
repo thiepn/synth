@@ -23,6 +23,11 @@ export interface MixerState {
   masterGainDb: number;
 }
 
+export interface MixerLocks {
+  channels: Record<DrumVoiceId, boolean>;
+  master: boolean;
+}
+
 export const MIXER_GAIN_MIN_DB = -24;
 export const MIXER_GAIN_MAX_DB = 6;
 export const MIXER_EQ_MIN_DB = -12;
@@ -129,4 +134,29 @@ export function clampMixerChannel(
 export function dbToMixerGain(db: number): number {
   if (!Number.isFinite(db)) return 1;
   return Math.pow(10, db / 20);
+}
+
+
+export function createDefaultMixerLocks(): MixerLocks {
+  const entries = DRUM_PADS.map((pad) => [
+    pad.voice,
+    false,
+  ]) as Array<[DrumVoiceId, boolean]>;
+
+  return {
+    channels: Object.fromEntries(entries) as Record<DrumVoiceId, boolean>,
+    master: false,
+  };
+}
+
+export function cloneMixerLocks(locks: MixerLocks): MixerLocks {
+  const entries = DRUM_PADS.map((pad) => [
+    pad.voice,
+    Boolean(locks.channels[pad.voice]),
+  ]) as Array<[DrumVoiceId, boolean]>;
+
+  return {
+    channels: Object.fromEntries(entries) as Record<DrumVoiceId, boolean>,
+    master: Boolean(locks.master),
+  };
 }
