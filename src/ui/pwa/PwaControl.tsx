@@ -13,6 +13,7 @@ export function PwaControl() {
   const project = useProjectSnapshot();
   const [helpOpen, setHelpOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!helpOpen) return;
@@ -27,8 +28,21 @@ export function PwaControl() {
       }
     };
 
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setHelpOpen(false);
+      window.requestAnimationFrame(() => {
+        triggerRef.current?.focus();
+      });
+    };
+
     document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, [helpOpen]);
 
   const applyUpdate = async () => {
@@ -117,6 +131,7 @@ export function PwaControl() {
       className="pwa-control-shell"
     >
       <button
+        ref={triggerRef}
         type="button"
         className="pwa-control"
         onClick={() => setHelpOpen((value) => !value)}

@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { CreateSurface } from "./ui/surfaces/CreateSurface";
 import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
 import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
@@ -12,6 +18,7 @@ import { projectStore } from "./project/ProjectStore";
 import { pwaStore } from "./pwa/PwaStore";
 import { ProjectControl } from "./ui/project/ProjectControl";
 import { PwaControl } from "./ui/pwa/PwaControl";
+import { AccessibilityBridge } from "./accessibility/AccessibilityBridge";
 import { audioTransport } from "./audio/AudioTransport";
 import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
@@ -39,11 +46,19 @@ export function App() {
 
   return (
     <div className="synth-app">
+      <a className="skip-link" href="#synth-main">
+        Skip to workspace
+      </a>
+      <AccessibilityBridge modeLabel={mode.label} />
       <TransportLifecycle mode={mode} />
       <CreativePlaybackBridge mode={modeId} />
       <UtilityRail mode={mode} />
 
-      <main className="synth-workspace">
+      <main
+        id="synth-main"
+        className="synth-workspace"
+        tabIndex={-1}
+      >
         {modeId === "create" ? (
           <CreateSurface />
         ) : modeId === "sequence" ? (
@@ -117,23 +132,62 @@ function ModeRail({
   active: ModeId;
   onChange: (mode: ModeId) => void;
 }) {
+  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const moveFocus = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) => {
+    let nextIndex = currentIndex;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (currentIndex + 1) % MODES.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (currentIndex - 1 + MODES.length) % MODES.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = MODES.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const next = MODES[nextIndex];
+    if (!next) return;
+    onChange(next.id);
+    buttons.current[nextIndex]?.focus();
+  };
+
   return (
     <nav className="mode-rail" aria-label="Synth modes">
-      {MODES.map((mode) => (
+      {MODES.map((mode, index) => (
         <button
+          ref={(node) => {
+            buttons.current[index] = node;
+          }}
           type="button"
           key={mode.id}
-          className={active === mode.id ? "mode-rail__button is-active" : "mode-rail__button"}
+          className={
+            active === mode.id
+              ? "mode-rail__button is-active"
+              : "mode-rail__button"
+          }
+          tabIndex={active === mode.id ? 0 : -1}
           onClick={() => onChange(mode.id)}
+          onKeyDown={(event) => moveFocus(event, index)}
           aria-current={active === mode.id ? "page" : undefined}
+          aria-label={
+            "Mode " + mode.number + ": " + mode.label
+          }
         >
           <span className="mode-rail__number">{mode.number}</span>
           <span className="mode-rail__label">{mode.label}</span>
         </button>
       ))}
-      <div className="mode-rail__system">
+      <div className="mode-rail__system" aria-hidden="true">
         <span className="status-lamp" />
-        <span>PHASE 34</span>
+        <span>PHASE 35</span>
       </div>
     </nav>
   );

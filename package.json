@@ -7,8 +7,9 @@
     "predev": "node scripts/generate-pwa-icons.mjs",
     "dev": "vite",
     "prebuild": "node scripts/generate-pwa-icons.mjs",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "build": "npm run check:interaction && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check:interaction": "node scripts/check-interaction-contracts.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
