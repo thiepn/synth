@@ -33,7 +33,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 22 — Chaos Engine & Controlled Randomness:** complete
 - **Phase 23 — Performance Engine, Live Macros & Jam Capture:** complete
 - **Phase 24 — Modulation, Automation & Parameter Routing:** complete
-- **Next: Phase 25 — EVOLVE: Long-Form Beat Development Engine**
+- **Phase 25 — EVOLVE: Long-Form Beat Development Engine:** complete
+- **Next: Phase 26 — Song Architect & Long-Form Arrangement Generation**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -562,6 +563,25 @@ See [Phase 23 implementation notes](docs/phase-23/PHASE_23.md).
 - no saved drum-spec mutation or Sequencer Undo pollution
 
 See [Phase 24 implementation notes](docs/phase-24/PHASE_24.md).
+
+### Phase 25 — EVOLVE: Long-Form Beat Development Engine
+
+- deterministic 4 / 8 / 16 / 32 / 64-bar development plans
+- Steady / Rise / Wave / Contrast energy arcs
+- stable per-bar derived seeds
+- Beat Family role vocabulary reused for coherent development
+- bounded per-bar Beat Variation rather than cumulative drift
+- anchor / variation / build / breakdown / drop / fill / return roles
+- explicit periodic returns to preserve identity
+- non-destructive full-plan preview on the existing transport
+- no second permanent song timeline
+- playing-bar and segment diagnostics
+- stopped per-bar audition
+- USE THIS BAR commits an ordinary editable Pattern in one Undo/history step
+- USE SOURCE FAMILY promotes EVOLVE's coherent source family
+- EVOLVE provenance for source, bar, arc and novelty
+
+See [Phase 25 implementation notes](docs/phase-25/PHASE_25.md).
 
 ## Phase 0 architecture
 
