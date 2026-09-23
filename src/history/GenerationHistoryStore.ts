@@ -138,6 +138,41 @@ export class GenerationHistoryStore {
 
   readonly getSnapshot = (): GenerationHistorySnapshot => this.snapshot;
 
+  restoreProjectState(
+    state: Omit<GenerationHistorySnapshot, "revision">,
+  ): void {
+    if (state.nodes.length === 0) {
+      throw new Error("Project history cannot be empty.");
+    }
+
+    const nodes = new Map(
+      state.nodes.map((node) => [
+        node.id,
+        this.cloneNode(node),
+      ]),
+    );
+    if (!nodes.has(state.rootNodeId)) {
+      throw new Error("Project history root is missing.");
+    }
+    if (!nodes.has(state.activeNodeId)) {
+      throw new Error("Project history active node is missing.");
+    }
+    if (!nodes.has(state.selectedNodeId)) {
+      throw new Error("Project history selected node is missing.");
+    }
+
+    this.nodes = nodes;
+    this.rootNodeId = state.rootNodeId;
+    this.activeNodeId = state.activeNodeId;
+    this.selectedNodeId = state.selectedNodeId;
+    const highestOrdinal = Math.max(
+      0,
+      ...state.nodes.map((node) => node.ordinal),
+    );
+    this.nextOrdinal = highestOrdinal + 1;
+    this.publish();
+  }
+
   getNode(nodeId: string): EvolutionNode | undefined {
     const node = this.nodes.get(nodeId);
     return node ? this.cloneNode(node) : undefined;
