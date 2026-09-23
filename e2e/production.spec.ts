@@ -274,6 +274,55 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
   await expect(page.locator(".create-surface")).toBeVisible();
   await waitForServiceWorkerControl(page);
 
+  const cacheDiagnostic = await page.evaluate(async () => {
+    const manifestUrl = new URL(
+      "./asset-manifest.json",
+      document.baseURI,
+    );
+    const response = await fetch(manifestUrl);
+    const manifest = await response.json() as {
+      buildId?: string;
+      assets?: string[];
+    };
+    const assets = manifest.assets ?? [];
+    const cacheNames = await caches.keys();
+    const missing: string[] = [];
+
+    for (const asset of assets) {
+      const url = new URL(asset, document.baseURI).href;
+      const cached = await caches.match(url);
+      if (!cached) missing.push(asset);
+    }
+
+    return {
+      buildId: manifest.buildId,
+      assetCount: assets.length,
+      cacheNames,
+      missing,
+      controlled: Boolean(
+        navigator.serviceWorker.controller,
+      ),
+    };
+  });
+
+  console.log(
+    "OFFLINE_CACHE_DIAGNOSTIC " +
+      JSON.stringify(cacheDiagnostic),
+  );
+  expect(cacheDiagnostic.controlled).toBe(true);
+  expect(cacheDiagnostic.assetCount).toBeGreaterThan(5);
+  expect(cacheDiagnostic.missing).toEqual([]);
+
+  const runtimeErrors = watchRuntimeErrors(page);
+  const failedRequests: string[] = [];
+  page.on("requestfailed", (request) => {
+    failedRequests.push(
+      request.url() +
+        " :: " +
+        (request.failure()?.errorText ?? "unknown"),
+    );
+  });
+
   await context.setOffline(true);
 
   const exportMode = page.getByRole("button", {
@@ -281,6 +330,9 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
   });
   await exportMode.click();
   await expect(page.locator(".master-export-surface")).toBeVisible();
+
+  expect(runtimeErrors).toEqual([]);
+  expect(failedRequests).toEqual([]);
 
   await page.reload();
   await expect(page.locator(".create-surface")).toBeVisible();
