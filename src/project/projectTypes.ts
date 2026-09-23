@@ -12,6 +12,9 @@ import type {
   DrumSoundSnapshot,
 } from "../audio/drumSoundModel";
 import type {
+  DrumMacros,
+} from "../audio/DrumEngine";
+import type {
   SampleAssetState,
 } from "../audio/SampleAssetStore";
 import type {
@@ -57,6 +60,11 @@ export interface ProjectMixerState {
   locks: MixerLocks;
 }
 
+export interface ProjectEngineState {
+  master: number;
+  macros: DrumMacros;
+}
+
 export interface SynthProjectDocumentV1 {
   schemaVersion: typeof SYNTH_PROJECT_DOCUMENT_VERSION;
   id: string;
@@ -66,6 +74,7 @@ export interface SynthProjectDocumentV1 {
   revision: number;
   transport: ProjectTransportState;
   pattern: Pattern;
+  engine: ProjectEngineState;
   drumSound: Omit<DrumSoundSnapshot, "revision">;
   mixer: ProjectMixerState;
   modulation: ProjectModulationState;
@@ -150,7 +159,7 @@ export function assertProjectDocument(
   if (!Array.isArray(value.assetIds)) {
     throw new Error("Project asset manifest is invalid.");
   }
-  if (!value.drumSound || !value.mixer || !value.modulation) {
+  if (!value.engine || !value.drumSound || !value.mixer || !value.modulation) {
     throw new Error("Project production state is incomplete.");
   }
   if (!value.history || !Array.isArray(value.history.nodes)) {
