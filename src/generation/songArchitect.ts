@@ -1,15 +1,15 @@
 import type {
-  ArrangementBlueprint,
   ArrangementShapeId,
   BeatFamily,
   BeatFamilyMember,
   BeatFamilyRole,
   Pattern,
-  Scene,
-  SectionBlueprint,
 } from "../domain/contracts";
 import { clonePattern } from "../domain/patternClone";
 import { cloneBeatFamily } from "../domain/familyClone";
+import {
+  cloneArrangementBlueprint,
+} from "../domain/arrangementClone";
 import type {
   BeatFamilyGenerationResult,
   BeatFamilyPattern,
@@ -126,7 +126,7 @@ function cloneSection(section: SectionBlueprint): SectionBlueprint {
   };
 }
 
-function cloneBlueprint(
+function cloneArrangementBlueprint(
   blueprint: ArrangementBlueprint,
 ): ArrangementBlueprint {
   return {
@@ -148,7 +148,7 @@ function cloneResult(
 ): SceneSectionGenerationResult {
   return {
     ...result,
-    blueprint: cloneBlueprint(result.blueprint),
+    blueprint: cloneArrangementBlueprint(result.blueprint),
     reasons: [...result.reasons],
   };
 }
