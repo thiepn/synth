@@ -2,6 +2,7 @@ import { audioTransport } from "../audio/AudioTransport";
 import { errorMessage } from "../runtime/errors";
 import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import type { StepEvent } from "../domain/contracts";
+import { clonePattern } from "../domain/patternClone";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
 import {
   inputActionRouter,
@@ -164,43 +165,6 @@ function cloneProfile(
   return {
     ...profile,
     bindings: profile.bindings.map(cloneBinding),
-  };
-}
-
-function clonePattern() {
-  const pattern = sequencerStore.getSnapshot().pattern;
-  return {
-    ...pattern,
-    meter: { ...pattern.meter },
-    lanes: pattern.lanes.map((lane) => ({
-      ...lane,
-      events: lane.events.map((event) => ({
-        ...event,
-        generatorTags: event.generatorTags
-          ? [...event.generatorTags]
-          : undefined,
-        grooveBase: event.grooveBase
-          ? { ...event.grooveBase }
-          : undefined,
-      })),
-      lock: { ...lane.lock },
-      regionLocks: lane.regionLocks?.map((lock) => ({ ...lock })),
-    })),
-    groove: pattern.groove
-      ? {
-          ...pattern.groove,
-          roleTimingOffsetUs: pattern.groove.roleTimingOffsetUs
-            ? { ...pattern.groove.roleTimingOffsetUs }
-            : undefined,
-        }
-      : undefined,
-    provenance: pattern.provenance
-      ? {
-          ...pattern.provenance,
-          style: { ...pattern.provenance.style },
-          intent: { ...pattern.provenance.intent },
-        }
-      : undefined,
   };
 }
 
@@ -1004,7 +968,9 @@ export class MidiStore {
 
   private commitRecordedHits(): void {
     const source = sequencerStore.getSnapshot().pattern;
-    const pattern = clonePattern();
+    const pattern = clonePattern(
+      sequencerStore.getSnapshot().pattern,
+    );
     const patternLength = Math.max(
       FOUNDATION_STEP_TICKS,
       pattern.lengthTicks,
