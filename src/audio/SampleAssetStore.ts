@@ -161,6 +161,11 @@ export class SampleAssetStore {
     return asset ? cloneAsset(asset) : undefined;
   }
 
+  getRawBytes(assetId: string): ArrayBuffer | undefined {
+    const data = this.bytes.get(assetId);
+    return data ? data.slice(0) : undefined;
+  }
+
   async ensureDecoded(
     context: AudioContext,
     assetId: string,
