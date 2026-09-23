@@ -46,6 +46,7 @@ import {
   engineTargetId,
   voiceTargetId,
 } from "../modulation/parameterRegistry";
+import { evolutionStore } from "../evolve/EvolutionStore";
 
 export interface DrumMacros {
   punch: number;
@@ -223,6 +224,15 @@ export class DrumEngine {
 
       this.performanceEditTimer = globalThis.setTimeout(() => {
         this.performanceEditTimer = null;
+        audioTransport.invalidateScheduledEvents();
+      }, 16);
+    });
+
+    evolutionStore.subscribe(() => {
+      if (this.sequencerEditTimer !== null) return;
+
+      this.sequencerEditTimer = globalThis.setTimeout(() => {
+        this.sequencerEditTimer = null;
         audioTransport.invalidateScheduledEvents();
       }, 16);
     });
@@ -432,10 +442,15 @@ export class DrumEngine {
               pulse.absoluteTick,
             )
           : null;
+      const evolutionResolved =
+        !arrangementPlayback.engaged
+          ? evolutionStore.resolveAtTick(pulse.absoluteTick)
+          : null;
 
       let stepIndex: number;
       let hits: PatternPlaybackHit[];
       let swing: number;
+      let activePattern: Pattern;
       let arrangementEnergy = 1;
 
       if (arrangementPlayback.engaged) {
@@ -448,6 +463,7 @@ export class DrumEngine {
         const arrangementPattern = this.resolvePerformancePattern(
           arrangementResolved.pattern,
         );
+        activePattern = arrangementPattern;
         hits = getPatternHitsForAbsoluteStep(
           arrangementPattern,
           stepIndex,
@@ -455,13 +471,26 @@ export class DrumEngine {
         );
         swing = arrangementPattern.groove?.swing ?? 0;
         arrangementEnergy = arrangementResolved.energy;
+      } else if (evolutionResolved) {
+        activePattern = evolutionResolved.pattern;
+        stepIndex = Math.floor(
+          evolutionResolved.localTick /
+            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        );
+        hits = getPatternHitsForAbsoluteStep(
+          activePattern,
+          stepIndex,
+          evolutionResolved.segment.index * 1024,
+        );
+        swing = activePattern.groove?.swing ?? 0;
       } else {
         stepIndex = Math.floor(
           pulse.absoluteTick / TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
         );
         const sequencer = sequencerStore.getSnapshot();
+        activePattern = sequencer.pattern;
         hits = sequencerStore.getHitsForStep(stepIndex);
-        swing = sequencer.pattern.groove?.swing ?? 0;
+        swing = activePattern.groove?.swing ?? 0;
       }
 
       let performanceVelocityScale = 1;
@@ -487,7 +516,7 @@ export class DrumEngine {
             ? this.resolvePerformancePattern(
                 arrangementResolved.pattern,
               )
-            : sequencerStore.getSnapshot().pattern;
+            : activePattern;
         const performed = applyPerformanceToHits(
           hits,
           performancePattern,

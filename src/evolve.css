@@ -1,0 +1,332 @@
+.evolution-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border-top: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+  background:
+    linear-gradient(180deg, rgba(207, 255, 71, 0.03), transparent 36%),
+    var(--void);
+}
+
+.evolution-controls {
+  display: grid;
+  grid-template-columns: auto auto minmax(220px, 1fr) minmax(180px, 0.75fr);
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--hairline-strong);
+  background: rgba(255, 255, 255, 0.018);
+  padding: 13px;
+}
+
+.evolution-bank,
+.evolution-seed {
+  display: grid;
+  gap: 7px;
+}
+
+.evolution-bank > span,
+.evolution-seed > span {
+  color: var(--ash);
+  font: 650 0.5rem/1 var(--font-mono);
+  letter-spacing: 0.1em;
+}
+
+.evolution-bank > div {
+  display: flex;
+  gap: 5px;
+}
+
+.evolution-bank button {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--hairline);
+  background: var(--graphite);
+  color: var(--ash);
+  font: 700 0.48rem/1 var(--font-mono);
+  cursor: pointer;
+}
+
+.evolution-bank button.is-active {
+  color: var(--phosphor);
+  border-color: color-mix(in srgb, var(--phosphor) 45%, var(--hairline));
+  background: color-mix(in srgb, var(--phosphor) 5%, var(--graphite));
+}
+
+.evolution-seed input {
+  min-height: 34px;
+  border: 1px solid var(--hairline);
+  background: var(--graphite);
+  color: var(--bone);
+  padding: 0 9px;
+  font: 650 0.5rem/1 var(--font-mono);
+  text-transform: uppercase;
+}
+
+.evolution-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.evolution-error {
+  margin: 0;
+  color: var(--heat);
+  font: 600 0.52rem/1.5 var(--font-mono);
+}
+
+.evolution-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  border: 1px solid var(--hairline-strong);
+  padding: 12px 13px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.evolution-summary > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.evolution-summary span,
+.evolution-summary small {
+  color: var(--ash);
+  font: 600 0.46rem/1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.evolution-summary strong {
+  color: var(--bone);
+  font: 720 0.68rem/1.1 var(--font-mono);
+}
+
+.evolution-summary dl {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+}
+
+.evolution-summary dl div {
+  display: grid;
+  gap: 2px;
+}
+
+.evolution-summary dt {
+  color: var(--ash);
+  font: 600 0.42rem/1 var(--font-mono);
+}
+
+.evolution-summary dd {
+  margin: 0;
+  color: var(--ice);
+  font: 720 0.62rem/1 var(--font-mono);
+}
+
+.evolution-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(48px, 1fr);
+  gap: 5px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+  scrollbar-width: thin;
+}
+
+.evolution-segment {
+  min-width: 48px;
+  min-height: 86px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  justify-items: center;
+  align-items: end;
+  gap: 4px;
+  padding: 7px 5px;
+  border: 1px solid var(--hairline);
+  background: var(--graphite);
+  color: var(--ash);
+  cursor: pointer;
+}
+
+.evolution-segment > span,
+.evolution-segment > small {
+  font: 650 0.43rem/1 var(--font-mono);
+}
+
+.evolution-segment > strong {
+  color: var(--bone);
+  font: 720 0.48rem/1 var(--font-mono);
+}
+
+.evolution-segment > i {
+  width: 7px;
+  min-height: 10px;
+  max-height: 42px;
+  background: var(--ice);
+  opacity: 0.45;
+  align-self: end;
+}
+
+.evolution-segment.is-fill > i {
+  background: var(--heat);
+}
+
+.evolution-segment.is-breakdown > i {
+  background: var(--ash);
+}
+
+.evolution-segment.is-selected {
+  border-color: var(--ice);
+}
+
+.evolution-segment.is-playing {
+  box-shadow: inset 0 -3px 0 var(--phosphor);
+  color: var(--phosphor);
+}
+
+.evolution-selected {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(220px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--hairline-strong);
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.evolution-selected__glyph {
+  min-height: 130px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+
+.evolution-selected__meta {
+  display: grid;
+  gap: 6px;
+}
+
+.evolution-selected__meta > span {
+  color: var(--ash);
+  font: 650 0.48rem/1 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.evolution-selected__meta > strong {
+  color: var(--bone);
+  font: 720 0.68rem/1.15 var(--font-mono);
+}
+
+.evolution-selected__meta dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 5px 0 0;
+}
+
+.evolution-selected__meta dl div {
+  display: grid;
+  gap: 2px;
+}
+
+.evolution-selected__meta dt {
+  color: var(--ash);
+  font: 600 0.42rem/1 var(--font-mono);
+}
+
+.evolution-selected__meta dd {
+  margin: 0;
+  color: var(--ice);
+  font: 700 0.56rem/1 var(--font-mono);
+}
+
+.evolution-selected__actions {
+  display: grid;
+  gap: 6px;
+}
+
+.evolution-note,
+.evolution-empty {
+  margin: 0;
+  color: var(--ash);
+  font: 560 0.5rem/1.55 var(--font-mono);
+}
+
+.evolution-empty {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--hairline-strong);
+  padding: 16px;
+}
+
+.evolution-empty span {
+  color: var(--ash);
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+}
+
+.evolution-empty strong {
+  color: var(--bone);
+  font-size: 0.62rem;
+}
+
+@media (max-width: 980px) {
+  .evolution-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .evolution-selected {
+    grid-template-columns: 1fr 1.2fr;
+  }
+
+  .evolution-selected__actions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .evolution-panel {
+    padding: 12px;
+  }
+
+  .evolution-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .evolution-actions {
+    grid-column: auto;
+  }
+
+  .evolution-summary {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .evolution-summary dl {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .evolution-selected {
+    grid-template-columns: 1fr;
+  }
+
+  .evolution-selected__actions {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .evolution-selected__meta dl {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .evolution-bank button {
+    min-height: 40px;
+    flex: 1;
+  }
+}
