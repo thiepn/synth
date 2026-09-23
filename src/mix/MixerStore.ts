@@ -12,9 +12,12 @@ import {
 import type { MixArchitectPlan } from "../generation/mixArchitect";
 import {
   clampMixerChannel,
+  cloneMixerLocks,
   cloneMixerState,
+  createDefaultMixerLocks,
   createDefaultMixerState,
   type MixerChannelState,
+  type MixerLocks,
   type MixerState,
 } from "./mixerModel";
 
@@ -40,6 +43,7 @@ export interface MixerSnapshot {
   state: MixerState;
   preview?: MixArchitectPlan;
   previewActive: boolean;
+  locks: MixerLocks;
   canUndo: boolean;
   canRedo: boolean;
   revision: number;
@@ -79,6 +83,7 @@ function mixerAutomationSnapshot(): AutomationLane[] {
 export class MixerStore {
   private listeners = new Set<Listener>();
   private state = createDefaultMixerState();
+  private locks = createDefaultMixerLocks();
   private preview: MixArchitectPlan | undefined;
   private previewActive = false;
   private undoStack: MixerHistoryEntry[] = [];
@@ -205,6 +210,34 @@ export class MixerStore {
     this.publish();
   }
 
+  setChannelLock(voice: DrumVoiceId, locked: boolean): void {
+    if (this.locks.channels[voice] === locked) return;
+    this.locks = cloneMixerLocks(this.locks);
+    this.locks.channels[voice] = locked;
+    this.publish();
+  }
+
+  toggleChannelLock(voice: DrumVoiceId): void {
+    this.setChannelLock(voice, !this.locks.channels[voice]);
+  }
+
+  setMasterLock(locked: boolean): void {
+    if (this.locks.master === locked) return;
+    this.locks = {
+      ...cloneMixerLocks(this.locks),
+      master: locked,
+    };
+    this.publish();
+  }
+
+  toggleMasterLock(): void {
+    this.setMasterLock(!this.locks.master);
+  }
+
+  currentLocks(): MixerLocks {
+    return cloneMixerLocks(this.locks);
+  }
+
   reset(): void {
     this.captureHistory();
     this.state = createDefaultMixerState();
@@ -317,7 +350,7 @@ export class MixerStore {
       (lane) => lane.targetId === targetId,
     );
 
-    return resolveModulatedTarget({
+    const resolved = resolveModulatedTarget({
       targetId,
       baseValue: source.masterGainDb,
       tick,
@@ -329,6 +362,13 @@ export class MixerStore {
           ? [canonicalLane]
           : [],
     }).value;
+
+    const levelMatch =
+      this.previewActive && this.preview
+        ? this.preview.previewLevelMatchDb
+        : 0;
+
+    return Math.max(-24, Math.min(6, resolved + levelMatch));
   }
 
   private automationForTarget(
@@ -394,6 +434,7 @@ export class MixerStore {
       state: cloneMixerState(this.state),
       preview: clonePlan(this.preview),
       previewActive: this.previewActive,
+      locks: cloneMixerLocks(this.locks),
       canUndo: this.undoStack.length > 0,
       canRedo: this.redoStack.length > 0,
       revision: this.revision,
