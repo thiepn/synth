@@ -828,6 +828,8 @@ export function MasterExportSurface() {
         ) : null}
       </section>
 
+      <ResamplePanel />
+
       <p className="master-export-status" aria-live="polite">
         {busy ? renderTask.phaseLabel : status}
       </p>
