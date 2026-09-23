@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CreateSurface } from "./ui/surfaces/CreateSurface";
 import { ModePlaceholder } from "./ui/surfaces/ModePlaceholder";
 import { SequenceSurface } from "./ui/surfaces/SequenceSurface";
@@ -8,6 +8,8 @@ import { PerformanceSurface } from "./ui/surfaces/PerformanceSurface";
 import { MixSurface } from "./ui/surfaces/MixSurface";
 import { MasterExportSurface } from "./ui/surfaces/MasterExportSurface";
 import { CreativePlaybackBridge } from "./performance/CreativePlaybackBridge";
+import { projectStore } from "./project/ProjectStore";
+import { ProjectControl } from "./ui/project/ProjectControl";
 import { audioTransport } from "./audio/AudioTransport";
 import { arrangementPlaybackStore } from "./arrange/ArrangementPlaybackStore";
 import {
@@ -22,6 +24,10 @@ import {
 
 export function App() {
   const [modeId, setModeId] = useState<ModeId>("create");
+
+  useEffect(() => {
+    void projectStore.initialize();
+  }, []);
 
   const mode = useMemo(
     () => MODES.find((entry) => entry.id === modeId) ?? MODES[0],
@@ -93,10 +99,7 @@ function UtilityRail({ mode }: { mode: ModeDefinition }) {
         </span>
       </div>
 
-      <div className="project-readout">
-        <span>PROJECT / FOUNDATION</span>
-        <strong>SYN-7F2</strong>
-      </div>
+      <ProjectControl />
 
       <TransportControls mode={mode} />
     </header>
@@ -126,7 +129,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system">
         <span className="status-lamp" />
-        <span>PHASE 31</span>
+        <span>PHASE 32</span>
       </div>
     </nav>
   );
