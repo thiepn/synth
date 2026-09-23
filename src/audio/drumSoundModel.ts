@@ -327,6 +327,17 @@ export class DrumSoundStore {
 
   readonly getSnapshot = (): DrumSoundSnapshot => this.snapshot;
 
+  restoreProjectState(
+    state: Omit<DrumSoundSnapshot, "revision">,
+  ): void {
+    this.specs = cloneSpecs(state.specs);
+    this.sourceStates = cloneSourceStates(state.sourceStates);
+    this.activeKit = cloneActiveKit(state.activeKit);
+    this.morphA = cloneMorphEndpoint(state.morphA);
+    this.morphB = cloneMorphEndpoint(state.morphB);
+    this.publish();
+  }
+
   getSpec(voice: DrumVoiceId): DrumMaterialSpec {
     return cloneSpec(this.specs[voice]);
   }
