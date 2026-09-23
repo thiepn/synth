@@ -144,8 +144,14 @@ self.addEventListener("fetch", (event) => {
           return response;
         } catch {
           return (
-            (await cache.match(request)) ||
-            (await cache.match(ROOT_URL)) ||
+            (await cache.match(
+              request.url,
+              { ignoreVary: true },
+            )) ||
+            (await cache.match(
+              ROOT_URL,
+              { ignoreVary: true },
+            )) ||
             Response.error()
           );
         }
@@ -169,7 +175,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE_NAME);
-        const cached = await cache.match(request);
+        const cached = await cache.match(
+          request.url,
+          { ignoreVary: true },
+        );
         if (cached) return cached;
 
         try {

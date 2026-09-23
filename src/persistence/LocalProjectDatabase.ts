@@ -653,12 +653,21 @@ export class LocalProjectDatabase {
       "readonly",
     );
     const projectDone = transactionDone(projectTransaction);
-    const projectRecords = await requestResult(
-      projectTransaction.objectStore(PROJECT_STORE).getAll(),
-    ) as unknown[];
-    const versionRecords = await requestResult(
-      projectTransaction.objectStore(VERSION_STORE).getAll(),
-    ) as ProjectVersionRecord[];
+    const projectStore = projectTransaction.objectStore(PROJECT_STORE);
+    const versionStore = projectTransaction.objectStore(VERSION_STORE);
+
+    const projectRequest = requestResult(
+      projectStore.getAll(),
+    ) as Promise<unknown[]>;
+    const versionRequest = requestResult(
+      versionStore.getAll(),
+    ) as Promise<ProjectVersionRecord[]>;
+
+    const [projectRecords, versionRecords] =
+      await Promise.all([
+        projectRequest,
+        versionRequest,
+      ]);
     await projectDone;
 
     const referenced = new Set<string>();
@@ -686,26 +695,37 @@ export class LocalProjectDatabase {
       }
     }
 
-    const assetTransaction = db.transaction(
+    const keyTransaction = db.transaction(
+      ASSET_STORE,
+      "readonly",
+    );
+    const keyDone = transactionDone(keyTransaction);
+    const keys = await requestResult(
+      keyTransaction.objectStore(ASSET_STORE).getAllKeys(),
+    );
+    await keyDone;
+
+    const removable = keys.filter(
+      (key) => !referenced.has(String(key)),
+    );
+    if (removable.length === 0) {
+      return [];
+    }
+
+    const deleteTransaction = db.transaction(
       ASSET_STORE,
       "readwrite",
     );
-    const assetDone = transactionDone(assetTransaction);
-    const assetStore = assetTransaction.objectStore(ASSET_STORE);
-    const keys = await requestResult(
-      assetStore.getAllKeys(),
-    );
-    const removed: string[] = [];
+    const deleteDone = transactionDone(deleteTransaction);
+    const assetStore =
+      deleteTransaction.objectStore(ASSET_STORE);
 
-    for (const key of keys) {
-      const assetId = String(key);
-      if (referenced.has(assetId)) continue;
+    for (const key of removable) {
       assetStore.delete(key);
-      removed.push(assetId);
     }
 
-    await assetDone;
-    return removed;
+    await deleteDone;
+    return removable.map(String);
   }
 }
 

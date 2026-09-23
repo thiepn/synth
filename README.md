@@ -46,7 +46,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 35 — Accessibility, Mobile Ergonomics & Interaction Hardening:** complete
 - **Phase 36 — Performance, Battery & Scale Hardening:** complete
 - **Phase 37 — Architecture Consolidation & Product Simplification:** complete
-- **Next: Phase 38 — Comprehensive Product Audit & Adversarial QA**
+- **Phase 38 — Comprehensive Product Audit & Adversarial QA:** complete
+- **Next: Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze**
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
@@ -837,6 +838,32 @@ See [Phase 36 implementation notes](docs/phase-36/PHASE_36.md).
 - consolidation is net-negative in implementation code while preserving features
 
 See [Phase 37 implementation notes](docs/phase-37/PHASE_37.md).
+
+### Phase 38 — Comprehensive Product Audit & Adversarial QA
+
+- production Playwright certification against built dist
+- 14 adversarial Chromium flows
+- full seven-mode lazy-loading smoke with runtime-error capture
+- keyboard navigation + transport certification
+- project save/reload/version/backup/import certification
+- corrupt backup rejection
+- cross-tab revision conflict/reload
+- named-version canonical Pattern rollback
+- content-addressed sample remove/re-import cache regression
+- corrupt IndexedDB fail-closed recovery via Save As
+- rapid mode/transport churn
+- conflicted local-work preservation through Save As
+- dependency-safe shared-audio garbage collection
+- IndexedDB-unavailable session-only fallback
+- true offline unvisited lazy-mode load + offline reload
+- mobile seven-mode/project/transport reachability
+- fixed stale AudioContext sample caches
+- fixed IndexedDB garbage-collection transaction lifetime
+- blocked named-version restore during unresolved project conflict
+- fixed Service Worker offline lazy imports by URL/ignoreVary cache matching
+- CI failure screenshots/traces retained as artifacts
+
+See [Phase 38 implementation notes](docs/phase-38/PHASE_38.md).
 
 ## Phase 0 architecture
 

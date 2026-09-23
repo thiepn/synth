@@ -237,7 +237,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system" aria-hidden="true">
         <span className="status-lamp" />
-        <span>PHASE 37</span>
+        <span>PHASE 38</span>
       </div>
     </nav>
   );
