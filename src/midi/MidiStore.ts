@@ -18,35 +18,8 @@ import { sequencerStore } from "../sequencer/SequencerStore";
 
 type Listener = () => void;
 
-interface MidiMessageEventLike {
-  data?: Uint8Array;
-}
-
-interface MidiInputLike {
-  id: string;
-  name?: string | null;
-  manufacturer?: string | null;
-  state?: string;
-  connection?: string;
-  onmidimessage:
-    | ((event: MidiMessageEventLike) => void)
-    | null;
-  open?: () => Promise<void>;
-  close?: () => Promise<void>;
-}
-
-interface MidiAccessLike {
-  inputs: Map<string, MidiInputLike>;
-  onstatechange:
-    | ((event: { port?: MidiInputLike }) => void)
-    | null;
-}
-
-interface NavigatorWithMidi extends Navigator {
-  requestMIDIAccess?: (
-    options?: { sysex?: boolean; software?: boolean },
-  ) => Promise<MidiAccessLike>;
-}
+type MidiInputLike = MIDIInput;
+type MidiAccessLike = MIDIAccess;
 
 export type MidiStatus =
   | "unsupported"
@@ -253,7 +226,7 @@ export class MidiStore {
   private listeners = new Set<Listener>();
   private supported =
     typeof navigator !== "undefined" &&
-    typeof (navigator as NavigatorWithMidi).requestMIDIAccess === "function";
+    typeof navigator.requestMIDIAccess === "function";
   private status: MidiStatus = this.supported ? "idle" : "unsupported";
   private access: MidiAccessLike | undefined;
   private selectedInput: MidiInputLike | undefined;
@@ -306,8 +279,8 @@ export class MidiStore {
     this.publish();
 
     try {
-      const request = (navigator as NavigatorWithMidi).requestMIDIAccess;
-      if (!request) {
+      const request = navigator.requestMIDIAccess;
+      if (typeof request !== "function") {
         throw new Error("Web MIDI is not available in this browser.");
       }
 
@@ -1044,6 +1017,7 @@ export class MidiStore {
         timingOffsetUs,
         accent: accentFromVelocity(hit.velocity),
         generatorTags: ["midi-record"],
+        grooveBase: undefined,
       });
       lane.events.sort((a, b) => a.tick - b.tick);
     }
