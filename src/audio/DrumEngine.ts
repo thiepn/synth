@@ -66,6 +66,8 @@ export interface DrumEngineSnapshot {
   activeVoiceCount: number;
   lastVoice?: DrumVoiceId;
   triggerSerial: number;
+  channelLevels: Record<DrumVoiceId, number>;
+  masterLevel: number;
   lastError?: string;
 }
 
@@ -80,6 +82,8 @@ interface TrackChannelGraph {
   fader: GainNode;
   duck: GainNode;
   send: GainNode;
+  meter: AnalyserNode;
+  meterBuffer: Float32Array<ArrayBuffer>;
   lastSaturation: number;
 }
 
@@ -94,6 +98,8 @@ interface MasterGraph {
   performanceFilter: BiquadFilterNode;
   master: GainNode;
   limiter: DynamicsCompressorNode;
+  masterMeter: AnalyserNode;
+  masterMeterBuffer: Float32Array<ArrayBuffer>;
 }
 
 interface ActiveVoice {
@@ -737,6 +743,9 @@ export class DrumEngine {
     const performanceFilter = context.createBiquadFilter();
     const master = context.createGain();
     const limiter = context.createDynamicsCompressor();
+    const masterMeter = context.createAnalyser();
+    masterMeter.fftSize = 128;
+    const masterMeterBuffer = new Float32Array(masterMeter.fftSize);
 
     drive.oversample = "2x";
     compressor.threshold.value = -10;
@@ -771,6 +780,9 @@ export class DrumEngine {
       const fader = context.createGain();
       const duck = context.createGain();
       const send = context.createGain();
+      const meter = context.createAnalyser();
+      meter.fftSize = 128;
+      const meterBuffer = new Float32Array(meter.fftSize);
 
       low.type = "lowshelf";
       low.frequency.value = 120;
@@ -807,8 +819,9 @@ export class DrumEngine {
       channelCompressor.connect(pan);
       pan.connect(fader);
       fader.connect(duck);
-      duck.connect(input);
-      duck.connect(send);
+      duck.connect(meter);
+      meter.connect(input);
+      meter.connect(send);
       send.connect(convolver);
 
       channels.set(pad.voice, {
@@ -822,6 +835,8 @@ export class DrumEngine {
         fader,
         duck,
         send,
+        meter,
+        meterBuffer,
         lastSaturation: 0,
       });
     }
@@ -832,7 +847,8 @@ export class DrumEngine {
     compressor.connect(performanceFilter);
     performanceFilter.connect(master);
     master.connect(limiter);
-    limiter.connect(context.destination);
+    limiter.connect(masterMeter);
+    masterMeter.connect(context.destination);
 
     this.graph = {
       context,
@@ -845,6 +861,8 @@ export class DrumEngine {
       performanceFilter,
       master,
       limiter,
+      masterMeter,
+      masterMeterBuffer,
     };
 
     this.applyGraphMacros();
@@ -2181,7 +2199,43 @@ export class DrumEngine {
     }
   }
 
+  private readMeter(
+    analyser: AnalyserNode,
+    buffer: Float32Array<ArrayBuffer>,
+  ): number {
+    analyser.getFloatTimeDomainData(buffer);
+    let energy = 0;
+
+    for (let index = 0; index < buffer.length; index += 1) {
+      const sample = buffer[index] ?? 0;
+      energy += sample * sample;
+    }
+
+    const rms = Math.sqrt(energy / Math.max(1, buffer.length));
+    return clamp01(rms * 2.8);
+  }
+
   private buildSnapshot(): DrumEngineSnapshot {
+    const channelEntries = DRUM_PADS.map((pad) => {
+      const channel = this.graph?.channels.get(pad.voice);
+      return [
+        pad.voice,
+        channel
+          ? this.readMeter(channel.meter, channel.meterBuffer)
+          : 0,
+      ] as const;
+    });
+
+    const channelLevels = Object.fromEntries(
+      channelEntries,
+    ) as Record<DrumVoiceId, number>;
+    const masterLevel = this.graph
+      ? this.readMeter(
+          this.graph.masterMeter,
+          this.graph.masterMeterBuffer,
+        )
+      : 0;
+
     return {
       status: this.status,
       master: this.master,
@@ -2189,6 +2243,8 @@ export class DrumEngine {
       activeVoiceCount: this.activeVoices.length,
       lastVoice: this.lastVoice,
       triggerSerial: this.triggerSerial,
+      channelLevels,
+      masterLevel,
       lastError: this.lastError,
     };
   }
