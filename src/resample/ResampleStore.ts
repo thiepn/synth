@@ -1,4 +1,5 @@
 import { audioTransport } from "../audio/AudioTransport";
+import { errorMessage } from "../runtime/errors";
 import {
   drumSoundStore,
   type DrumVoiceSourceState,
@@ -557,7 +558,7 @@ export class ResampleStore {
     this.status = "error";
     this.phaseLabel = "RESAMPLE ERROR";
     this.lastError =
-      error instanceof Error ? error.message : String(error);
+      errorMessage(error);
     this.publish();
   }
 
