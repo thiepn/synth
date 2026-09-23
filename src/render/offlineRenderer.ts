@@ -75,6 +75,7 @@ interface OfflineGraph {
   widthLeftToRight: GainNode;
   masterOutput: GainNode;
   limiter: DynamicsCompressorNode;
+  noiseBuffer: AudioBuffer;
 }
 
 function clamp01(value: number): number {
@@ -313,6 +314,7 @@ function graphFor(
 ): OfflineGraph {
   const input = context.createGain();
   const channels = new Map<DrumVoiceId, OfflineTrackGraph>();
+  const noiseBuffer = graph.noiseBuffer;
   const drive = context.createWaveShaper();
   const busCompressor = context.createDynamicsCompressor();
   const convolver = context.createConvolver();
@@ -478,6 +480,7 @@ function graphFor(
     widthLeftToRight,
     masterOutput,
     limiter,
+    noiseBuffer,
   };
 }
 
@@ -493,7 +496,9 @@ function configureAtTick(
     snapshot.engineMacros.grit,
     tick,
   );
-  graph.drive.curve = createDriveCurve(driveAmount);
+  if (audioTime <= 0.0001) {
+    graph.drive.curve = createDriveCurve(driveAmount);
+  }
 
   const space = resolveTarget(
     snapshot,
@@ -672,7 +677,7 @@ function scheduleKick(
   );
 
   const click = context.createBufferSource();
-  click.buffer = createNoiseBuffer(context);
+  click.buffer = graph.noiseBuffer;
   const clickFilter = context.createBiquadFilter();
   clickFilter.type = "bandpass";
   clickFilter.frequency.value = 1800 + tone * 5200;
@@ -721,7 +726,7 @@ function scheduleSnareLike(
   const amp = velocityGain(velocity);
 
   const noise = context.createBufferSource();
-  noise.buffer = createNoiseBuffer(context);
+  noise.buffer = graph.noiseBuffer;
   const filter = context.createBiquadFilter();
   filter.type = "bandpass";
   filter.frequency.value =
@@ -790,7 +795,7 @@ function scheduleHat(
   const amp = velocityGain(velocity);
 
   const noise = context.createBufferSource();
-  noise.buffer = createNoiseBuffer(context);
+  noise.buffer = graph.noiseBuffer;
   const highpass = context.createBiquadFilter();
   highpass.type = "highpass";
   highpass.frequency.value =
@@ -1027,14 +1032,21 @@ function scheduleSample(
     peak,
     at + Math.min(0.0015, audibleDuration * 0.12),
   );
-  gain.gain.setValueAtTime(
-    peak,
-    Math.max(at + 0.002, at + audibleDuration - 0.006),
-  );
-  gain.gain.exponentialRampToValueAtTime(
-    MIN_GAIN,
-    at + audibleDuration,
-  );
+  if (audibleDuration > 0.012) {
+    gain.gain.setValueAtTime(
+      peak,
+      Math.max(at + 0.002, at + audibleDuration - 0.006),
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      MIN_GAIN,
+      at + audibleDuration,
+    );
+  } else {
+    gain.gain.exponentialRampToValueAtTime(
+      MIN_GAIN,
+      at + Math.max(0.002, audibleDuration),
+    );
+  }
 
   source.connect(gain);
   gain.connect(channelInput(graph, voice));
