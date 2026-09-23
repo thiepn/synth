@@ -1,11 +1,13 @@
 import type { ArrangementShapeId, Pattern } from "../domain/contracts";
 import {
-  cloneGenerationProvenance,
   clonePattern,
 } from "../domain/patternClone";
 import {
   cloneArrangementBlueprint,
 } from "../domain/arrangementClone";
+import {
+  cloneBeatFamily,
+} from "../domain/familyClone";
 import type { BeatFamilyGenerationResult } from "../generation/beatFamilyGenerator";
 import type { EvolutionPlan } from "../generation/evolutionEngine";
 import {
@@ -42,15 +44,9 @@ function cloneCandidate(
     ...candidate,
     family: {
       ...candidate.family,
-      family: {
-        ...candidate.family.family,
-        members: candidate.family.family.members.map((member) => ({
-          ...member,
-        })),
-        provenance: cloneGenerationProvenance(
-          candidate.family.family.provenance,
-        ),
-      },
+      family: cloneBeatFamily(
+        candidate.family.family,
+      ),
       patterns: candidate.family.patterns.map((entry) => ({
         ...entry,
         pattern: clonePattern(entry.pattern),
