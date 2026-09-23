@@ -35,6 +35,9 @@ import { drumSoundStore } from "./drumSoundModel";
 import { sampleAssetStore } from "./SampleAssetStore";
 import { performanceStore } from "../performance/PerformanceStore";
 import { applyPerformanceToHits } from "../performance/performancePlayback";
+import { chaosStore } from "../chaos/ChaosStore";
+import { generateChaos } from "../generation/chaosEngine";
+import { beatMorphStore } from "../morph/BeatMorphStore";
 
 export interface DrumMacros {
   punch: number;
@@ -145,6 +148,8 @@ export class DrumEngine {
   private soundEditTimer: number | null = null;
   private performanceEditTimer: number | null = null;
   private repeatSourceHits: PatternPlaybackHit[] = [];
+  private performancePatternCacheKey = "";
+  private performancePatternCache: Pattern | undefined;
   private nextVoiceId = 1;
   private currentTransportEpoch = -1;
 
@@ -419,12 +424,15 @@ export class DrumEngine {
           arrangementResolved.localTick /
             TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
         );
-        hits = getPatternHitsForAbsoluteStep(
+        const arrangementPattern = this.resolvePerformancePattern(
           arrangementResolved.pattern,
+        );
+        hits = getPatternHitsForAbsoluteStep(
+          arrangementPattern,
           stepIndex,
           arrangementResolved.occurrenceIndex * 1024,
         );
-        swing = arrangementResolved.pattern.groove?.swing ?? 0;
+        swing = arrangementPattern.groove?.swing ?? 0;
         arrangementEnergy = arrangementResolved.energy;
       } else {
         stepIndex = Math.floor(
@@ -454,8 +462,11 @@ export class DrumEngine {
         }
 
         const performancePattern =
-          arrangementResolved?.pattern ??
-          sequencerStore.getSnapshot().pattern;
+          arrangementResolved
+            ? this.resolvePerformancePattern(
+                arrangementResolved.pattern,
+              )
+            : sequencerStore.getSnapshot().pattern;
         const performed = applyPerformanceToHits(
           hits,
           performancePattern,
@@ -537,6 +548,48 @@ export class DrumEngine {
       this.lastError = this.errorMessage(error);
       this.publish();
     }
+  }
+
+  private resolvePerformancePattern(pattern: Pattern): Pattern {
+    const performance = performanceStore.getSnapshot();
+    if (!performance.active) return pattern;
+
+    const chaos = chaosStore.getSnapshot();
+    const morph = beatMorphStore.getSnapshot();
+    const cacheKey = [
+      pattern.id,
+      chaos.revision,
+      morph.revision,
+      performance.macros.morph.toFixed(4),
+    ].join("|");
+
+    if (
+      cacheKey === this.performancePatternCacheKey &&
+      this.performancePatternCache
+    ) {
+      return this.performancePatternCache;
+    }
+
+    let resolved = pattern;
+
+    if (
+      performance.macros.morph > 0.001 &&
+      morph.preview &&
+      morph.a?.id === pattern.id
+    ) {
+      resolved = morph.preview.pattern;
+    }
+
+    if (
+      chaos.config.intensity > 0.001 &&
+      !chaos.bypass
+    ) {
+      resolved = generateChaos(resolved, chaos.config).pattern;
+    }
+
+    this.performancePatternCacheKey = cacheKey;
+    this.performancePatternCache = resolved;
+    return resolved;
   }
 
   private handleTransportState(snapshot: TransportSnapshot): void {
