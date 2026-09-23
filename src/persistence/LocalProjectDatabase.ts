@@ -160,7 +160,6 @@ export class LocalProjectDatabase {
     const transaction = db.transaction(
       [PROJECT_STORE, ASSET_STORE, META_STORE],
       "readwrite",
-      { durability: "strict" },
     );
     const projectStore = transaction.objectStore(PROJECT_STORE);
     const assetStore = transaction.objectStore(ASSET_STORE);
@@ -182,35 +181,49 @@ export class LocalProjectDatabase {
     projectId: string,
   ): Promise<LoadedProjectBundle | undefined> {
     const db = await this.open();
-    const transaction = db.transaction(
-      [PROJECT_STORE, ASSET_STORE],
+
+    const projectTransaction = db.transaction(
+      PROJECT_STORE,
       "readonly",
     );
+    const projectDone = transactionDone(projectTransaction);
     const document = await requestResult(
-      transaction.objectStore(PROJECT_STORE).get(projectId),
+      projectTransaction.objectStore(PROJECT_STORE).get(projectId),
     ) as unknown;
+    await projectDone;
+
     if (!document) {
-      await transactionDone(transaction);
       return undefined;
     }
-
     assertProjectDocument(document);
-    const assets: PersistedAudioAsset[] = [];
-    const assetStore = transaction.objectStore(ASSET_STORE);
 
-    for (const assetId of document.assetIds) {
-      const record = await requestResult(
-        assetStore.get(assetId),
-      ) as PersistedAudioAsset | undefined;
+    const assetTransaction = db.transaction(
+      ASSET_STORE,
+      "readonly",
+    );
+    const assetDone = transactionDone(assetTransaction);
+    const assetStore = assetTransaction.objectStore(ASSET_STORE);
+    const assetRequests = document.assetIds.map(
+      (assetId) =>
+        requestResult(assetStore.get(assetId)).then(
+          (record) => ({
+            assetId,
+            record: record as PersistedAudioAsset | undefined,
+          }),
+        ),
+    );
+    const records = await Promise.all(assetRequests);
+    await assetDone;
+
+    const assets = records.map(({ assetId, record }) => {
       if (!record) {
         throw new Error(
           "Project references missing audio asset " + assetId + ".",
         );
       }
-      assets.push(clonePersistedAsset(record));
-    }
+      return clonePersistedAsset(record);
+    });
 
-    await transactionDone(transaction);
     return {
       document: structuredClone(document),
       assets,
@@ -220,10 +233,11 @@ export class LocalProjectDatabase {
   async listProjects(): Promise<ProjectSummary[]> {
     const db = await this.open();
     const transaction = db.transaction(PROJECT_STORE, "readonly");
+    const done = transactionDone(transaction);
     const records = await requestResult(
       transaction.objectStore(PROJECT_STORE).getAll(),
     ) as unknown[];
-    await transactionDone(transaction);
+    await done;
 
     const summaries: ProjectSummary[] = [];
     for (const record of records) {
@@ -243,10 +257,11 @@ export class LocalProjectDatabase {
   async getActiveProjectId(): Promise<string | undefined> {
     const db = await this.open();
     const transaction = db.transaction(META_STORE, "readonly");
+    const done = transactionDone(transaction);
     const record = await requestResult(
       transaction.objectStore(META_STORE).get(ACTIVE_PROJECT_KEY),
     ) as MetaRecord | undefined;
-    await transactionDone(transaction);
+    await done;
     return record?.value;
   }
 
@@ -261,22 +276,22 @@ export class LocalProjectDatabase {
   }
 
   async deleteProject(projectId: string): Promise<void> {
+    const activeId = await this.getActiveProjectId();
     const db = await this.open();
     const transaction = db.transaction(
       [PROJECT_STORE, META_STORE],
       "readwrite",
     );
+    const done = transactionDone(transaction);
     transaction.objectStore(PROJECT_STORE).delete(projectId);
 
-    const metaStore = transaction.objectStore(META_STORE);
-    const active = await requestResult(
-      metaStore.get(ACTIVE_PROJECT_KEY),
-    ) as MetaRecord | undefined;
-    if (active?.value === projectId) {
-      metaStore.delete(ACTIVE_PROJECT_KEY);
+    if (activeId === projectId) {
+      transaction
+        .objectStore(META_STORE)
+        .delete(ACTIVE_PROJECT_KEY);
     }
 
-    await transactionDone(transaction);
+    await done;
   }
 }
 
