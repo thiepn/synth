@@ -1072,6 +1072,30 @@ export function PlaygroundSurface({
                 paintRef.current = null;
               }}
             >
+              {activeStep !== undefined &&
+              activeStep >= pageStart &&
+              activeStep <
+                pageStart +
+                  Math.min(
+                    pageSize,
+                    sequencer.lengthSteps - pageStart,
+                  ) ? (
+                <span
+                  className="playground-playhead"
+                  aria-hidden="true"
+                  style={{
+                    left:
+                      ((activeStep - pageStart + 0.5) /
+                        Math.min(
+                          pageSize,
+                          sequencer.lengthSteps - pageStart,
+                        )) *
+                        100 +
+                      "%",
+                  }}
+                />
+              ) : null}
+
               {Array.from(
                 {
                   length: Math.min(
