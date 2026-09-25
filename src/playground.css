@@ -59,7 +59,48 @@
     radial-gradient(circle at 78% 12%, rgba(120, 103, 255, 0.15), transparent 28rem),
     radial-gradient(circle at 76% 78%, rgba(53, 213, 163, 0.12), transparent 30rem),
     linear-gradient(180deg, #0d0e1a 0%, #090a13 100%);
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
+}
+
+.playground-surface::before,
+.playground-surface::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  width: min(50vw, 620px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.11;
+  pointer-events: none;
+}
+
+.playground-surface::before {
+  top: -18vw;
+  left: -10vw;
+  background: #ff5577;
+  animation: playground-ambient-a 16s ease-in-out infinite alternate;
+}
+
+.playground-surface::after {
+  right: -12vw;
+  bottom: -24vw;
+  background: #63def4;
+  animation: playground-ambient-b 19s ease-in-out infinite alternate;
+}
+
+@keyframes playground-ambient-a {
+  to {
+    transform: translate(12vw, 7vh) scale(1.12);
+  }
+}
+
+@keyframes playground-ambient-b {
+  to {
+    transform: translate(-10vw, -8vh) scale(0.9);
+  }
 }
 
 .playground-topbar {
@@ -353,6 +394,18 @@
     rgba(255, 255, 255, 0.05);
 }
 
+.playground-lane.is-playing .playground-pad {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 0 0 3px color-mix(in srgb, var(--lane-color) 10%, transparent),
+    0 10px 32px color-mix(in srgb, var(--lane-color) 34%, transparent);
+  transform: scale(0.985);
+}
+
+.playground-lane.is-playing .playground-pad__icon {
+  transform: scale(1.08);
+}
+
 .playground-instrument {
   min-width: 0;
   display: grid;
@@ -541,6 +594,21 @@
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--lane-color) 18%, transparent),
     0 8px 26px color-mix(in srgb, var(--lane-color) 45%, transparent);
+}
+
+.playground-step.is-current.is-on > span {
+  animation: playground-hit-pop 145ms ease-out;
+}
+
+@keyframes playground-hit-pop {
+  from {
+    transform: scale(0.45);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(calc(0.72 + var(--step-strength) * 0.3));
+    opacity: 1;
+  }
 }
 
 .playground-sound-drawer {
@@ -916,7 +984,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .playground-pad__pulse,
-  .playground-loading__pulse {
+  .playground-loading__pulse,
+  .playground-surface::before,
+  .playground-surface::after,
+  .playground-step.is-current.is-on > span {
     animation: none;
   }
 }

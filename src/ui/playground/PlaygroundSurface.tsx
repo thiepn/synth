@@ -811,10 +811,7 @@ export function PlaygroundSurface({
                   onClick={() =>
                     void chooseSound(soundPickerVoice, index)
                   }
-                  disabled={
-                    Boolean(soundLoading) &&
-                    soundLoading !== preset.bundledSampleId
-                  }
+                  disabled={Boolean(soundLoading)}
                   aria-busy={
                     preset.bundledSampleId === soundLoading
                       ? true
@@ -830,7 +827,9 @@ export function PlaygroundSurface({
                   }
                 >
                   <span aria-hidden="true" />
-                  {preset.label}
+                  {preset.bundledSampleId === soundLoading
+                    ? "Loading…"
+                    : preset.label}
                 </button>
               ),
             )}
