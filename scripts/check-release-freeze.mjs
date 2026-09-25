@@ -61,6 +61,9 @@ const contracts = [
   ["docs/phase-39/PHASE_39.md", "28 passed"],
   ["docs/phase-39/PHASE_39.md", "6 passed"],
   ["docs/phase-40/PHASE_40.md", "v1.0.0"],
+  ["docs/phase-40/RELEASE_NOTES.md", "# Synth v1.0.0"],
+  [".github/workflows/release.yml", "gh release create"],
+  [".github/workflows/release.yml", "github.event.workflow_run.conclusion == 'success'"],
 ];
 
 for (const [path, text] of contracts) {
