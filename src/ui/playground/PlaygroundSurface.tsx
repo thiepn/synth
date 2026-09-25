@@ -24,6 +24,7 @@ import {
   type BeatStyleId,
 } from "../../generation/beatGenerator";
 import { rerollBeat } from "../../generation/beatVariation";
+import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import {
   DRUM_PADS,
   SEQUENCER_LANES,
@@ -74,56 +75,56 @@ const LANE_NAMES: Partial<Record<DrumVoiceId, string>> = {
 
 const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
   kick: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Deep", spec: { body: 0.95, pitch: 0.27, decay: 0.72, impact: 0.7 } },
     { label: "Punchy", spec: { impact: 0.98, body: 0.68, decay: 0.36, character: 0.48 } },
     { label: "Soft", spec: { impact: 0.52, body: 0.7, noise: 0.05, character: 0.22 } },
     { label: "Dirty", spec: { impact: 0.82, noise: 0.24, character: 0.9, tone: 0.38 } },
   ],
   snare: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Snap", spec: { impact: 0.84, noise: 0.8, character: 0.9, decay: 0.34 } },
     { label: "Fat", spec: { body: 0.88, tone: 0.45, decay: 0.58, impact: 0.72 } },
     { label: "Dry", spec: { decay: 0.22, air: 0.18, noise: 0.6, body: 0.54 } },
     { label: "Bright", spec: { air: 0.72, tone: 0.82, noise: 0.78, pitch: 0.6 } },
   ],
   clap: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Wide", spec: { character: 0.96, air: 0.7, decay: 0.54 } },
     { label: "Tight", spec: { impact: 0.78, decay: 0.2, body: 0.24 } },
     { label: "Dusty", spec: { noise: 0.94, tone: 0.38, character: 0.68 } },
     { label: "Bright", spec: { air: 0.9, tone: 0.84, noise: 0.86 } },
   ],
   closedHat: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Crisp", spec: { impact: 0.66, air: 0.9, tone: 0.82, decay: 0.16 } },
     { label: "Soft", spec: { impact: 0.32, air: 0.56, tone: 0.56, decay: 0.22 } },
     { label: "Dark", spec: { tone: 0.3, air: 0.46, character: 0.58 } },
     { label: "Metallic", spec: { character: 0.96, body: 0.3, pitch: 0.74 } },
   ],
   openHat: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Airy", spec: { air: 0.98, decay: 0.78, tone: 0.78 } },
     { label: "Short", spec: { decay: 0.34, impact: 0.58, air: 0.7 } },
     { label: "Dark", spec: { tone: 0.34, air: 0.58, decay: 0.7 } },
     { label: "Metallic", spec: { character: 0.98, body: 0.32, pitch: 0.72 } },
   ],
   tom: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Round", spec: { body: 0.96, impact: 0.58, tone: 0.42, decay: 0.64 } },
     { label: "Deep", spec: { pitch: 0.28, body: 0.92, decay: 0.72 } },
     { label: "Tight", spec: { impact: 0.82, decay: 0.28, body: 0.7 } },
     { label: "Big", spec: { body: 0.98, decay: 0.86, character: 0.58 } },
   ],
   percussion: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Wood", spec: { body: 0.7, noise: 0.08, tone: 0.44, character: 0.34 } },
     { label: "Click", spec: { impact: 0.92, body: 0.28, decay: 0.18, pitch: 0.72 } },
     { label: "Warm", spec: { body: 0.74, tone: 0.38, character: 0.48 } },
     { label: "Odd", spec: { character: 0.98, pitch: 0.76, noise: 0.34 } },
   ],
   crash: [
-    { label: "Original", spec: {} },
+    { label: "Core", spec: {} },
     { label: "Bright", spec: { air: 1, tone: 0.9, decay: 0.82 } },
     { label: "Dark", spec: { tone: 0.34, air: 0.58, body: 0.26 } },
     { label: "Short", spec: { decay: 0.42, impact: 0.62, air: 0.76 } },
@@ -198,6 +199,41 @@ export function PlaygroundSurface({
     const timer = window.setTimeout(() => setNotice(""), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    const keyToVoice = new Map(
+      DRUM_PADS.map((pad) => [
+        pad.key.toLowerCase(),
+        pad.voice,
+      ]),
+    );
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.repeat ||
+        eventTargetConsumesKeyboard(event.target)
+      ) {
+        return;
+      }
+
+      const voice = keyToVoice.get(event.key.toLowerCase());
+      if (!voice) return;
+
+      event.preventDefault();
+      setPadPulse((current) => ({
+        voice,
+        serial: current.serial + 1,
+      }));
+      void drumEngine.triggerNow(
+        voice,
+        event.shiftKey ? 1 : 0.88,
+      );
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const styleVector = sequencer.pattern.provenance?.style;
@@ -512,8 +548,11 @@ export function PlaygroundSurface({
 
           const voice = definition.voice;
           const color = LANE_COLORS[voice];
+          const pad = DRUM_PADS.find(
+            (entry) => entry.voice === voice,
+          );
           const currentSound =
-            SOUND_PRESETS[voice][soundIndex[voice]]?.label ?? "Original";
+            SOUND_PRESETS[voice][soundIndex[voice]]?.label ?? "Core";
           const laneIsPlaying =
             activeStep !== undefined &&
             sequencerStore.getStepVelocity(
@@ -543,7 +582,7 @@ export function PlaygroundSurface({
                   aria-label={"Play " + displayLaneName(definition)}
                 >
                   <span className="playground-pad__icon" aria-hidden="true">
-                    {definition.code}
+                    {pad?.key ?? definition.code}
                   </span>
                   <strong>{displayLaneName(definition)}</strong>
                   {padPulse.voice === voice ? (
