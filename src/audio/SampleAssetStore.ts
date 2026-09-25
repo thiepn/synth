@@ -136,6 +136,10 @@ export class SampleAssetStore {
     dataInput: ArrayBuffer,
     name: string,
     mimeType = "audio/wav",
+    metadata?: {
+      origin?: AssetReference["origin"];
+      bundledSampleId?: string;
+    },
   ): Promise<SampleAssetState> {
     const data = dataInput.slice(0);
 
@@ -171,6 +175,8 @@ export class SampleAssetStore {
         name: name.trim() || "Rendered Sample.wav",
         byteLength: data.byteLength,
         contentHash,
+        origin: metadata?.origin ?? "user",
+        bundledSampleId: metadata?.bundledSampleId,
       },
       decodeStatus: "raw",
       waveform: [],
