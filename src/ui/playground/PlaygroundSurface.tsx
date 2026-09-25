@@ -16,6 +16,8 @@ import {
   drumSoundStore,
 } from "../../audio/drumSoundModel";
 import { useTransportSnapshot } from "../../audio/useTransport";
+import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
+import { useSampleAssetSnapshot } from "../../audio/useSampleAssets";
 import {
   applyBundledSample,
   bundledSampleForVoice,
@@ -170,6 +172,35 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
   ],
 };
 
+const MATERIAL_PARAMS = [
+  "impact",
+  "body",
+  "noise",
+  "air",
+  "tone",
+  "decay",
+  "pitch",
+  "character",
+] as const;
+
+function synthPresetMatches(
+  voice: DrumVoiceId,
+  preset: SoundPreset,
+  actual: DrumMaterialSpec,
+): boolean {
+  if (preset.bundledSampleId) return false;
+  const expected = {
+    ...DRUM_DEFAULT_SPECS[voice],
+    ...(preset.spec ?? {}),
+  };
+
+  return MATERIAL_PARAMS.every(
+    (key) =>
+      Math.abs(expected[key] - actual[key]) <
+      0.0001,
+  );
+}
+
 const INITIAL_SOUND_INDEX: Record<DrumVoiceId, number> = {
   kick: 0,
   snare: 0,
@@ -205,6 +236,8 @@ export function PlaygroundSurface({
 }: PlaygroundSurfaceProps) {
   const sequencer = useSequencerSnapshot();
   const transport = useTransportSnapshot();
+  const drumSounds = useDrumSoundSnapshot();
+  const sampleAssets = useSampleAssetSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [soundIndex, setSoundIndex] =
@@ -246,6 +279,60 @@ export function PlaygroundSurface({
     const timer = window.setTimeout(() => setNotice(""), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    setSoundIndex((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      for (const pad of DRUM_PADS) {
+        const voice = pad.voice;
+        const source = drumSounds.sourceStates[voice];
+        const presets = SOUND_PRESETS[voice];
+        let resolved = -1;
+
+        if (
+          source.mode !== "synth" &&
+          source.sample
+        ) {
+          const asset = sampleAssets.assets.find(
+            (entry) =>
+              entry.reference.id === source.sample?.assetId,
+          );
+          const assetLabel = asset?.reference.name.replace(
+            /\.wav$/i,
+            "",
+          );
+
+          if (assetLabel) {
+            resolved = presets.findIndex(
+              (preset) =>
+                Boolean(preset.bundledSampleId) &&
+                preset.label === assetLabel,
+            );
+          }
+        } else {
+          resolved = presets.findIndex((preset) =>
+            synthPresetMatches(
+              voice,
+              preset,
+              drumSounds.specs[voice],
+            ),
+          );
+        }
+
+        if (next[voice] !== resolved) {
+          next[voice] = resolved;
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [
+    drumSounds.revision,
+    sampleAssets.revision,
+  ]);
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
