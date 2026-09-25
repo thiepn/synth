@@ -165,23 +165,47 @@ export class SampleAssetStore {
     const existing = this.states.get(id);
 
     if (existing) {
-      if (
-        metadata?.origin === "user" &&
-        existing.reference.origin === "bundled"
+      if (metadata?.origin === "user") {
+        const nextName =
+          name.trim() ||
+          existing.reference.name;
+        const nextMime =
+          mimeType ||
+          existing.reference.mimeType;
+        const changed =
+          existing.reference.origin !== "user" ||
+          existing.reference.bundledSampleId !== undefined ||
+          existing.reference.name !== nextName ||
+          existing.reference.mimeType !== nextMime;
+
+        if (changed) {
+          existing.reference = {
+            ...existing.reference,
+            name: nextName,
+            mimeType: nextMime,
+            origin: "user",
+            bundledSampleId: undefined,
+          };
+          this.publish();
+        }
+      } else if (
+        metadata?.origin === "bundled" &&
+        metadata.bundledSampleId
       ) {
-        existing.reference = {
-          ...existing.reference,
-          name:
-            name.trim() ||
-            existing.reference.name,
-          mimeType:
-            mimeType ||
-            existing.reference.mimeType,
-          origin: "user",
-          bundledSampleId: undefined,
-        };
-        this.publish();
+        const changed =
+          existing.reference.bundledSampleId !==
+          metadata.bundledSampleId;
+
+        if (changed) {
+          existing.reference = {
+            ...existing.reference,
+            bundledSampleId:
+              metadata.bundledSampleId,
+          };
+          this.publish();
+        }
       }
+
       return cloneAsset(existing);
     }
 
