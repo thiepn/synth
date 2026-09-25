@@ -238,6 +238,7 @@ export function PlaygroundSurface({
   const sampleAssets = useSampleAssetSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
+  const [remixPulse, setRemixPulse] = useState(0);
   const [soundIndex, setSoundIndex] =
     useState<Record<DrumVoiceId, number>>(INITIAL_SOUND_INDEX);
   const [notice, setNotice] = useState("Click a pad. Draw a beat.");
@@ -600,6 +601,7 @@ export function PlaygroundSurface({
       );
     }
     setRemixCounter((value) => value + 1);
+    setRemixPulse((value) => value + 1);
     setNotice(styleLabel(nextStyle) + " beat ready");
   };
 
@@ -631,6 +633,7 @@ export function PlaygroundSurface({
         transport.bpm,
       );
     }
+    setRemixPulse((value) => value + 1);
     setNotice("Remixed");
   };
 
@@ -813,6 +816,14 @@ export function PlaygroundSurface({
       </div>
 
       <div className="playground-workbench">
+        {remixPulse > 0 ? (
+          <span
+            key={remixPulse}
+            className="playground-remix-wave"
+            aria-hidden="true"
+          />
+        ) : null}
+
         <section
           className="playground-pad-grid"
           aria-label="Playable instruments"
@@ -852,6 +863,17 @@ export function PlaygroundSurface({
                   } as CSSProperties
                 }
               >
+                {laneIsPlaying && activeStep !== undefined ? (
+                  <span
+                    key={
+                      definition.id +
+                      "-hit-" +
+                      activeStep
+                    }
+                    className="playground-beat-pad__hit"
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <button
                   type="button"
                   className="playground-beat-pad__trigger"
