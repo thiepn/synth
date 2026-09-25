@@ -199,6 +199,19 @@ export function PlaygroundSurface({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    const styleVector = sequencer.pattern.provenance?.style;
+    if (!styleVector) return;
+
+    const strongest = Object.entries(styleVector).sort(
+      (a, b) => b[1] - a[1],
+    )[0]?.[0] as BeatStyleId | undefined;
+
+    if (strongest && PLAY_STYLES.includes(strongest)) {
+      setStyle(strongest);
+    }
+  }, [sequencer.pattern.provenance]);
+
   const activeStep =
     transport.status === "running"
       ? Math.floor(
@@ -325,6 +338,12 @@ export function PlaygroundSurface({
     }
 
     sequencerStore.applyGeneratedPattern(generated.pattern);
+    if (!playing) {
+      void drumEngine.auditionPattern(
+        generated.pattern,
+        transport.bpm,
+      );
+    }
     setRemixCounter((value) => value + 1);
     setNotice(styleLabel(nextStyle) + " beat ready");
   };
@@ -351,6 +370,12 @@ export function PlaygroundSurface({
     }
 
     sequencerStore.applyGeneratedPattern(result.pattern);
+    if (!playing) {
+      void drumEngine.auditionPattern(
+        result.pattern,
+        transport.bpm,
+      );
+    }
     setNotice("Remixed");
   };
 
