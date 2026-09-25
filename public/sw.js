@@ -7,6 +7,7 @@ const SCOPE_URL = new URL(self.registration.scope);
 const ROOT_URL = new URL("./", SCOPE_URL).href;
 const MANIFEST_URL = new URL("./manifest.webmanifest", SCOPE_URL).href;
 const ASSET_MANIFEST_URL = new URL("./asset-manifest.json", SCOPE_URL).href;
+const SAMPLE_MANIFEST_URL = new URL("./samples/cc0-manifest.json", SCOPE_URL).href;
 const ICON_URLS = [
   "./icons/synth.svg",
   "./icons/synth-180.png",
@@ -46,6 +47,7 @@ async function precacheShell() {
   const urls = new Set([
     MANIFEST_URL,
     ASSET_MANIFEST_URL,
+    SAMPLE_MANIFEST_URL,
     ...ICON_URLS,
   ]);
 
@@ -66,6 +68,30 @@ async function precacheShell() {
   } catch {
     // index.html discovery below remains a safe fallback.
   }
+
+  try {
+    const sampleManifestResponse = await fetch(
+      SAMPLE_MANIFEST_URL,
+      { cache: "reload" },
+    );
+    if (sampleManifestResponse.ok) {
+      const sampleManifest =
+        await sampleManifestResponse.json();
+      for (const sample of sampleManifest.samples ?? []) {
+        if (typeof sample.file !== "string") continue;
+        const sampleUrl = new URL(
+          "./samples/" + sample.file,
+          ROOT_URL,
+        );
+        if (sameScope(sampleUrl)) {
+          urls.add(sampleUrl.href);
+        }
+      }
+    }
+  } catch {
+    // The synth engine remains usable if optional samples are unavailable.
+  }
+
   const pattern = /(?:src|href)=["']([^"'#]+)["']/g;
   let match;
 
@@ -165,12 +191,14 @@ self.addEventListener("fetch", (event) => {
     "style",
     "image",
     "font",
+    "audio",
     "manifest",
   ]);
 
   if (
     cacheableDestination.has(request.destination) ||
-    url.pathname.includes("/assets/")
+    url.pathname.includes("/assets/") ||
+    url.pathname.includes("/samples/")
   ) {
     event.respondWith(
       (async () => {

@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/generate-pwa-icons.mjs",
+    "predev": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/generate-pwa-icons.mjs",
+    "prebuild": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
     "build": "npm run check:interaction && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:interaction": "node scripts/check-interaction-contracts.mjs",

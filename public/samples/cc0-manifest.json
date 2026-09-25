@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "source": {
+    "repository": "tidalcycles/sounds-tr808-fischer",
+    "commit": "85fbecf1bec32553395625ea659e2a56dfd7c0e1",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://github.com/tidalcycles/sounds-tr808-fischer/blob/main/LICENSE"
+  },
+  "samples": [
+    {
+      "id": "tr808-kick",
+      "voice": "kick",
+      "label": "808 Classic",
+      "sourcePath": "bd8/BD5050.WAV",
+      "file": "generated/tr808/kick.wav",
+      "blobSha": "b6743fdf412b8620611983df5ee211488a54f385",
+      "byteLength": 132346
+    },
+    {
+      "id": "tr808-snare",
+      "voice": "snare",
+      "label": "808 Snare",
+      "sourcePath": "sd8/SD5050.WAV",
+      "file": "generated/tr808/snare.wav",
+      "blobSha": "0eb2dc0dcc112847b265af4046fca88f6d0bc287",
+      "byteLength": 44146
+    },
+    {
+      "id": "tr808-clap",
+      "voice": "clap",
+      "label": "808 Clap",
+      "sourcePath": "cp8/CP.WAV",
+      "file": "generated/tr808/clap.wav",
+      "blobSha": "6e2b7ea108f87133fcaa31f7ae5c9eaa40ae1f4b",
+      "byteLength": 176446
+    },
+    {
+      "id": "tr808-closed-hat",
+      "voice": "closedHat",
+      "label": "808 Hat",
+      "sourcePath": "ch8/CH.WAV",
+      "file": "generated/tr808/closed-hat.wav",
+      "blobSha": "ffc5951ddfc3801f947579f7994bcab2ca42edf1",
+      "byteLength": 22094
+    },
+    {
+      "id": "tr808-open-hat",
+      "voice": "openHat",
+      "label": "808 Open",
+      "sourcePath": "oh8/OH50.WAV",
+      "file": "generated/tr808/open-hat.wav",
+      "blobSha": "a0fde523e8b1a3142ddf70f806dd02422a8aad30",
+      "byteLength": 44146
+    },
+    {
+      "id": "tr808-tom",
+      "voice": "tom",
+      "label": "808 Tom",
+      "sourcePath": "mt8/MT50.WAV",
+      "file": "generated/tr808/tom.wav",
+      "blobSha": "e1a1213a9d40a9520f18e39106d5d4bd2423d5fa",
+      "byteLength": 88246
+    },
+    {
+      "id": "tr808-percussion",
+      "voice": "percussion",
+      "label": "808 Rim",
+      "sourcePath": "rs8/RS.WAV",
+      "file": "generated/tr808/percussion.wav",
+      "blobSha": "c5a54c77a27ed9776b74890b4ffe1016b1202e13",
+      "byteLength": 22096
+    },
+    {
+      "id": "tr808-crash",
+      "voice": "crash",
+      "label": "808 Cymbal",
+      "sourcePath": "cy8/CY5050.WAV",
+      "file": "generated/tr808/crash.wav",
+      "blobSha": "f94d6d5dafa13d0f388f074ae3c74b13406642ed",
+      "byteLength": 220546
+    }
+  ]
+}

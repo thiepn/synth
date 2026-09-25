@@ -16,6 +16,11 @@ import {
   drumSoundStore,
 } from "../../audio/drumSoundModel";
 import { useTransportSnapshot } from "../../audio/useTransport";
+import {
+  applyBundledSample,
+  bundledSampleForVoice,
+  type BundledSampleId,
+} from "../../audio/bundledSampleLibrary";
 import type { DrumMaterialSpec } from "../../domain/contracts";
 import {
   BEAT_STYLES,
@@ -42,7 +47,8 @@ interface PlaygroundSurfaceProps {
 
 interface SoundPreset {
   label: string;
-  spec: Partial<DrumMaterialSpec>;
+  spec?: Partial<DrumMaterialSpec>;
+  bundledSampleId?: BundledSampleId;
 }
 
 const PLAY_STYLES: readonly BeatStyleId[] = [
@@ -83,6 +89,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808", spec: { body: 1, pitch: 0.2, decay: 0.9, impact: 0.6, noise: 0.03 } },
     { label: "Tight", spec: { impact: 0.9, body: 0.66, decay: 0.24, pitch: 0.5 } },
     { label: "Huge", spec: { impact: 0.86, body: 1, decay: 0.86, pitch: 0.32, character: 0.62 } },
+    { label: "808 Classic", bundledSampleId: "tr808-kick" },
   ],
   snare: [
     { label: "Core", spec: {} },
@@ -93,6 +100,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Lo-Fi", spec: { air: 0.16, tone: 0.32, noise: 0.8, character: 0.78 } },
     { label: "Ringy", spec: { body: 0.76, tone: 0.72, decay: 0.7, character: 0.82 } },
     { label: "Big", spec: { impact: 0.82, body: 0.92, decay: 0.72, air: 0.5 } },
+    { label: "808 Snare", bundledSampleId: "tr808-snare" },
   ],
   clap: [
     { label: "Core", spec: {} },
@@ -103,6 +111,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Soft", spec: { impact: 0.38, body: 0.16, noise: 0.68, air: 0.34 } },
     { label: "Crunch", spec: { impact: 0.72, noise: 0.92, character: 0.94, tone: 0.46 } },
     { label: "Airy", spec: { air: 0.96, noise: 0.8, decay: 0.5, body: 0.12 } },
+    { label: "808 Clap", bundledSampleId: "tr808-clap" },
   ],
   closedHat: [
     { label: "Core", spec: {} },
@@ -113,6 +122,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Dusty", spec: { air: 0.36, noise: 0.72, tone: 0.36, character: 0.62 } },
     { label: "Tiny", spec: { impact: 0.74, decay: 0.1, body: 0.08, pitch: 0.82 } },
     { label: "Bright", spec: { air: 0.98, tone: 0.94, pitch: 0.7, decay: 0.2 } },
+    { label: "808 Hat", bundledSampleId: "tr808-closed-hat" },
   ],
   openHat: [
     { label: "Core", spec: {} },
@@ -123,6 +133,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Loose", spec: { decay: 0.88, air: 0.82, impact: 0.34, character: 0.72 } },
     { label: "Bright", spec: { air: 0.94, tone: 0.92, pitch: 0.72, decay: 0.6 } },
     { label: "Washy", spec: { air: 1, decay: 0.98, noise: 0.7, body: 0.24 } },
+    { label: "808 Open", bundledSampleId: "tr808-open-hat" },
   ],
   tom: [
     { label: "Core", spec: {} },
@@ -133,6 +144,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "High", spec: { pitch: 0.8, body: 0.72, impact: 0.7, decay: 0.42 } },
     { label: "Soft", spec: { impact: 0.42, body: 0.7, noise: 0.06, decay: 0.52 } },
     { label: "Tribal", spec: { impact: 0.68, body: 0.9, pitch: 0.52, character: 0.7 } },
+    { label: "808 Tom", bundledSampleId: "tr808-tom" },
   ],
   percussion: [
     { label: "Core", spec: {} },
@@ -143,6 +155,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Metal", spec: { character: 0.94, air: 0.56, pitch: 0.72, noise: 0.3 } },
     { label: "Hollow", spec: { body: 0.82, tone: 0.3, decay: 0.5, pitch: 0.46 } },
     { label: "Sharp", spec: { impact: 0.94, decay: 0.18, pitch: 0.82, air: 0.46 } },
+    { label: "808 Rim", bundledSampleId: "tr808-percussion" },
   ],
   crash: [
     { label: "Core", spec: {} },
@@ -153,6 +166,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Thin", spec: { body: 0.08, air: 0.82, tone: 0.78, decay: 0.58 } },
     { label: "Heavy", spec: { body: 0.42, impact: 0.72, decay: 0.9, tone: 0.46 } },
     { label: "Airy", spec: { air: 1, noise: 0.76, tone: 0.86, decay: 0.78 } },
+    { label: "808 Cymbal", bundledSampleId: "tr808-crash" },
   ],
 };
 
@@ -202,6 +216,8 @@ export function PlaygroundSurface({
   });
   const [soundPickerVoice, setSoundPickerVoice] =
     useState<DrumVoiceId | null>(null);
+  const [soundLoading, setSoundLoading] =
+    useState<BundledSampleId | null>(null);
   const paintRef = useRef<{
     pointerId: number;
     desiredOn: boolean;
@@ -441,32 +457,58 @@ export function PlaygroundSurface({
     setNotice("Remixed");
   };
 
-  const chooseSound = (
+  const chooseSound = async (
     voice: DrumVoiceId,
     nextIndex: number,
   ) => {
     const preset = SOUND_PRESETS[voice][nextIndex];
     if (!preset) return;
-    const base = DRUM_DEFAULT_SPECS[voice];
 
-    drumSoundStore.setSpec(voice, {
-      ...base,
-      ...preset.spec,
-      voice,
-      engineVersion: base.engineVersion,
-    });
+    try {
+      if (preset.bundledSampleId) {
+        const sample = bundledSampleForVoice(voice);
+        if (
+          !sample ||
+          sample.id !== preset.bundledSampleId
+        ) {
+          throw new Error(
+            "Built-in sound metadata is unavailable.",
+          );
+        }
 
-    setSoundIndex((current) => ({
-      ...current,
-      [voice]: nextIndex,
-    }));
-    triggerVoice(voice, 0.9);
-    setNotice(
-      (DRUM_PADS.find((pad) => pad.voice === voice)?.label ?? voice) +
-        " · " +
-        preset.label,
-    );
-    setSoundPickerVoice(null);
+        setSoundLoading(sample.id);
+        await applyBundledSample(sample);
+      } else {
+        const base = DRUM_DEFAULT_SPECS[voice];
+        drumSoundStore.setSourceMode(voice, "synth");
+        drumSoundStore.setSpec(voice, {
+          ...base,
+          ...(preset.spec ?? {}),
+          voice,
+          engineVersion: base.engineVersion,
+        });
+      }
+
+      setSoundIndex((current) => ({
+        ...current,
+        [voice]: nextIndex,
+      }));
+      triggerVoice(voice, 0.9);
+      setNotice(
+        (DRUM_PADS.find((pad) => pad.voice === voice)?.label ?? voice) +
+          " · " +
+          preset.label,
+      );
+      setSoundPickerVoice(null);
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Sound could not be loaded.",
+      );
+    } finally {
+      setSoundLoading(null);
+    }
   };
 
   return (
@@ -766,7 +808,16 @@ export function PlaygroundSurface({
                       : ""
                   }
                   onClick={() =>
-                    chooseSound(soundPickerVoice, index)
+                    void chooseSound(soundPickerVoice, index)
+                  }
+                  disabled={
+                    Boolean(soundLoading) &&
+                    soundLoading !== preset.bundledSampleId
+                  }
+                  aria-busy={
+                    preset.bundledSampleId === soundLoading
+                      ? true
+                      : undefined
                   }
                   aria-label={
                     preset.label +
