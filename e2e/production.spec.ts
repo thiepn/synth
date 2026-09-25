@@ -295,10 +295,23 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
   });
   await kickSound.click();
   await expect(
+    page.getByRole("region", {
+      name: "KICK sounds",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", {
+    name: "Deep KICK sound",
+  }).click();
+  await expect(
     page.getByRole("button", {
       name: "Change KICK sound. Current sound Deep",
     }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("region", {
+      name: "KICK sounds",
+    }),
+  ).toHaveCount(0);
 
   const play = page.getByRole("button", {
     name: "Start transport",
