@@ -991,6 +991,15 @@ export function PlaygroundSurface({
                   <span
                     className="playground-mini-pattern"
                     aria-hidden="true"
+                    style={{
+                      gridTemplateColumns:
+                        "repeat(" +
+                        Math.min(
+                          pageSize,
+                          sequencer.lengthSteps - pageStart,
+                        ) +
+                        ", minmax(0, 1fr))",
+                    }}
                   >
                     {Array.from(
                       {
@@ -1150,6 +1159,16 @@ export function PlaygroundSurface({
 
             <div
               className="playground-steps playground-steps--focus"
+              style={
+                sequencer.lengthSteps < pageSize
+                  ? {
+                      gridTemplateColumns:
+                        "repeat(" +
+                        sequencer.lengthSteps +
+                        ", minmax(24px, 1fr))",
+                    }
+                  : undefined
+              }
               onPointerMove={continuePaint}
               onPointerUp={() => {
                 const gesture = paintRef.current;
