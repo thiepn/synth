@@ -920,7 +920,7 @@ export function PlaygroundSurface({
               title={projectAlert.detail}
             >
               <span aria-hidden="true">!</span>
-              {projectAlert.label}
+              <b>{projectAlert.label}</b>
             </button>
           ) : null}
 
