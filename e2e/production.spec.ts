@@ -732,6 +732,13 @@ test("corrupt active IndexedDB project fails closed and can recover via Save As"
 
   await corruptActiveProjectSchema(page);
   await page.reload();
+
+  await expect(
+    page.getByRole("button", {
+      name: "Project save error. Open Studio for project recovery controls.",
+    }),
+  ).toContainText("Save issue");
+
   await enterStudio(page);
 
   await expect(page.locator(".create-surface")).toBeVisible();
