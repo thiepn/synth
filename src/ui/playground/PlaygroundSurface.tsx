@@ -506,7 +506,7 @@ export function PlaygroundSurface({
       (a, b) => b[1] - a[1],
     )[0]?.[0] as BeatStyleId | undefined;
 
-    if (strongest && PLAY_STYLES.includes(strongest)) {
+    if (strongest) {
       setStyle(strongest);
     }
   }, [sequencer.pattern.provenance]);
@@ -821,6 +821,11 @@ export function PlaygroundSurface({
                 applyStyleBeat(nextStyle);
               }}
             >
+              {!PLAY_STYLES.includes(style) ? (
+                <option value={style}>
+                  {styleLabel(style)} · Studio
+                </option>
+              ) : null}
               {PLAY_STYLES.map((styleId) => (
                 <option key={styleId} value={styleId}>
                   {styleLabel(styleId)}
