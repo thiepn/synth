@@ -24,17 +24,27 @@
 
 The exact production-head run must confirm:
 
-- [ ] interaction contract passes
-- [ ] performance contract passes
-- [ ] architecture contract passes
-- [ ] v1.0.0 release-freeze contract passes
-- [ ] TypeScript passes
-- [ ] production Vite build passes
-- [ ] bundle budgets pass
-- [ ] 28/28 repeated adversarial Chromium executions pass
-- [ ] zero adversarial retries
-- [ ] 6/6 repeated soak executions pass
-- [ ] zero soak retries
+- [x] interaction contract passes
+- [x] performance contract passes
+- [x] architecture contract passes
+- [x] v1.0.0 release-freeze contract passes
+- [x] TypeScript passes
+- [x] production Vite build passes
+- [x] bundle budgets pass
+- [x] 28/28 repeated adversarial Chromium executions pass
+- [x] zero adversarial retries
+- [x] 6/6 repeated soak executions pass
+- [x] zero soak retries
+
+## Certified release-PR evidence
+
+- Production QA: **28 passed / 0 failed / 0 retries**
+- Production QA time: **49.7 s**
+- Soak QA: **6 passed / 0 failed / 0 retries**
+- Soak QA time: **25.3 s**
+- Entry JS: **281.5 KB**
+- Total JS: **781.8 KB / 19 chunks**
+- CSS: **168.1 KB**
 
 ## Publication
 
