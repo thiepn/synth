@@ -313,9 +313,9 @@
   justify-content: space-between;
   gap: 28px;
   padding:
-    clamp(28px, 5vw, 64px)
+    clamp(24px, 3.2vw, 40px)
     clamp(18px, 3.5vw, 54px)
-    clamp(24px, 3.5vw, 44px);
+    clamp(18px, 2.6vw, 30px);
 }
 
 .playground-hero p {
@@ -328,9 +328,9 @@
 
 .playground-hero h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 6vw, 6rem);
-  line-height: 0.88;
-  letter-spacing: -0.06em;
+  font-size: clamp(2.35rem, 4.3vw, 4.7rem);
+  line-height: 0.9;
+  letter-spacing: -0.055em;
   font-weight: 900;
 }
 
@@ -453,10 +453,11 @@
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--lane-color) 12%, transparent),
-      transparent 58%
+      color-mix(in srgb, var(--lane-color) 19%, transparent),
+      color-mix(in srgb, var(--lane-color) 6%, transparent) 48%,
+      transparent 76%
     ),
-    rgba(255, 255, 255, 0.04);
+    rgba(255, 255, 255, 0.045);
   transition:
     transform 110ms ease,
     border-color 110ms ease,
@@ -476,12 +477,20 @@
 .playground-beat-pad.is-selected {
   border-color: color-mix(
     in srgb,
-    var(--lane-color) 62%,
+    var(--lane-color) 78%,
     rgba(255, 255, 255, 0.12)
   );
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--lane-color) 28%, transparent),
+      color-mix(in srgb, var(--lane-color) 9%, transparent) 52%,
+      transparent 80%
+    ),
+    rgba(255, 255, 255, 0.055);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--lane-color) 8%, transparent),
-    0 16px 34px rgba(0, 0, 0, 0.16);
+    0 0 0 3px color-mix(in srgb, var(--lane-color) 10%, transparent),
+    0 18px 38px color-mix(in srgb, var(--lane-color) 12%, rgba(0, 0, 0, 0.18));
 }
 
 .playground-beat-pad__trigger:active {
@@ -520,13 +529,18 @@
 }
 
 .playground-beat-pad.is-playing {
+  transform: translateY(1px) scale(0.992);
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--lane-color) 24%, transparent),
-      transparent 62%
+      color-mix(in srgb, var(--lane-color) 34%, transparent),
+      color-mix(in srgb, var(--lane-color) 10%, transparent) 58%,
+      transparent 82%
     ),
-    rgba(255, 255, 255, 0.06);
+    rgba(255, 255, 255, 0.065);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--lane-color) 9%, transparent),
+    0 12px 30px color-mix(in srgb, var(--lane-color) 14%, rgba(0, 0, 0, 0.18));
 }
 
 .playground-beat-pad__trigger,
@@ -629,6 +643,8 @@
 
 .playground-focus {
   --lane-color: #ffffff;
+  position: relative;
+  overflow: hidden;
   padding: clamp(14px, 2vw, 22px);
   border: 1px solid color-mix(
     in srgb,
@@ -639,10 +655,11 @@
   background:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--lane-color) 9%, transparent),
-      transparent 42%
+      color-mix(in srgb, var(--lane-color) 14%, transparent),
+      color-mix(in srgb, var(--lane-color) 4%, transparent) 48%,
+      transparent 72%
     ),
-    rgba(255, 255, 255, 0.045);
+    rgba(255, 255, 255, 0.05);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 
@@ -663,6 +680,7 @@
 .playground-focus__swatch {
   width: 16px;
   height: 42px;
+  flex: 0 0 auto;
   border-radius: 999px;
   background: var(--lane-color);
   box-shadow: 0 0 24px color-mix(in srgb, var(--lane-color) 28%, transparent);
@@ -876,10 +894,10 @@
 
 .playground-pad__pulse {
   position: absolute;
-  inset: 50% auto auto 22px;
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(16, 17, 26, 0.58);
+  inset: 50% auto auto 50%;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--lane-color);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
