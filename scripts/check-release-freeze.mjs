@@ -30,7 +30,7 @@ if (
   packageLock.packages?.[""]?.version !== packageJson.version
 ) {
   failures.push(
-    "package-lock.json must be lockfile v3 and match the RC package version.",
+    "package-lock.json must be lockfile v3 and match the production package version.",
   );
 }
 
