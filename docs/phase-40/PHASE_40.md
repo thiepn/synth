@@ -1,6 +1,6 @@
 # Phase 40 — v1.0.0 Production Release & Maintenance Baseline
 
-Status: production promotion candidate.
+Status: production promotion certified on the release PR.
 
 ## Purpose
 
@@ -163,7 +163,22 @@ Total JS:       781.8 KB / 19 chunks
 CSS:            168.1 KB
 ```
 
-The final production-head evidence is recorded after the release PR's exact head passes and is copied into this document before merge.
+The production v1.0.0 release-PR head passed the frozen matrix:
+
+```
+Production QA: 28 passed / 0 failed / 0 retries
+Production QA time: 49.7 s
+Soak QA: 6 passed / 0 failed / 0 retries
+Soak QA time: 25.3 s
+Entry JS: 281.5 KB
+Largest JS: 281.5 KB
+Total JS: 781.8 KB / 19 chunks
+CSS: 168.1 KB
+```
+
+This evidence is from the production package version itself, not from the preceding RC version.
+
+The exact documentation-complete head is recertified before merge. After merge, the same CI workflow runs on `main`; only that successful merged-main run can trigger the tag/GitHub Release publisher.
 
 ## Phase boundary
 
