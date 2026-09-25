@@ -645,6 +645,96 @@ export class LocalProjectDatabase {
     await this.garbageCollectAssets();
   }
 
+  async garbageCollectBundledAssets(): Promise<string[]> {
+    const db = await this.open();
+
+    const projectTransaction = db.transaction(
+      [PROJECT_STORE, VERSION_STORE],
+      "readonly",
+    );
+    const projectDone = transactionDone(projectTransaction);
+    const projectStore = projectTransaction.objectStore(PROJECT_STORE);
+    const versionStore = projectTransaction.objectStore(VERSION_STORE);
+
+    const projectRequest = requestResult(
+      projectStore.getAll(),
+    ) as Promise<unknown[]>;
+    const versionRequest = requestResult(
+      versionStore.getAll(),
+    ) as Promise<ProjectVersionRecord[]>;
+
+    const [projectRecords, versionRecords] =
+      await Promise.all([
+        projectRequest,
+        versionRequest,
+      ]);
+    await projectDone;
+
+    const referenced = new Set<string>();
+
+    for (const record of projectRecords) {
+      try {
+        assertProjectDocument(record);
+        for (const assetId of record.assetIds) {
+          referenced.add(assetId);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    for (const version of versionRecords) {
+      try {
+        assertProjectDocument(version.document);
+        for (const assetId of version.document.assetIds) {
+          referenced.add(assetId);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    const assetTransaction = db.transaction(
+      ASSET_STORE,
+      "readonly",
+    );
+    const assetDone = transactionDone(assetTransaction);
+    const records = await requestResult(
+      assetTransaction.objectStore(ASSET_STORE).getAll(),
+    ) as PersistedAudioAsset[];
+    await assetDone;
+
+    const removable = records.filter((asset) => {
+      if (referenced.has(asset.id)) return false;
+
+      const reference = asset.state.reference;
+      return (
+        reference.origin === "bundled" &&
+        typeof reference.bundledSampleId === "string" &&
+        reference.bundledSampleId.length > 0
+      );
+    });
+
+    if (removable.length === 0) {
+      return [];
+    }
+
+    const deleteTransaction = db.transaction(
+      ASSET_STORE,
+      "readwrite",
+    );
+    const deleteDone = transactionDone(deleteTransaction);
+    const assetStore =
+      deleteTransaction.objectStore(ASSET_STORE);
+
+    for (const asset of removable) {
+      assetStore.delete(asset.id);
+    }
+
+    await deleteDone;
+    return removable.map((asset) => asset.id);
+  }
+
   async garbageCollectAssets(): Promise<string[]> {
     const db = await this.open();
 
