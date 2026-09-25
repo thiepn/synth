@@ -96,6 +96,10 @@ export async function applyBundledSample(
     await response.arrayBuffer(),
     sample.label + ".wav",
     "audio/wav",
+    {
+      origin: "bundled",
+      bundledSampleId: sample.id,
+    },
   );
 
   await drumEngine.prepareSampleAsset(
