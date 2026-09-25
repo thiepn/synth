@@ -296,12 +296,14 @@ export function PlaygroundSurface({
   };
 
   const undoPattern = () => {
+    if (!sequencerStore.getSnapshot().canUndo) return;
     cancelPatternPreview();
     sequencerStore.undo();
     setNotice("Undone");
   };
 
   const redoPattern = () => {
+    if (!sequencerStore.getSnapshot().canRedo) return;
     cancelPatternPreview();
     sequencerStore.redo();
     setNotice("Redone");
