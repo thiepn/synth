@@ -776,6 +776,13 @@ test("explicit user import survives bundled-sample identity collision", async ({
     )
     .toBe(1);
 
+  await page.getByRole("button", {
+    name: "Open Studio",
+  }).click();
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).toContainText("SAVED");
+
   await page.reload();
   await enterStudio(page);
   await page.getByRole("button", {
