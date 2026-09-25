@@ -459,17 +459,29 @@ export function PlaygroundSurface({
             (entry) =>
               entry.reference.id === source.sample?.assetId,
           );
-          const assetLabel = asset?.reference.name.replace(
-            /\.wav$/i,
-            "",
-          );
+          const bundledSampleId =
+            asset?.reference.bundledSampleId;
 
-          if (assetLabel) {
+          if (bundledSampleId) {
             resolved = presets.findIndex(
               (preset) =>
-                Boolean(preset.bundledSampleId) &&
-                preset.label === assetLabel,
+                preset.bundledSampleId ===
+                bundledSampleId,
             );
+          } else {
+            const assetLabel =
+              asset?.reference.name.replace(
+                /\.wav$/i,
+                "",
+              );
+
+            if (assetLabel) {
+              resolved = presets.findIndex(
+                (preset) =>
+                  Boolean(preset.bundledSampleId) &&
+                  preset.label === assetLabel,
+              );
+            }
           }
         } else if (source.mode === "synth") {
           resolved = presets.findIndex((preset) =>
