@@ -304,6 +304,39 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toHaveAttribute("aria-pressed", "false");
 
+  const patternSignature = () =>
+    page.locator(".playground-mini-pattern").evaluateAll(
+      (patterns) =>
+        patterns
+          .map((pattern) =>
+            Array.from(pattern.children)
+              .map((step) =>
+                step.classList.contains("is-on")
+                  ? "1"
+                  : "0",
+              )
+              .join(""),
+          )
+          .join("|"),
+    );
+
+  const beforeStyle = await patternSignature();
+  await page.getByLabel("Beat style").selectOption("house");
+
+  await expect.poll(patternSignature).not.toBe(beforeStyle);
+  await expect(
+    page.locator(".playground-playhead"),
+  ).toBeVisible();
+
+  await page.keyboard.press("Control+z");
+  await expect.poll(patternSignature).toBe(beforeStyle);
+  await expect(
+    page.getByLabel("Beat style"),
+  ).toHaveValue("funk");
+  await expect(
+    page.locator(".playground-playhead"),
+  ).toHaveCount(0);
+
   await page.getByRole("button", {
     name: "Play CLAP",
   }).click();
