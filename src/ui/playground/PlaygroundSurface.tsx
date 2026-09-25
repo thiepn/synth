@@ -189,16 +189,14 @@ function synthPresetMatches(
   actual: DrumMaterialSpec,
 ): boolean {
   if (preset.bundledSampleId) return false;
-  const expected = {
-    ...DRUM_DEFAULT_SPECS[voice],
-    ...(preset.spec ?? {}),
-  };
 
-  return MATERIAL_PARAMS.every(
-    (key) =>
-      Math.abs(expected[key] - actual[key]) <
-      0.0001,
-  );
+  return MATERIAL_PARAMS.every((key) => {
+    const expected =
+      preset.spec?.[key] ??
+      DRUM_DEFAULT_SPECS[voice][key];
+
+    return Math.abs(expected - actual[key]) < 0.0001;
+  });
 }
 
 const INITIAL_SOUND_INDEX: Record<DrumVoiceId, number> = {
