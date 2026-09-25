@@ -549,7 +549,7 @@
   position: absolute;
   top: 14%;
   bottom: 14%;
-  left: calc(-1 * clamp(3px, 0.42vw, 7px));
+  left: -6px;
   width: 1px;
   background: rgba(255, 255, 255, 0.13);
 }
@@ -581,7 +581,7 @@
   inset: 28%;
   border-radius: 50%;
   background: rgba(12, 13, 22, 0.28);
-  transform: scale(calc(0.72 + var(--step-strength) * 0.3));
+  transform: scale(0.92);
 }
 
 .playground-step.is-current {
@@ -606,7 +606,7 @@
     opacity: 0.35;
   }
   to {
-    transform: scale(calc(0.72 + var(--step-strength) * 0.3));
+    transform: scale(0.92);
     opacity: 1;
   }
 }
