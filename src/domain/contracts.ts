@@ -345,6 +345,13 @@ export interface AssetReference {
   byteLength?: number;
   /** SHA-256 of the original local bytes when known. */
   contentHash?: string;
+  /**
+   * Asset origin is optional for backward compatibility.
+   * Missing origin is treated as user/local content.
+   */
+  origin?: "user" | "bundled";
+  /** Stable built-in sound identity when origin is bundled. */
+  bundledSampleId?: string;
   durationSeconds?: number;
   sampleRate?: number;
   channels?: number;
