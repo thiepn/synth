@@ -258,6 +258,76 @@ test("keyboard navigation and core transport remain operable", async ({
   ).toBeVisible();
 });
 
+test("playground edits the real Pattern and exposes Studio without dashboard clutter", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await page.goto("/");
+
+  const playground = page.locator(".playground-surface");
+  await expect(playground).toBeVisible();
+  await expect(page.locator(".utility-rail")).toHaveCount(0);
+  await expect(page.locator(".mode-rail")).toHaveCount(0);
+
+  const kickStep = page.getByRole("button", {
+    name: "KICK step 2, off",
+  });
+  await expect(kickStep).toHaveAttribute("aria-pressed", "false");
+
+  await kickStep.click();
+  await expect(
+    page.getByRole("button", {
+      name: "KICK step 2, on",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", {
+    name: "KICK step 2, on",
+  }).press("Enter");
+  await expect(
+    page.getByRole("button", {
+      name: "KICK step 2, off",
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
+
+  const kickSound = page.getByRole("button", {
+    name: "Change KICK sound. Current sound Core",
+  });
+  await kickSound.click();
+  await expect(
+    page.getByRole("button", {
+      name: "Change KICK sound. Current sound Deep",
+    }),
+  ).toBeVisible();
+
+  const play = page.getByRole("button", {
+    name: "Start transport",
+  });
+  await play.click();
+  await expect(
+    page.getByRole("button", {
+      name: "Pause transport",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", {
+    name: "Pause transport",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Open Studio",
+  }).click();
+  await expect(page.locator(".utility-rail")).toBeVisible();
+  await expect(page.locator(".mode-rail")).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
+  await expect(playground).toBeVisible();
+  await expect(page.locator(".utility-rail")).toHaveCount(0);
+
+  expect(errors).toEqual([]);
+});
+
 test("project persists, snapshots, exports and imports a verified backup", async ({
   page,
 }) => {
