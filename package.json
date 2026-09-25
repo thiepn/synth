@@ -1,21 +1,23 @@
 {
   "name": "synth",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "type": "module",
   "scripts": {
     "predev": "node scripts/generate-pwa-icons.mjs",
     "dev": "vite",
     "prebuild": "node scripts/generate-pwa-icons.mjs",
-    "build": "npm run check:interaction && npm run check:performance && npm run check:architecture && tsc --noEmit && vite build",
+    "build": "npm run check:interaction && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:interaction": "node scripts/check-interaction-contracts.mjs",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "postbuild": "npm run check:bundle",
     "check:performance": "node scripts/check-performance-contracts.mjs",
     "check:architecture": "node scripts/check-architecture-contracts.mjs",
-    "qa:e2e": "playwright test",
-    "qa:e2e:install": "playwright install --with-deps chromium"
+    "qa:e2e": "playwright test e2e/production.spec.ts --repeat-each=2 --retries=0",
+    "qa:e2e:install": "playwright install --with-deps chromium",
+    "check:release": "node scripts/check-release-freeze.mjs",
+    "qa:soak": "playwright test e2e/soak.spec.ts --repeat-each=2 --retries=0"
   },
   "dependencies": {
     "react": "19.3.0",
