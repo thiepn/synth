@@ -543,6 +543,135 @@
     0 8px 26px color-mix(in srgb, var(--lane-color) 45%, transparent);
 }
 
+.playground-sound-drawer {
+  --lane-color: #ffffff;
+  width: min(980px, calc(100% - clamp(36px, 7vw, 108px)));
+  margin: 14px auto 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--lane-color) 35%, rgba(255, 255, 255, 0.08));
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--lane-color) 11%, transparent),
+      transparent 44%
+    ),
+    rgba(21, 22, 36, 0.94);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+  animation: playground-drawer-in 150ms ease-out;
+}
+
+@keyframes playground-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.playground-sound-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 2px 2px 12px;
+}
+
+.playground-sound-drawer__header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.playground-sound-drawer__dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--lane-color);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--lane-color) 50%, transparent);
+}
+
+.playground-sound-drawer__header small,
+.playground-sound-drawer__header strong {
+  display: block;
+}
+
+.playground-sound-drawer__header small {
+  margin-bottom: 2px;
+  color: var(--pg-muted);
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.playground-sound-drawer__header strong {
+  font-size: 0.94rem;
+}
+
+.playground-sound-drawer__header > button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--pg-text);
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+
+.playground-sound-drawer__header > button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.playground-sound-choices {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.playground-sound-choices button {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  padding: 7px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--pg-text);
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 780;
+}
+
+.playground-sound-choices button:hover {
+  border-color: color-mix(in srgb, var(--lane-color) 35%, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
+}
+
+.playground-sound-choices button > span {
+  width: 7px;
+  height: 7px;
+  border: 1px solid color-mix(in srgb, var(--lane-color) 65%, white);
+  border-radius: 50%;
+}
+
+.playground-sound-choices button.is-active {
+  border-color: color-mix(in srgb, var(--lane-color) 58%, rgba(255, 255, 255, 0.1));
+  background: color-mix(in srgb, var(--lane-color) 13%, rgba(255, 255, 255, 0.045));
+}
+
+.playground-sound-choices button.is-active > span {
+  background: var(--lane-color);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--lane-color) 50%, transparent);
+}
+
 .playground-footer {
   width: min(1440px, calc(100% - clamp(36px, 7vw, 108px)));
   margin: 0 auto;
@@ -731,6 +860,23 @@
 
   .playground-step:nth-child(9)::before {
     display: none;
+  }
+
+  .playground-sound-drawer {
+    width: calc(100% - 20px);
+    margin-top: 10px;
+    padding: 11px;
+    border-radius: 18px;
+  }
+
+  .playground-sound-choices {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .playground-sound-choices button {
+    min-height: 44px;
+    border-radius: 12px;
   }
 
   .playground-footer {
