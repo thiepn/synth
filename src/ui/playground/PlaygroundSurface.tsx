@@ -558,7 +558,7 @@ export function PlaygroundSurface({
       laneId,
       stepIndex,
       gesture.desiredOn,
-      false,
+      gesture.desiredOn,
       gesture.gestureId,
     );
   };
@@ -1212,7 +1212,7 @@ export function PlaygroundSurface({
 
       <footer className="playground-footer">
         <p className="playground-hint">
-          Click a pad to hear it · click or drag the beat to draw · space = play
+          Tap a pad · click or drag steps to draw · space = play
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
