@@ -243,6 +243,33 @@ function displayLaneName(lane: SequencerLaneDefinition): string {
   return LANE_NAMES[lane.voice] ?? lane.name;
 }
 
+
+function ProjectHealthAlert({
+  onOpenStudio,
+}: {
+  onOpenStudio: () => void;
+}) {
+  const project = useProjectSnapshot();
+
+  if (!projectAlert) return null;
+
+  return (
+    <button
+      type="button"
+      className={
+        "playground-project-alert playground-project-alert--" +
+        project.saveStatus
+      }
+      onClick={onOpenStudio}
+      aria-label={projectAlert.aria}
+      title={projectAlert.detail}
+    >
+      <span aria-hidden="true">!</span>
+      <b>{projectAlert.label}</b>
+    </button>
+  );
+}
+
 export function PlaygroundSurface({
   onOpenStudio,
 }: PlaygroundSurfaceProps) {
@@ -250,7 +277,6 @@ export function PlaygroundSurface({
   const transport = useTransportSnapshot();
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
-  const project = useProjectSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [remixPulse, setRemixPulse] = useState(0);
@@ -908,21 +934,7 @@ export function PlaygroundSurface({
         </div>
 
         <div className="playground-topbar__actions">
-          {projectAlert ? (
-            <button
-              type="button"
-              className={
-                "playground-project-alert playground-project-alert--" +
-                project.saveStatus
-              }
-              onClick={openStudio}
-              aria-label={projectAlert.aria}
-              title={projectAlert.detail}
-            >
-              <span aria-hidden="true">!</span>
-              <b>{projectAlert.label}</b>
-            </button>
-          ) : null}
+          <ProjectHealthAlert onOpenStudio={openStudio} />
 
           <button
             type="button"
