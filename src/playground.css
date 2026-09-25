@@ -241,6 +241,7 @@
 
 .playground-studio-button,
 .playground-history-button,
+.playground-project-alert,
 .studio-playground-return {
   border: 0;
   cursor: pointer;
@@ -251,6 +252,48 @@
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.playground-project-alert {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 216, 74, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 216, 74, 0.08);
+  color: #ffe47a;
+  font-size: 0.68rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.playground-project-alert > span {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: currentColor;
+  color: #11121b;
+  font-size: 0.68rem;
+  font-weight: 950;
+}
+
+.playground-project-alert:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 216, 74, 0.13);
+}
+
+.playground-project-alert--error {
+  border-color: rgba(255, 85, 119, 0.34);
+  background: rgba(255, 85, 119, 0.09);
+  color: #ff8aa0;
+}
+
+.playground-project-alert--error:hover {
+  background: rgba(255, 85, 119, 0.15);
 }
 
 .playground-history-button {
@@ -1143,6 +1186,12 @@
     height: 40px;
   }
 
+  .playground-project-alert {
+    min-height: 40px;
+    padding-inline: 10px;
+    font-size: 0.62rem;
+  }
+
   .playground-studio-button {
     min-height: 42px;
     padding: 0 14px;
@@ -1403,6 +1452,7 @@
   .playground-style,
   .playground-tempo,
   .playground-history-button,
+  .playground-project-alert,
   .playground-studio-button,
   .playground-focus__sound,
   .playground-step {
@@ -1428,6 +1478,7 @@
   .playground-style,
   .playground-tempo,
   .playground-history-button,
+  .playground-project-alert,
   .playground-studio-button,
   .playground-focus__sound,
   .playground-sound-choices button,
