@@ -304,6 +304,52 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toHaveAttribute("aria-pressed", "false");
 
+  const clapStart = page.getByRole("button", {
+    name: "CLAP step 2, off",
+  });
+  const clapEnd = page.getByRole("button", {
+    name: "CLAP step 4, off",
+  });
+  const clapStartBox = await clapStart.boundingBox();
+  const clapEndBox = await clapEnd.boundingBox();
+  expect(clapStartBox).not.toBeNull();
+  expect(clapEndBox).not.toBeNull();
+
+  await page.mouse.move(
+    clapStartBox!.x + clapStartBox!.width / 2,
+    clapStartBox!.y + clapStartBox!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    clapEndBox!.x + clapEndBox!.width / 2,
+    clapEndBox!.y + clapEndBox!.height / 2,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  await expect(
+    page.getByRole("button", {
+      name: "CLAP step 2, on",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "CLAP step 4, on",
+    }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Control+z");
+  await expect(
+    page.getByRole("button", {
+      name: "CLAP step 2, off",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "CLAP step 4, off",
+    }),
+  ).toBeVisible();
+
   const kickSound = page.getByRole("button", {
     name: "Change KICK sound. Current sound Core",
   });
