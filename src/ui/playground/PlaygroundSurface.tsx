@@ -1346,6 +1346,10 @@ export function PlaygroundSurface({
                             ? "is-active"
                             : ""
                         }
+                        aria-pressed={
+                          soundIndex[selectedVoice] ===
+                          index
+                        }
                         onClick={() =>
                           void chooseSound(
                             selectedVoice,
