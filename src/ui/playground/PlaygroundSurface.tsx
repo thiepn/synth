@@ -647,36 +647,6 @@ export function PlaygroundSurface({
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
 
-  const projectAlert =
-    project.saveStatus === "conflict"
-      ? {
-          label: "Conflict",
-          aria:
-            "Project conflict. Open Studio to resolve the newer saved revision.",
-          detail:
-            project.conflict?.message ??
-            project.lastError ??
-            "A newer saved project revision exists.",
-        }
-      : project.saveStatus === "error"
-        ? {
-            label: "Save issue",
-            aria:
-              "Project save error. Open Studio for project recovery controls.",
-            detail:
-              project.lastError ??
-              "The project could not be saved.",
-          }
-        : project.saveStatus === "unsupported"
-          ? {
-              label: "Session only",
-              aria:
-                "Local project storage is unavailable. Open Studio for project controls.",
-              detail:
-                "Changes are available only in this browser session unless exported.",
-            }
-          : null;
-
   useEffect(() => {
     setStepPage((current) =>
       Math.min(current, pageCount - 1),
