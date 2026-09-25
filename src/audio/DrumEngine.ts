@@ -366,6 +366,17 @@ export class DrumEngine {
     }
   }
 
+  cancelAudition(): void {
+    const context = audioTransport.getAudioContext();
+    if (!context) {
+      this.auditionVoiceIds.clear();
+      return;
+    }
+
+    this.cancelAuditionVoices(context.currentTime);
+    this.publish();
+  }
+
   async auditionPattern(pattern: Pattern, bpm: number): Promise<void> {
     try {
       const context = await audioTransport.unlockAudio();
