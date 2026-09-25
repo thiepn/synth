@@ -171,6 +171,12 @@ export class SampleAssetStore {
       ) {
         existing.reference = {
           ...existing.reference,
+          name:
+            name.trim() ||
+            existing.reference.name,
+          mimeType:
+            mimeType ||
+            existing.reference.mimeType,
           origin: "user",
           bundledSampleId: undefined,
         };
