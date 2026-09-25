@@ -837,7 +837,6 @@ export function PlaygroundSurface({
           " · " +
           preset.label,
       );
-      setSoundPickerVoice(null);
     } catch (error) {
       setNotice(
         error instanceof Error
