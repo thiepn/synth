@@ -466,6 +466,7 @@ export function PlaygroundSurface({
 
     try {
       if (preset.bundledSampleId) {
+        await audioTransport.unlockAudio();
         const sample = bundledSampleForVoice(voice);
         if (
           !sample ||
