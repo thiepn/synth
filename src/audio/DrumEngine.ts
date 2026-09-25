@@ -367,6 +367,8 @@ export class DrumEngine {
   }
 
   cancelAudition(): void {
+    if (this.auditionVoiceIds.size === 0) return;
+
     const context = audioTransport.getAudioContext();
     if (!context) {
       this.auditionVoiceIds.clear();
