@@ -129,6 +129,7 @@ export class SampleAssetStore {
       await file.arrayBuffer(),
       file.name,
       file.type || "audio/unknown",
+      { origin: "user" },
     );
   }
 
@@ -164,6 +165,17 @@ export class SampleAssetStore {
     const existing = this.states.get(id);
 
     if (existing) {
+      if (
+        metadata?.origin === "user" &&
+        existing.reference.origin === "bundled"
+      ) {
+        existing.reference = {
+          ...existing.reference,
+          origin: "user",
+          bundledSampleId: undefined,
+        };
+        this.publish();
+      }
       return cloneAsset(existing);
     }
 
