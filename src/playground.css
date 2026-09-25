@@ -1321,14 +1321,18 @@
   }
 
   .playground-footer {
-    min-height: 86px;
-    align-items: flex-start;
-    padding: 13px 4px 24px;
+    min-height: 54px;
+    justify-content: flex-end;
+    padding: 10px 4px 18px;
   }
 
   .playground-hint {
-    max-width: 72%;
-    line-height: 1.45;
+    display: none;
+  }
+
+  .playground-notice {
+    max-width: 100%;
+    text-align: right;
   }
 }
 
