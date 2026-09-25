@@ -3,7 +3,10 @@ import { errorMessage } from "../runtime/errors";
 import { arrangementStore } from "../arrange/ArrangementStore";
 import { audioTransport } from "../audio/AudioTransport";
 import { drumEngine } from "../audio/DrumEngine";
-import { sampleAssetStore } from "../audio/SampleAssetStore";
+import {
+  sampleAssetStore,
+  type SampleAssetState,
+} from "../audio/SampleAssetStore";
 import {
   drumSoundStore,
   type DrumSoundSnapshot,
@@ -120,6 +123,15 @@ function collectSoundSpecAssetIds(
   }
 }
 
+function sampleAssetPersistenceSignature(
+  state: SampleAssetState,
+): string {
+  return JSON.stringify({
+    reference: state.reference,
+    waveform: state.waveform,
+  });
+}
+
 function referencedDrumAssetIds(
   snapshot: DrumSoundSnapshot,
 ): Set<string> {
@@ -182,6 +194,10 @@ export class ProjectStore {
   private applying = false;
   private changeSerial = 0;
   private persistedAssetIds = new Set<string>();
+  private persistedAssetSignatures = new Map<
+    string,
+    string
+  >();
   private autosaveTimer: number | undefined;
   private autosaveIdleHandle: number | undefined;
   private savePromise: Promise<void> | undefined;
@@ -759,6 +775,20 @@ export class ProjectStore {
         (assetId) => !nextPersistedAssetIds.has(assetId),
       );
       this.persistedAssetIds = nextPersistedAssetIds;
+      this.persistedAssetSignatures = new Map(
+        sampleAssetStore
+          .getSnapshot()
+          .assets
+          .filter((asset) =>
+            nextPersistedAssetIds.has(
+              asset.reference.id,
+            ),
+          )
+          .map((asset) => [
+            asset.reference.id,
+            sampleAssetPersistenceSignature(asset),
+          ]),
+      );
 
       if (serialAtStart === this.changeSerial) {
         this.dirty = false;
@@ -770,7 +800,7 @@ export class ProjectStore {
 
       if (droppedAsset) {
         try {
-          await localProjectDatabase.garbageCollectAssets();
+          await localProjectDatabase.garbageCollectBundledAssets();
         } catch {
           // The project save already committed successfully.
           // Orphan cleanup is best effort and must never turn
@@ -885,28 +915,33 @@ export class ProjectStore {
     };
   }
 
-  private persistableAssetIds(): Set<string> {
+  private persistableAssetStates(): SampleAssetState[] {
     const referencedBundled = referencedDrumAssetIds(
       drumSoundStore.getSnapshot(),
     );
 
-    return new Set(
-      sampleAssetStore
-        .getSnapshot()
-        .assets
-        .filter((asset) => {
-          const replaceableBundled =
-            asset.reference.origin === "bundled" &&
-            typeof asset.reference.bundledSampleId ===
-              "string" &&
-            asset.reference.bundledSampleId.length > 0;
+    return sampleAssetStore
+      .getSnapshot()
+      .assets
+      .filter((asset) => {
+        const replaceableBundled =
+          asset.reference.origin === "bundled" &&
+          typeof asset.reference.bundledSampleId ===
+            "string" &&
+          asset.reference.bundledSampleId.length > 0;
 
-          return (
-            !replaceableBundled ||
-            referencedBundled.has(asset.reference.id)
-          );
-        })
-        .map((asset) => asset.reference.id),
+        return (
+          !replaceableBundled ||
+          referencedBundled.has(asset.reference.id)
+        );
+      });
+  }
+
+  private persistableAssetIds(): Set<string> {
+    return new Set(
+      this.persistableAssetStates().map(
+        (asset) => asset.reference.id,
+      ),
     );
   }
 
@@ -914,21 +949,20 @@ export class ProjectStore {
     updatedAt: string,
     onlyUnpersisted = false,
   ): PersistedAudioAsset[] {
-    const persistable = this.persistableAssetIds();
+    return this.persistableAssetStates()
+      .filter((state) => {
+        if (!onlyUnpersisted) return true;
 
-    return sampleAssetStore
-      .getSnapshot()
-      .assets
-      .filter(
-        (state) =>
-          persistable.has(state.reference.id) &&
-          (
-            !onlyUnpersisted ||
-            !this.persistedAssetIds.has(
-              state.reference.id,
-            )
-          ),
-      )
+        const assetId = state.reference.id;
+        if (!this.persistedAssetIds.has(assetId)) {
+          return true;
+        }
+
+        return (
+          this.persistedAssetSignatures.get(assetId) !==
+          sampleAssetPersistenceSignature(state)
+        );
+      })
       .map((state) => {
         const bytes = sampleAssetStore.getRawBytes(
           state.reference.id,
@@ -972,6 +1006,14 @@ export class ProjectStore {
       const document = bundle.document;
       this.persistedAssetIds = new Set(
         document.assetIds,
+      );
+      this.persistedAssetSignatures = new Map(
+        bundle.assets.map((asset) => [
+          asset.id,
+          sampleAssetPersistenceSignature(
+            asset.state,
+          ),
+        ]),
       );
 
       audioTransport.setBpm(document.transport.bpm);
