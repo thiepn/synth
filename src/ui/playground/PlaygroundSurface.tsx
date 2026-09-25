@@ -431,7 +431,18 @@ export function PlaygroundSurface({
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
-      if (eventTargetConsumesKeyboard(event.target)) return;
+      const targetConsumesKeyboard =
+        eventTargetConsumesKeyboard(event.target);
+      const styleSelectFocused =
+        event.target instanceof HTMLSelectElement &&
+        event.target.getAttribute("aria-label") ===
+          "Beat style";
+      if (
+        targetConsumesKeyboard &&
+        !styleSelectFocused
+      ) {
+        return;
+      }
 
       const modifier = event.ctrlKey || event.metaKey;
       if (!modifier) return;
