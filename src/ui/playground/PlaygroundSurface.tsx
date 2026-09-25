@@ -297,6 +297,11 @@ export function PlaygroundSurface({
     drumEngine.cancelAudition();
   };
 
+  const openStudio = () => {
+    cancelPatternPreview();
+    onOpenStudio();
+  };
+
   const undoPattern = () => {
     if (!sequencerStore.getSnapshot().canUndo) return;
     cancelPatternPreview();
@@ -356,6 +361,7 @@ export function PlaygroundSurface({
       if (auditionIntervalRef.current !== null) {
         window.clearInterval(auditionIntervalRef.current);
       }
+      drumEngine.cancelAudition();
     };
   }, []);
 
@@ -792,6 +798,7 @@ export function PlaygroundSurface({
     voice: DrumVoiceId,
     nextIndex: number,
   ) => {
+    cancelPatternPreview();
     const preset = SOUND_PRESETS[voice][nextIndex];
     if (!preset) return;
 
@@ -909,7 +916,7 @@ export function PlaygroundSurface({
                 "playground-project-alert playground-project-alert--" +
                 project.saveStatus
               }
-              onClick={onOpenStudio}
+              onClick={openStudio}
               aria-label={projectAlert.aria}
               title={projectAlert.detail}
             >
@@ -941,7 +948,7 @@ export function PlaygroundSurface({
           <button
             type="button"
             className="playground-studio-button"
-            onClick={onOpenStudio}
+            onClick={openStudio}
             aria-label="Open Studio"
           >
             Studio
