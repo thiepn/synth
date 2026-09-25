@@ -283,6 +283,20 @@ export function PlaygroundSurface({
   }, [notice]);
 
   useEffect(() => {
+    const closeTransientUi = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSoundPickerVoice(null);
+    };
+
+    window.addEventListener("keydown", closeTransientUi);
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        closeTransientUi,
+      );
+  }, []);
+
+  useEffect(() => {
     setSoundIndex((current) => {
       const next = { ...current };
       let changed = false;
@@ -947,7 +961,9 @@ export function PlaygroundSurface({
                   className="playground-beat-pad__sound"
                   onClick={() => {
                     setSelectedVoice(voice);
-                    setSoundPickerVoice(voice);
+                    setSoundPickerVoice((current) =>
+                      current === voice ? null : voice,
+                    );
                   }}
                   aria-label={
                     "Open " +
@@ -1037,7 +1053,11 @@ export function PlaygroundSurface({
                   type="button"
                   className="playground-focus__sound"
                   onClick={() =>
-                    setSoundPickerVoice(selectedVoice)
+                    setSoundPickerVoice((current) =>
+                      current === selectedVoice
+                        ? null
+                        : selectedVoice,
+                    )
                   }
                   aria-label={
                     "Change " +
