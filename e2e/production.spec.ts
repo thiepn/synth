@@ -15,7 +15,22 @@ const MODES = [
   ["07", "EXPORT", ".master-export-surface"],
 ] as const;
 
+async function enterStudio(page: Page) {
+  const openStudio = page.getByRole("button", {
+    name: "Open Studio",
+  });
+  if (await openStudio.isVisible()) {
+    await openStudio.click();
+  }
+  await expect(
+    page.getByRole("button", {
+      name: "Mode 01: CREATE",
+    }),
+  ).toBeVisible();
+}
+
 async function waitForProjectReady(page: Page) {
+  await enterStudio(page);
   const project = page.locator(
     ".project-readout--interactive",
   );
@@ -164,6 +179,8 @@ test("production shell lazy-loads every mode without runtime errors", async ({
 
   await page.goto("/");
   await expect(page).toHaveTitle("Synth");
+  await expect(page.locator(".playground-surface")).toBeVisible();
+  await enterStudio(page);
 
   for (const [number, label, surface] of MODES) {
     const button = page.getByRole("button", {
@@ -196,6 +213,7 @@ test("keyboard navigation and core transport remain operable", async ({
 
   await skip.press("Enter");
   await expect(page.locator("#synth-main")).toBeFocused();
+  await enterStudio(page);
 
   const create = page.getByRole("button", {
     name: "Mode 01: CREATE",
@@ -411,6 +429,7 @@ test("sample cache is evicted when content-addressed audio is removed and reimpo
   page,
 }) => {
   await page.goto("/");
+  await enterStudio(page);
   await page.getByRole("button", {
     name: "Mode 03: SOUND",
   }).click();
@@ -456,6 +475,7 @@ test("corrupt active IndexedDB project fails closed and can recover via Save As"
 
   await corruptActiveProjectSchema(page);
   await page.reload();
+  await enterStudio(page);
 
   await expect(page.locator(".create-surface")).toBeVisible();
   await expect(
@@ -490,6 +510,7 @@ test("rapid mode churn and transport cleanup do not produce runtime errors", asy
 }) => {
   const errors = watchRuntimeErrors(page);
   await page.goto("/");
+  await enterStudio(page);
 
   await page.getByRole("button", {
     name: "Start transport",
@@ -706,7 +727,7 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
   context,
 }) => {
   await page.goto("/");
-  await expect(page.locator(".create-surface")).toBeVisible();
+  await expect(page.locator(".playground-surface")).toBeVisible();
   await waitForServiceWorkerControl(page);
 
   const cacheDiagnostic = await page.evaluate(async () => {
@@ -759,6 +780,7 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
   });
 
   await context.setOffline(true);
+  await enterStudio(page);
 
   const exportMode = page.getByRole("button", {
     name: "Mode 07: EXPORT",
@@ -770,7 +792,8 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
   expect(failedRequests).toEqual([]);
 
   await page.reload();
-  await expect(page.locator(".create-surface")).toBeVisible();
+  await expect(page.locator(".playground-surface")).toBeVisible();
+  await enterStudio(page);
 
   const sound = page.getByRole("button", {
     name: "Mode 03: SOUND",

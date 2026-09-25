@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./styles.css";
+import "./playground.css";
 import "./transport.css";
 import "./drums.css";
 import "./sequencer.css";

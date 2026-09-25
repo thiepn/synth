@@ -4,7 +4,22 @@ import {
   type Page,
 } from "@playwright/test";
 
+async function enterStudio(page: Page) {
+  const openStudio = page.getByRole("button", {
+    name: "Open Studio",
+  });
+  if (await openStudio.isVisible()) {
+    await openStudio.click();
+  }
+  await expect(
+    page.getByRole("button", {
+      name: "Mode 01: CREATE",
+    }),
+  ).toBeVisible();
+}
+
 async function waitForProjectReady(page: Page) {
+  await enterStudio(page);
   const project = page.locator(
     ".project-readout--interactive",
   );

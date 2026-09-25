@@ -27,6 +27,12 @@ import {
   TransportLifecycle,
 } from "./ui/transport/TransportUI";
 
+type Experience = "playground" | "studio";
+
+const loadPlaygroundSurface = () =>
+  import("./ui/playground/PlaygroundSurface").then((module) => ({
+    default: module.PlaygroundSurface,
+  }));
 const loadCreateSurface = () =>
   import("./ui/surfaces/CreateSurface").then((module) => ({
     default: module.CreateSurface,
@@ -56,6 +62,7 @@ const loadMasterExportSurface = () =>
     default: module.MasterExportSurface,
   }));
 
+const PlaygroundSurface = lazy(loadPlaygroundSurface);
 const CreateSurface = lazy(loadCreateSurface);
 const SequenceSurface = lazy(loadSequenceSurface);
 const SoundSurface = lazy(loadSoundSurface);
@@ -104,8 +111,19 @@ function WorkspaceLoading({
   );
 }
 
+function PlaygroundLoading() {
+  return (
+    <section className="playground-loading" aria-live="polite">
+      <span className="playground-loading__pulse" aria-hidden="true" />
+      <strong>SYNTH</strong>
+    </section>
+  );
+}
+
 export function App() {
   const [modeId, setModeId] = useState<ModeId>("create");
+  const [experience, setExperience] =
+    useState<Experience>("playground");
 
   useEffect(() => {
     void projectStore.initialize();
@@ -117,46 +135,94 @@ export function App() {
     [modeId],
   );
   const ActiveSurface = MODE_SURFACES[modeId];
+  const transportMode =
+    experience === "playground" ? MODES[0] : mode;
+
+  const openPlayground = () => {
+    playbackCoordinator.prepareModeChange(modeId, "create");
+    setModeId("create");
+    setExperience("playground");
+  };
 
   return (
-    <div className="synth-app">
+    <div className={"synth-app synth-app--" + experience}>
       <a className="skip-link" href="#synth-main">
         Skip to workspace
       </a>
-      <AccessibilityBridge modeLabel={mode.label} />
-      <TransportLifecycle mode={mode} />
-      <UtilityRail mode={mode} />
-
-      <main
-        id="synth-main"
-        className="synth-workspace"
-        tabIndex={-1}
-      >
-        <Suspense fallback={<WorkspaceLoading mode={mode} />}>
-          <ActiveSurface />
-        </Suspense>
-      </main>
-
-      <ModeRail
-        active={modeId}
-        onChange={(next) => {
-          if (next === modeId) return;
-
-          playbackCoordinator.prepareModeChange(
-            modeId,
-            next,
-          );
-          setModeId(next);
-        }}
+      <AccessibilityBridge
+        modeLabel={
+          experience === "playground"
+            ? "PLAYGROUND"
+            : mode.label
+        }
       />
+      <TransportLifecycle mode={transportMode} />
+
+      {experience === "playground" ? (
+        <main
+          id="synth-main"
+          className="synth-workspace synth-workspace--playground"
+          tabIndex={-1}
+        >
+          <Suspense fallback={<PlaygroundLoading />}>
+            <PlaygroundSurface
+              onOpenStudio={() => setExperience("studio")}
+            />
+          </Suspense>
+        </main>
+      ) : (
+        <>
+          <UtilityRail
+            mode={mode}
+            onOpenPlayground={openPlayground}
+          />
+
+          <main
+            id="synth-main"
+            className="synth-workspace"
+            tabIndex={-1}
+          >
+            <Suspense fallback={<WorkspaceLoading mode={mode} />}>
+              <ActiveSurface />
+            </Suspense>
+          </main>
+
+          <ModeRail
+            active={modeId}
+            onChange={(next) => {
+              if (next === modeId) return;
+
+              playbackCoordinator.prepareModeChange(
+                modeId,
+                next,
+              );
+              setModeId(next);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }
 
-function UtilityRail({ mode }: { mode: ModeDefinition }) {
+function UtilityRail({
+  mode,
+  onOpenPlayground,
+}: {
+  mode: ModeDefinition;
+  onOpenPlayground: () => void;
+}) {
   return (
     <header className="utility-rail">
       <div className="brand-lockup">
+        <button
+          type="button"
+          className="studio-playground-return"
+          onClick={onOpenPlayground}
+          aria-label="Return to Playground"
+        >
+          ← PLAY
+        </button>
         <span className="brand-lockup__word">SYNTH</span>
         <span className="brand-lockup__signal" aria-hidden="true">
           <i />
