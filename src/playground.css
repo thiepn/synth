@@ -764,10 +764,37 @@
 }
 
 .playground-steps--focus {
+  position: relative;
   min-height: 84px;
+  overflow: hidden;
   padding: 10px;
   gap: clamp(5px, 0.7vw, 11px);
   background: rgba(0, 0, 0, 0.18);
+}
+
+.playground-playhead {
+  position: absolute;
+  z-index: 0;
+  top: 5px;
+  bottom: 5px;
+  width: clamp(16px, 4.5%, 58px);
+  border-radius: 13px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0.015)
+    );
+  box-shadow:
+    0 0 24px rgba(255, 255, 255, 0.055),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: translateX(-50%);
+  transition: left 82ms linear;
+  pointer-events: none;
+}
+
+.playground-steps--focus .playground-step {
+  z-index: 1;
 }
 
 .playground-steps--focus .playground-step {
@@ -1542,5 +1569,9 @@
   .playground-remix-wave,
   .playground-play.is-playing > span {
     animation: none;
+  }
+
+  .playground-playhead {
+    transition: none;
   }
 }
