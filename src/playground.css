@@ -1394,3 +1394,74 @@
     transition: none;
   }
 }
+
+
+@media (prefers-contrast: more) {
+  .playground-beat-pad,
+  .playground-focus,
+  .playground-sound-drawer,
+  .playground-style,
+  .playground-tempo,
+  .playground-history-button,
+  .playground-studio-button,
+  .playground-focus__sound,
+  .playground-step {
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  .playground-step.is-on {
+    box-shadow:
+      0 0 0 2px var(--lane-color),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+}
+
+@media (forced-colors: active) {
+  .playground-surface {
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .playground-beat-pad,
+  .playground-focus,
+  .playground-sound-drawer,
+  .playground-style,
+  .playground-tempo,
+  .playground-history-button,
+  .playground-studio-button,
+  .playground-focus__sound,
+  .playground-sound-choices button,
+  .playground-step {
+    border: 1px solid ButtonText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+
+  .playground-beat-pad.is-selected {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .playground-beat-pad__key,
+  .playground-step.is-on,
+  .playground-sound-choices button.is-active {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .playground-step.is-current {
+    outline: 2px solid Highlight;
+  }
+
+  .playground-mini-pattern i.is-on {
+    background: Highlight;
+  }
+
+  .playground-remix-wave,
+  .playground-beat-pad__hit,
+  .playground-surface::before,
+  .playground-surface::after {
+    display: none;
+  }
+}
