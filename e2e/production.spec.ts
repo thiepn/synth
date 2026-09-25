@@ -384,6 +384,10 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     "false",
   );
 
+  await page.getByRole("button", {
+    name: "Play KICK",
+  }).click();
+
   const kickSound = page.getByRole("button", {
     name: "Change KICK sound. Current sound Core",
   });
