@@ -894,11 +894,18 @@ export class ProjectStore {
       sampleAssetStore
         .getSnapshot()
         .assets
-        .filter(
-          (asset) =>
-            asset.reference.origin !== "bundled" ||
-            referencedBundled.has(asset.reference.id),
-        )
+        .filter((asset) => {
+          const replaceableBundled =
+            asset.reference.origin === "bundled" &&
+            typeof asset.reference.bundledSampleId ===
+              "string" &&
+            asset.reference.bundledSampleId.length > 0;
+
+          return (
+            !replaceableBundled ||
+            referencedBundled.has(asset.reference.id)
+          );
+        })
         .map((asset) => asset.reference.id),
     );
   }
