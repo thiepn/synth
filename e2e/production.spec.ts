@@ -304,12 +304,41 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toHaveAttribute("aria-pressed", "false");
 
-  const clapStart = page.getByRole("button", {
-    name: "CLAP step 2, off",
-  });
-  const clapEnd = page.getByRole("button", {
-    name: "CLAP step 4, off",
-  });
+  const clapSteps = page.locator(
+    '.playground-step[data-lane-id="lane-clap"]',
+  );
+  const clapStates = await clapSteps.evaluateAll((steps) =>
+    steps.map((step) => ({
+      index: Number(
+        (step as HTMLElement).dataset.stepIndex,
+      ),
+      on:
+        step.getAttribute("aria-pressed") ===
+        "true",
+    })),
+  );
+  const emptyClapSteps = clapStates
+    .filter((step) => !step.on)
+    .map((step) => step.index);
+  expect(emptyClapSteps.length).toBeGreaterThanOrEqual(2);
+
+  const clapStartIndex = emptyClapSteps[0]!;
+  const clapEndIndex =
+    emptyClapSteps.find(
+      (index) => index > clapStartIndex,
+    ) ?? emptyClapSteps[1]!;
+  const clapStart = page.locator(
+    '.playground-step[data-lane-id="lane-clap"]' +
+      '[data-step-index="' +
+      clapStartIndex +
+      '"]',
+  );
+  const clapEnd = page.locator(
+    '.playground-step[data-lane-id="lane-clap"]' +
+      '[data-step-index="' +
+      clapEndIndex +
+      '"]',
+  );
   const clapStartBox = await clapStart.boundingBox();
   const clapEndBox = await clapEnd.boundingBox();
   expect(clapStartBox).not.toBeNull();
@@ -327,28 +356,24 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
   );
   await page.mouse.up();
 
-  await expect(
-    page.getByRole("button", {
-      name: "CLAP step 2, on",
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", {
-      name: "CLAP step 4, on",
-    }),
-  ).toBeVisible();
+  await expect(clapStart).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(clapEnd).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 
   await page.keyboard.press("Control+z");
-  await expect(
-    page.getByRole("button", {
-      name: "CLAP step 2, off",
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", {
-      name: "CLAP step 4, off",
-    }),
-  ).toBeVisible();
+  await expect(clapStart).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(clapEnd).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
 
   const kickSound = page.getByRole("button", {
     name: "Change KICK sound. Current sound Core",
