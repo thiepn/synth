@@ -290,6 +290,23 @@ export function PlaygroundSurface({
     setAuditionStep(undefined);
   };
 
+  const cancelPatternPreview = () => {
+    stopVisualAudition();
+    drumEngine.cancelAudition();
+  };
+
+  const undoPattern = () => {
+    cancelPatternPreview();
+    sequencerStore.undo();
+    setNotice("Undone");
+  };
+
+  const redoPattern = () => {
+    cancelPatternPreview();
+    sequencerStore.redo();
+    setNotice("Redone");
+  };
+
   const startVisualAudition = (
     stepCount: number,
     bpm: number,
@@ -423,16 +440,13 @@ export function PlaygroundSurface({
       if (key === "z") {
         event.preventDefault();
         if (event.shiftKey) {
-          sequencerStore.redo();
-          setNotice("Redone");
+          redoPattern();
         } else {
-          sequencerStore.undo();
-          setNotice("Undone");
+          undoPattern();
         }
       } else if (key === "y") {
         event.preventDefault();
-        sequencerStore.redo();
-        setNotice("Redone");
+        redoPattern();
       }
     };
 
@@ -538,9 +552,6 @@ export function PlaygroundSurface({
   const selectedLane = sequencer.pattern.lanes.find(
     (lane) => lane.id === selectedDefinition.id,
   );
-  const selectedPad = DRUM_PADS.find(
-    (pad) => pad.voice === selectedVoice,
-  );
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
@@ -573,6 +584,7 @@ export function PlaygroundSurface({
       sequencerStore.getStepVelocity(laneId, stepIndex) !== undefined;
     if (isOn === desiredOn) return;
 
+    cancelPatternPreview();
     sequencerStore.setStepEnabled(
       laneId,
       stepIndex,
@@ -840,7 +852,7 @@ export function PlaygroundSurface({
           <button
             type="button"
             className="playground-history-button"
-            onClick={() => sequencerStore.undo()}
+            onClick={undoPattern}
             disabled={!sequencer.canUndo}
             aria-label="Undo"
             title="Undo · Ctrl/Cmd-Z"
@@ -850,7 +862,7 @@ export function PlaygroundSurface({
           <button
             type="button"
             className="playground-history-button"
-            onClick={() => sequencerStore.redo()}
+            onClick={redoPattern}
             disabled={!sequencer.canRedo}
             aria-label="Redo"
             title="Redo · Ctrl/Cmd-Shift-Z"
