@@ -754,6 +754,18 @@ test("explicit user import survives bundled-sample identity collision", async ({
     name: "Change KICK sound. Current sound Custom",
   }).click();
   await page.getByRole("button", {
+    name: "808 Short KICK sound",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Change KICK sound. Current sound 808 Short",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Change KICK sound. Current sound 808 Short",
+  }).click();
+  await page.getByRole("button", {
     name: "Core KICK sound",
   }).click();
 
