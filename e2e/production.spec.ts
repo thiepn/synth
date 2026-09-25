@@ -935,6 +935,13 @@ test("storage-unavailable environment remains usable in session-only mode", asyn
   });
 
   await page.goto("/");
+
+  await expect(
+    page.getByRole("button", {
+      name: "Local project storage is unavailable. Open Studio for project controls.",
+    }),
+  ).toContainText("Session only");
+
   await waitForProjectReady(page);
 
   await expect(page.locator(".create-surface")).toBeVisible();
