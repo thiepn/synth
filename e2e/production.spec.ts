@@ -304,6 +304,15 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toHaveAttribute("aria-pressed", "false");
 
+  await page.getByRole("button", {
+    name: "Play CLAP",
+  }).click();
+  await expect(
+    page.getByRole("region", {
+      name: "CLAP pattern editor",
+    }),
+  ).toBeVisible();
+
   const clapSteps = page.locator(
     '.playground-step[data-lane-id="lane-clap"]',
   );
