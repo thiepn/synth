@@ -769,7 +769,13 @@ export class ProjectStore {
       }
 
       if (droppedAsset) {
-        await localProjectDatabase.garbageCollectAssets();
+        try {
+          await localProjectDatabase.garbageCollectAssets();
+        } catch {
+          // The project save already committed successfully.
+          // Orphan cleanup is best effort and must never turn
+          // a successful save into a false save failure.
+        }
       }
 
       await this.refreshSummaries();
