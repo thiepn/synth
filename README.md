@@ -8,6 +8,8 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 
 ## Current status
 
+**Release:** Synth v1.0.0
+
 - **Phase 0 — Product Constitution & Architecture Freeze:** complete
 - **Phase 1 — Pulse Architecture UI Foundation:** complete
 - **Phase 2 — Core Audio Clock & Transport:** complete
@@ -48,7 +50,7 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 37 — Architecture Consolidation & Product Simplification:** complete
 - **Phase 38 — Comprehensive Product Audit & Adversarial QA:** complete
 - **Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze:** complete
-- **Phase 40 — v1.0.0 Production Release & Maintenance Baseline:** certification in progress
+- **Phase 40 — v1.0.0 Production Release & Maintenance Baseline:** complete
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
