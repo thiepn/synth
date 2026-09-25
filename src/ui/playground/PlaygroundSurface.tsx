@@ -218,14 +218,19 @@ export function PlaygroundSurface({
     useState<DrumVoiceId | null>(null);
   const [soundLoading, setSoundLoading] =
     useState<BundledSampleId | null>(null);
+  const paintCounterRef = useRef(0);
   const paintRef = useRef<{
     pointerId: number;
     desiredOn: boolean;
     lastKey: string;
+    gestureId: string;
   } | null>(null);
 
   useEffect(() => {
     const stopPaint = () => {
+      const gesture = paintRef.current;
+      if (!gesture) return;
+      sequencerStore.endPaintGesture(gesture.gestureId);
       paintRef.current = null;
     };
     window.addEventListener("pointerup", stopPaint);
@@ -241,6 +246,38 @@ export function PlaygroundSurface({
     const timer = window.setTimeout(() => setNotice(""), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    const handleHistoryShortcut = (event: KeyboardEvent) => {
+      if (eventTargetConsumesKeyboard(event.target)) return;
+
+      const modifier = event.ctrlKey || event.metaKey;
+      if (!modifier) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          sequencerStore.redo();
+          setNotice("Redone");
+        } else {
+          sequencerStore.undo();
+          setNotice("Undone");
+        }
+      } else if (key === "y") {
+        event.preventDefault();
+        sequencerStore.redo();
+        setNotice("Redone");
+      }
+    };
+
+    window.addEventListener("keydown", handleHistoryShortcut);
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        handleHistoryShortcut,
+      );
+  }, []);
 
   useEffect(() => {
     const keyToVoice = new Map(
@@ -330,12 +367,18 @@ export function PlaygroundSurface({
     stepIndex: number,
     desiredOn: boolean,
     audition = false,
+    gestureId?: string,
   ) => {
     const isOn =
       sequencerStore.getStepVelocity(laneId, stepIndex) !== undefined;
     if (isOn === desiredOn) return;
 
-    sequencerStore.toggleStep(laneId, stepIndex);
+    sequencerStore.setStepEnabled(
+      laneId,
+      stepIndex,
+      desiredOn,
+      gestureId,
+    );
 
     if (desiredOn && audition) {
       const voice = SEQUENCER_LANES.find(
@@ -355,12 +398,24 @@ export function PlaygroundSurface({
     const desiredOn =
       sequencerStore.getStepVelocity(laneId, stepIndex) === undefined;
     const key = laneId + ":" + stepIndex;
+    const gestureId =
+      "playground-" +
+      String(++paintCounterRef.current).padStart(6, "0");
+
+    sequencerStore.beginPaintGesture(gestureId);
     paintRef.current = {
       pointerId: event.pointerId,
       desiredOn,
       lastKey: key,
+      gestureId,
     };
-    setStep(laneId, stepIndex, desiredOn, desiredOn);
+    setStep(
+      laneId,
+      stepIndex,
+      desiredOn,
+      desiredOn,
+      gestureId,
+    );
     event.preventDefault();
   };
 
@@ -383,7 +438,13 @@ export function PlaygroundSurface({
     if (gesture.lastKey === key) return;
 
     gesture.lastKey = key;
-    setStep(laneId, stepIndex, gesture.desiredOn, false);
+    setStep(
+      laneId,
+      stepIndex,
+      gesture.desiredOn,
+      false,
+      gesture.gestureId,
+    );
   };
 
   const activateFromKeyboard = (
@@ -566,15 +627,37 @@ export function PlaygroundSurface({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="playground-studio-button"
-          onClick={onOpenStudio}
-          aria-label="Open Studio"
-        >
-          Studio
-          <span aria-hidden="true">↗</span>
-        </button>
+        <div className="playground-topbar__actions">
+          <button
+            type="button"
+            className="playground-history-button"
+            onClick={() => sequencerStore.undo()}
+            disabled={!sequencer.canUndo}
+            aria-label="Undo"
+            title="Undo · Ctrl/Cmd-Z"
+          >
+            ↶
+          </button>
+          <button
+            type="button"
+            className="playground-history-button"
+            onClick={() => sequencerStore.redo()}
+            disabled={!sequencer.canRedo}
+            aria-label="Redo"
+            title="Redo · Ctrl/Cmd-Shift-Z"
+          >
+            ↷
+          </button>
+          <button
+            type="button"
+            className="playground-studio-button"
+            onClick={onOpenStudio}
+            aria-label="Open Studio"
+          >
+            Studio
+            <span aria-hidden="true">↗</span>
+          </button>
+        </div>
       </header>
 
       <div className="playground-hero">
@@ -686,9 +769,19 @@ export function PlaygroundSurface({
                 className="playground-steps"
                 onPointerMove={continuePaint}
                 onPointerUp={() => {
+                  const gesture = paintRef.current;
+                  if (!gesture) return;
+                  sequencerStore.endPaintGesture(
+                    gesture.gestureId,
+                  );
                   paintRef.current = null;
                 }}
                 onPointerCancel={() => {
+                  const gesture = paintRef.current;
+                  if (!gesture) return;
+                  sequencerStore.endPaintGesture(
+                    gesture.gestureId,
+                  );
                   paintRef.current = null;
                 }}
               >
