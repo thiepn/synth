@@ -387,7 +387,7 @@ export function PlaygroundSurface({
         let resolved = -1;
 
         if (
-          source.mode !== "synth" &&
+          source.mode === "sample" &&
           source.sample
         ) {
           const asset = sampleAssets.assets.find(
@@ -406,7 +406,7 @@ export function PlaygroundSurface({
                 preset.label === assetLabel,
             );
           }
-        } else {
+        } else if (source.mode === "synth") {
           resolved = presets.findIndex((preset) =>
             synthPresetMatches(
               voice,
