@@ -928,9 +928,9 @@ export function PlaygroundSurface({
                     setSoundPickerVoice(voice);
                   }}
                   aria-label={
-                    "Change " +
+                    "Open " +
                     displayLaneName(definition) +
-                    " sound. Current sound " +
+                    " sounds. Current sound " +
                     currentSound
                   }
                 >
