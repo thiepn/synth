@@ -7,10 +7,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const output = resolve(here, "../public/icons");
 
 const COLORS = {
-  background: [8, 9, 7, 255],
-  ring: [47, 53, 44, 255],
-  signal: [207, 255, 71, 255],
-  accent: [243, 138, 85, 255],
+  background: [13, 14, 26, 255],
+  ring: [120, 103, 255, 255],
+  signal: [255, 85, 119, 255],
+  accent: [99, 222, 244, 255],
 };
 
 function crc32(buffer) {

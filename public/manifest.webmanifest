@@ -1,16 +1,16 @@
 {
   "name": "Synth",
   "short_name": "Synth",
-  "description": "A local-first generative beat workstation.",
+  "description": "A colorful local-first beat playground.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#080907",
-  "theme_color": "#080907",
+  "background_color": "#0d0e1a",
+  "theme_color": "#0d0e1a",
   "orientation": "any",
-  "categories": ["music", "productivity"],
+  "categories": ["music"],
   "icons": [
     {
       "src": "./icons/synth-192.png",
