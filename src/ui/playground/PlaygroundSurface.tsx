@@ -932,90 +932,74 @@ export function PlaygroundSurface({
                   },
                 )}
               </div>
+              {soundPickerVoice === voice ? (
+                <section
+                  className="playground-sound-drawer"
+                  role="region"
+                  aria-label={(pad?.label ?? voice) + " sounds"}
+                >
+                  <header className="playground-sound-drawer__header">
+                    <div>
+                      <span
+                        className="playground-sound-drawer__dot"
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <small>{pad?.label ?? voice}</small>
+                        <strong>Choose a sound</strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSoundPickerVoice(null)}
+                      aria-label="Close sound choices"
+                    >
+                      ×
+                    </button>
+                  </header>
+
+                  <div className="playground-sound-choices">
+                    {SOUND_PRESETS[voice].map(
+                      (preset, index) => (
+                        <button
+                          type="button"
+                          key={preset.label}
+                          className={
+                            soundIndex[voice] === index
+                              ? "is-active"
+                              : ""
+                          }
+                          onClick={() =>
+                            void chooseSound(voice, index)
+                          }
+                          disabled={Boolean(soundLoading)}
+                          aria-busy={
+                            preset.bundledSampleId === soundLoading
+                              ? true
+                              : undefined
+                          }
+                          aria-label={
+                            preset.label +
+                            " " +
+                            (pad?.label ?? voice) +
+                            " sound"
+                          }
+                        >
+                          <span aria-hidden="true" />
+                          {preset.bundledSampleId === soundLoading
+                            ? "Loading…"
+                            : preset.label}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </section>
+              ) : null}
             </article>
           );
         })}
       </div>
 
-      {soundPickerVoice ? (
-        <section
-          className="playground-sound-drawer"
-          role="region"
-          aria-label={
-            (DRUM_PADS.find(
-              (pad) => pad.voice === soundPickerVoice,
-            )?.label ?? soundPickerVoice) + " sounds"
-          }
-          style={
-            {
-              "--lane-color":
-                LANE_COLORS[soundPickerVoice],
-            } as CSSProperties
-          }
-        >
-          <header className="playground-sound-drawer__header">
-            <div>
-              <span
-                className="playground-sound-drawer__dot"
-                aria-hidden="true"
-              />
-              <div>
-                <small>
-                  {DRUM_PADS.find(
-                    (pad) => pad.voice === soundPickerVoice,
-                  )?.label ?? soundPickerVoice}
-                </small>
-                <strong>Choose a sound</strong>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSoundPickerVoice(null)}
-              aria-label="Close sound choices"
-            >
-              ×
-            </button>
-          </header>
-
-          <div className="playground-sound-choices">
-            {SOUND_PRESETS[soundPickerVoice].map(
-              (preset, index) => (
-                <button
-                  type="button"
-                  key={preset.label}
-                  className={
-                    soundIndex[soundPickerVoice] === index
-                      ? "is-active"
-                      : ""
-                  }
-                  onClick={() =>
-                    void chooseSound(soundPickerVoice, index)
-                  }
-                  disabled={Boolean(soundLoading)}
-                  aria-busy={
-                    preset.bundledSampleId === soundLoading
-                      ? true
-                      : undefined
-                  }
-                  aria-label={
-                    preset.label +
-                    " " +
-                    (DRUM_PADS.find(
-                      (pad) => pad.voice === soundPickerVoice,
-                    )?.label ?? soundPickerVoice) +
-                    " sound"
-                  }
-                >
-                  <span aria-hidden="true" />
-                  {preset.bundledSampleId === soundLoading
-                    ? "Loading…"
-                    : preset.label}
-                </button>
-              ),
-            )}
-          </div>
-        </section>
-      ) : null}
 
       <footer className="playground-footer">
         <p className="playground-hint">
