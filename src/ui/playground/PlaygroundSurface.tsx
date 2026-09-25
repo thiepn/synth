@@ -80,6 +80,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Punchy", spec: { impact: 0.98, body: 0.68, decay: 0.36, character: 0.48 } },
     { label: "Soft", spec: { impact: 0.52, body: 0.7, noise: 0.05, character: 0.22 } },
     { label: "Dirty", spec: { impact: 0.82, noise: 0.24, character: 0.9, tone: 0.38 } },
+    { label: "808", spec: { body: 1, pitch: 0.2, decay: 0.9, impact: 0.6, noise: 0.03 } },
+    { label: "Tight", spec: { impact: 0.9, body: 0.66, decay: 0.24, pitch: 0.5 } },
+    { label: "Huge", spec: { impact: 0.86, body: 1, decay: 0.86, pitch: 0.32, character: 0.62 } },
   ],
   snare: [
     { label: "Core", spec: {} },
@@ -87,6 +90,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Fat", spec: { body: 0.88, tone: 0.45, decay: 0.58, impact: 0.72 } },
     { label: "Dry", spec: { decay: 0.22, air: 0.18, noise: 0.6, body: 0.54 } },
     { label: "Bright", spec: { air: 0.72, tone: 0.82, noise: 0.78, pitch: 0.6 } },
+    { label: "Lo-Fi", spec: { air: 0.16, tone: 0.32, noise: 0.8, character: 0.78 } },
+    { label: "Ringy", spec: { body: 0.76, tone: 0.72, decay: 0.7, character: 0.82 } },
+    { label: "Big", spec: { impact: 0.82, body: 0.92, decay: 0.72, air: 0.5 } },
   ],
   clap: [
     { label: "Core", spec: {} },
@@ -94,6 +100,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Tight", spec: { impact: 0.78, decay: 0.2, body: 0.24 } },
     { label: "Dusty", spec: { noise: 0.94, tone: 0.38, character: 0.68 } },
     { label: "Bright", spec: { air: 0.9, tone: 0.84, noise: 0.86 } },
+    { label: "Soft", spec: { impact: 0.38, body: 0.16, noise: 0.68, air: 0.34 } },
+    { label: "Crunch", spec: { impact: 0.72, noise: 0.92, character: 0.94, tone: 0.46 } },
+    { label: "Airy", spec: { air: 0.96, noise: 0.8, decay: 0.5, body: 0.12 } },
   ],
   closedHat: [
     { label: "Core", spec: {} },
@@ -101,6 +110,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Soft", spec: { impact: 0.32, air: 0.56, tone: 0.56, decay: 0.22 } },
     { label: "Dark", spec: { tone: 0.3, air: 0.46, character: 0.58 } },
     { label: "Metallic", spec: { character: 0.96, body: 0.3, pitch: 0.74 } },
+    { label: "Dusty", spec: { air: 0.36, noise: 0.72, tone: 0.36, character: 0.62 } },
+    { label: "Tiny", spec: { impact: 0.74, decay: 0.1, body: 0.08, pitch: 0.82 } },
+    { label: "Bright", spec: { air: 0.98, tone: 0.94, pitch: 0.7, decay: 0.2 } },
   ],
   openHat: [
     { label: "Core", spec: {} },
@@ -108,6 +120,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Short", spec: { decay: 0.34, impact: 0.58, air: 0.7 } },
     { label: "Dark", spec: { tone: 0.34, air: 0.58, decay: 0.7 } },
     { label: "Metallic", spec: { character: 0.98, body: 0.32, pitch: 0.72 } },
+    { label: "Loose", spec: { decay: 0.88, air: 0.82, impact: 0.34, character: 0.72 } },
+    { label: "Bright", spec: { air: 0.94, tone: 0.92, pitch: 0.72, decay: 0.6 } },
+    { label: "Washy", spec: { air: 1, decay: 0.98, noise: 0.7, body: 0.24 } },
   ],
   tom: [
     { label: "Core", spec: {} },
@@ -115,6 +130,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Deep", spec: { pitch: 0.28, body: 0.92, decay: 0.72 } },
     { label: "Tight", spec: { impact: 0.82, decay: 0.28, body: 0.7 } },
     { label: "Big", spec: { body: 0.98, decay: 0.86, character: 0.58 } },
+    { label: "High", spec: { pitch: 0.8, body: 0.72, impact: 0.7, decay: 0.42 } },
+    { label: "Soft", spec: { impact: 0.42, body: 0.7, noise: 0.06, decay: 0.52 } },
+    { label: "Tribal", spec: { impact: 0.68, body: 0.9, pitch: 0.52, character: 0.7 } },
   ],
   percussion: [
     { label: "Core", spec: {} },
@@ -122,6 +140,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Click", spec: { impact: 0.92, body: 0.28, decay: 0.18, pitch: 0.72 } },
     { label: "Warm", spec: { body: 0.74, tone: 0.38, character: 0.48 } },
     { label: "Odd", spec: { character: 0.98, pitch: 0.76, noise: 0.34 } },
+    { label: "Metal", spec: { character: 0.94, air: 0.56, pitch: 0.72, noise: 0.3 } },
+    { label: "Hollow", spec: { body: 0.82, tone: 0.3, decay: 0.5, pitch: 0.46 } },
+    { label: "Sharp", spec: { impact: 0.94, decay: 0.18, pitch: 0.82, air: 0.46 } },
   ],
   crash: [
     { label: "Core", spec: {} },
@@ -129,6 +150,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Dark", spec: { tone: 0.34, air: 0.58, body: 0.26 } },
     { label: "Short", spec: { decay: 0.42, impact: 0.62, air: 0.76 } },
     { label: "Washy", spec: { decay: 0.98, air: 0.96, character: 0.82 } },
+    { label: "Thin", spec: { body: 0.08, air: 0.82, tone: 0.78, decay: 0.58 } },
+    { label: "Heavy", spec: { body: 0.42, impact: 0.72, decay: 0.9, tone: 0.46 } },
+    { label: "Airy", spec: { air: 1, noise: 0.76, tone: 0.86, decay: 0.78 } },
   ],
 };
 
@@ -176,6 +200,8 @@ export function PlaygroundSurface({
     voice: null as DrumVoiceId | null,
     serial: 0,
   });
+  const [soundPickerVoice, setSoundPickerVoice] =
+    useState<DrumVoiceId | null>(null);
   const paintRef = useRef<{
     pointerId: number;
     desiredOn: boolean;
@@ -415,10 +441,11 @@ export function PlaygroundSurface({
     setNotice("Remixed");
   };
 
-  const cycleSound = (voice: DrumVoiceId) => {
-    const presets = SOUND_PRESETS[voice];
-    const nextIndex = (soundIndex[voice] + 1) % presets.length;
-    const preset = presets[nextIndex];
+  const chooseSound = (
+    voice: DrumVoiceId,
+    nextIndex: number,
+  ) => {
+    const preset = SOUND_PRESETS[voice][nextIndex];
     if (!preset) return;
     const base = DRUM_DEFAULT_SPECS[voice];
 
@@ -439,6 +466,7 @@ export function PlaygroundSurface({
         " · " +
         preset.label,
     );
+    setSoundPickerVoice(null);
   };
 
   return (
@@ -597,17 +625,17 @@ export function PlaygroundSurface({
                 <button
                   type="button"
                   className="playground-sound-cycle"
-                  onClick={() => cycleSound(voice)}
+                  onClick={() => setSoundPickerVoice(voice)}
                   aria-label={
                     "Change " +
                     displayLaneName(definition) +
                     " sound. Current sound " +
                     currentSound
                   }
-                  title="Try another sound"
+                  title="Choose a sound"
                 >
                   <span>{currentSound}</span>
-                  <b aria-hidden="true">↻</b>
+                  <b aria-hidden="true">›</b>
                 </button>
               </div>
 
@@ -685,6 +713,78 @@ export function PlaygroundSurface({
           );
         })}
       </div>
+
+      {soundPickerVoice ? (
+        <section
+          className="playground-sound-drawer"
+          role="region"
+          aria-label={
+            (DRUM_PADS.find(
+              (pad) => pad.voice === soundPickerVoice,
+            )?.label ?? soundPickerVoice) + " sounds"
+          }
+          style={
+            {
+              "--lane-color":
+                LANE_COLORS[soundPickerVoice],
+            } as CSSProperties
+          }
+        >
+          <header className="playground-sound-drawer__header">
+            <div>
+              <span
+                className="playground-sound-drawer__dot"
+                aria-hidden="true"
+              />
+              <div>
+                <small>
+                  {DRUM_PADS.find(
+                    (pad) => pad.voice === soundPickerVoice,
+                  )?.label ?? soundPickerVoice}
+                </small>
+                <strong>Choose a sound</strong>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSoundPickerVoice(null)}
+              aria-label="Close sound choices"
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="playground-sound-choices">
+            {SOUND_PRESETS[soundPickerVoice].map(
+              (preset, index) => (
+                <button
+                  type="button"
+                  key={preset.label}
+                  className={
+                    soundIndex[soundPickerVoice] === index
+                      ? "is-active"
+                      : ""
+                  }
+                  onClick={() =>
+                    chooseSound(soundPickerVoice, index)
+                  }
+                  aria-label={
+                    preset.label +
+                    " " +
+                    (DRUM_PADS.find(
+                      (pad) => pad.voice === soundPickerVoice,
+                    )?.label ?? soundPickerVoice) +
+                    " sound"
+                  }
+                >
+                  <span aria-hidden="true" />
+                  {preset.label}
+                </button>
+              ),
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <footer className="playground-footer">
         <p className="playground-hint">
