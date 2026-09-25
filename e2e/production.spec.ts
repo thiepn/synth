@@ -805,6 +805,85 @@ test("explicit user import survives bundled-sample identity collision", async ({
   ).toBeVisible();
 });
 
+test("named versions protect bundled audio from autosave garbage collection", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.locator(".playground-surface"),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Change KICK sound. Current sound Core",
+  }).click();
+  await page.getByRole("button", {
+    name: "808 Classic KICK sound",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Open Studio",
+  }).click();
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).toContainText("SAVED");
+
+  let dialog = await openProjectDialog(page);
+  await dialog
+    .locator(".project-version-create input")
+    .fill("Classic Kick");
+  await dialog.getByRole("button", {
+    name: "SNAPSHOT",
+  }).click();
+  await expect(
+    dialog.locator(".project-version-list"),
+  ).toContainText("Classic Kick");
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Change KICK sound. Current sound 808 Classic",
+  }).click();
+  await page.getByRole("button", {
+    name: "808 Short KICK sound",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Open Studio",
+  }).click();
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).toContainText("SAVED");
+
+  await expect
+    .poll(
+      () => indexedDbCount(page, "assets"),
+      { timeout: 8_000 },
+    )
+    .toBe(2);
+
+  dialog = await openProjectDialog(page);
+  const version = dialog
+    .locator(".project-version-list > div")
+    .filter({ hasText: "Classic Kick" });
+  await version.getByRole("button", {
+    name: "DELETE",
+  }).click();
+  await version.getByRole("button", {
+    name: "CONFIRM",
+  }).click();
+  await expect(version).toHaveCount(0);
+
+  await expect
+    .poll(
+      () => indexedDbCount(page, "assets"),
+      { timeout: 8_000 },
+    )
+    .toBe(1);
+});
+
 test("sample cache is evicted when content-addressed audio is removed and reimported", async ({
   page,
 }) => {
