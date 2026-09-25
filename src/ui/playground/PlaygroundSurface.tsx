@@ -20,7 +20,7 @@ import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
 import { useSampleAssetSnapshot } from "../../audio/useSampleAssets";
 import {
   applyBundledSample,
-  bundledSampleForVoice,
+  bundledSampleById,
   type BundledSampleId,
 } from "../../audio/bundledSampleLibrary";
 import type { DrumMaterialSpec } from "../../domain/contracts";
@@ -91,7 +91,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Sub", spec: { body: 1, pitch: 0.2, decay: 0.9, impact: 0.6, noise: 0.03 } },
     { label: "Tight", spec: { impact: 0.9, body: 0.66, decay: 0.24, pitch: 0.5 } },
     { label: "Huge", spec: { impact: 0.86, body: 1, decay: 0.86, pitch: 0.32, character: 0.62 } },
+    { label: "808 Short", bundledSampleId: "tr808-kick-short" },
     { label: "808 Classic", bundledSampleId: "tr808-kick" },
+    { label: "808 Long", bundledSampleId: "tr808-kick-long" },
   ],
   snare: [
     { label: "Core", spec: {} },
@@ -102,7 +104,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Lo-Fi", spec: { air: 0.16, tone: 0.32, noise: 0.8, character: 0.78 } },
     { label: "Ringy", spec: { body: 0.76, tone: 0.72, decay: 0.7, character: 0.82 } },
     { label: "Big", spec: { impact: 0.82, body: 0.92, decay: 0.72, air: 0.5 } },
+    { label: "808 Dry", bundledSampleId: "tr808-snare-dry" },
     { label: "808 Snare", bundledSampleId: "tr808-snare" },
+    { label: "808 Snap", bundledSampleId: "tr808-snare-snap" },
   ],
   clap: [
     { label: "Core", spec: {} },
@@ -135,7 +139,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Loose", spec: { decay: 0.88, air: 0.82, impact: 0.34, character: 0.72 } },
     { label: "Bright", spec: { air: 0.94, tone: 0.92, pitch: 0.72, decay: 0.6 } },
     { label: "Washy", spec: { air: 1, decay: 0.98, noise: 0.7, body: 0.24 } },
+    { label: "808 Open Short", bundledSampleId: "tr808-open-hat-short" },
     { label: "808 Open", bundledSampleId: "tr808-open-hat" },
+    { label: "808 Open Long", bundledSampleId: "tr808-open-hat-long" },
   ],
   tom: [
     { label: "Core", spec: {} },
@@ -146,7 +152,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "High", spec: { pitch: 0.8, body: 0.72, impact: 0.7, decay: 0.42 } },
     { label: "Soft", spec: { impact: 0.42, body: 0.7, noise: 0.06, decay: 0.52 } },
     { label: "Tribal", spec: { impact: 0.68, body: 0.9, pitch: 0.52, character: 0.7 } },
+    { label: "808 Tom Low", bundledSampleId: "tr808-tom-low" },
     { label: "808 Tom", bundledSampleId: "tr808-tom" },
+    { label: "808 Tom High", bundledSampleId: "tr808-tom-high" },
   ],
   percussion: [
     { label: "Core", spec: {} },
@@ -158,6 +166,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Hollow", spec: { body: 0.82, tone: 0.3, decay: 0.5, pitch: 0.46 } },
     { label: "Sharp", spec: { impact: 0.94, decay: 0.18, pitch: 0.82, air: 0.46 } },
     { label: "808 Rim", bundledSampleId: "tr808-percussion" },
+    { label: "808 Claves", bundledSampleId: "tr808-percussion-claves" },
+    { label: "808 Cowbell", bundledSampleId: "tr808-percussion-cowbell" },
+    { label: "808 Maracas", bundledSampleId: "tr808-percussion-maracas" },
   ],
   crash: [
     { label: "Core", spec: {} },
@@ -168,7 +179,9 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Thin", spec: { body: 0.08, air: 0.82, tone: 0.78, decay: 0.58 } },
     { label: "Heavy", spec: { body: 0.42, impact: 0.72, decay: 0.9, tone: 0.46 } },
     { label: "Airy", spec: { air: 1, noise: 0.76, tone: 0.86, decay: 0.78 } },
+    { label: "808 Cymbal Short", bundledSampleId: "tr808-crash-short" },
     { label: "808 Cymbal", bundledSampleId: "tr808-crash" },
+    { label: "808 Cymbal Long", bundledSampleId: "tr808-crash-long" },
   ],
 };
 
@@ -661,11 +674,10 @@ export function PlaygroundSurface({
     try {
       if (preset.bundledSampleId) {
         await audioTransport.unlockAudio();
-        const sample = bundledSampleForVoice(voice);
-        if (
-          !sample ||
-          sample.id !== preset.bundledSampleId
-        ) {
+        const sample = bundledSampleById(
+          preset.bundledSampleId,
+        );
+        if (!sample || sample.voice !== voice) {
           throw new Error(
             "Built-in sound metadata is unavailable.",
           );

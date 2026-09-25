@@ -10,6 +10,8 @@ Synth includes a curated subset of the Fischer TR-808 sample set from
 - Integration: build-time download with Git blob SHA and byte-length verification.
 
 The generated WAV files are intentionally not committed to this repository.
-`scripts/fetch-cc0-samples.mjs` downloads only the eight files listed in
+`scripts/fetch-cc0-samples.mjs` downloads only the 21 files listed in
 `public/samples/cc0-manifest.json`. This keeps source control lean while
 making the deployed build self-contained.
+
+The curated bank intentionally favors distinct, playable variants rather than the full 116-sample upstream set. The Playground exposes them with plain-language names such as short, classic, long, dry, snap, low, high, rim, claves, cowbell, and maracas.

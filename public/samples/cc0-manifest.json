@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "source": {
     "repository": "tidalcycles/sounds-tr808-fischer",
     "commit": "85fbecf1bec32553395625ea659e2a56dfd7c0e1",
@@ -7,6 +7,15 @@
     "licenseUrl": "https://github.com/tidalcycles/sounds-tr808-fischer/blob/main/LICENSE"
   },
   "samples": [
+    {
+      "id": "tr808-kick-short",
+      "voice": "kick",
+      "label": "808 Short",
+      "sourcePath": "bd8/BD5000.WAV",
+      "file": "generated/tr808/kick-short.wav",
+      "blobSha": "27f40d12552a94be441740bf6768191b844f3b45",
+      "byteLength": 22096
+    },
     {
       "id": "tr808-kick",
       "voice": "kick",
@@ -17,12 +26,39 @@
       "byteLength": 132346
     },
     {
+      "id": "tr808-kick-long",
+      "voice": "kick",
+      "label": "808 Long",
+      "sourcePath": "bd8/BD5075.WAV",
+      "file": "generated/tr808/kick-long.wav",
+      "blobSha": "800d123d0e7257bacb8fc1d39be2bd81573fb07d",
+      "byteLength": 176446
+    },
+    {
+      "id": "tr808-snare-dry",
+      "voice": "snare",
+      "label": "808 Dry",
+      "sourcePath": "sd8/SD5000.WAV",
+      "file": "generated/tr808/snare-dry.wav",
+      "blobSha": "3b4595b320eacf5f6268db4cecb0d03cf61ad393",
+      "byteLength": 22096
+    },
+    {
       "id": "tr808-snare",
       "voice": "snare",
       "label": "808 Snare",
       "sourcePath": "sd8/SD5050.WAV",
       "file": "generated/tr808/snare.wav",
       "blobSha": "0eb2dc0dcc112847b265af4046fca88f6d0bc287",
+      "byteLength": 44146
+    },
+    {
+      "id": "tr808-snare-snap",
+      "voice": "snare",
+      "label": "808 Snap",
+      "sourcePath": "sd8/SD5075.WAV",
+      "file": "generated/tr808/snare-snap.wav",
+      "blobSha": "d395530a69647bb76447bfce0e7816b5216a6869",
       "byteLength": 44146
     },
     {
@@ -44,6 +80,15 @@
       "byteLength": 22094
     },
     {
+      "id": "tr808-open-hat-short",
+      "voice": "openHat",
+      "label": "808 Open Short",
+      "sourcePath": "oh8/OH00.WAV",
+      "file": "generated/tr808/open-hat-short.wav",
+      "blobSha": "e8d81fc3c9e77943a3dc784193f0a6ecdad27214",
+      "byteLength": 22096
+    },
+    {
       "id": "tr808-open-hat",
       "voice": "openHat",
       "label": "808 Open",
@@ -53,12 +98,39 @@
       "byteLength": 44146
     },
     {
+      "id": "tr808-open-hat-long",
+      "voice": "openHat",
+      "label": "808 Open Long",
+      "sourcePath": "oh8/OH75.WAV",
+      "file": "generated/tr808/open-hat-long.wav",
+      "blobSha": "8a6b962572ebb4b8a87948c800562c3a7a1dcb65",
+      "byteLength": 66196
+    },
+    {
+      "id": "tr808-tom-low",
+      "voice": "tom",
+      "label": "808 Tom Low",
+      "sourcePath": "mt8/MT00.WAV",
+      "file": "generated/tr808/tom-low.wav",
+      "blobSha": "c9f599dde4e7e3b1d4f8b66c4e713d5802437a86",
+      "byteLength": 88246
+    },
+    {
       "id": "tr808-tom",
       "voice": "tom",
       "label": "808 Tom",
       "sourcePath": "mt8/MT50.WAV",
       "file": "generated/tr808/tom.wav",
       "blobSha": "e1a1213a9d40a9520f18e39106d5d4bd2423d5fa",
+      "byteLength": 88246
+    },
+    {
+      "id": "tr808-tom-high",
+      "voice": "tom",
+      "label": "808 Tom High",
+      "sourcePath": "mt8/MT75.WAV",
+      "file": "generated/tr808/tom-high.wav",
+      "blobSha": "58e6c03c60ae625c0395c7aef232f5368e2e6a4c",
       "byteLength": 88246
     },
     {
@@ -71,6 +143,42 @@
       "byteLength": 22096
     },
     {
+      "id": "tr808-percussion-claves",
+      "voice": "percussion",
+      "label": "808 Claves",
+      "sourcePath": "cl8/CL.WAV",
+      "file": "generated/tr808/claves.wav",
+      "blobSha": "2344a5872622373eab31f99e75477cf492b924cd",
+      "byteLength": 22094
+    },
+    {
+      "id": "tr808-percussion-cowbell",
+      "voice": "percussion",
+      "label": "808 Cowbell",
+      "sourcePath": "cb8/CB.WAV",
+      "file": "generated/tr808/cowbell.wav",
+      "blobSha": "78b5654608470f40e27ae0b54e40cedb4e6224be",
+      "byteLength": 132346
+    },
+    {
+      "id": "tr808-percussion-maracas",
+      "voice": "percussion",
+      "label": "808 Maracas",
+      "sourcePath": "ma8/MA.WAV",
+      "file": "generated/tr808/maracas.wav",
+      "blobSha": "a83b006139aafaaf6a64a4215adaa6a59c85c5da",
+      "byteLength": 22094
+    },
+    {
+      "id": "tr808-crash-short",
+      "voice": "crash",
+      "label": "808 Cymbal Short",
+      "sourcePath": "cy8/CY5000.WAV",
+      "file": "generated/tr808/crash-short.wav",
+      "blobSha": "083dad64dc3573e955dbf59c4f36868368b074fe",
+      "byteLength": 132346
+    },
+    {
       "id": "tr808-crash",
       "voice": "crash",
       "label": "808 Cymbal",
@@ -78,6 +186,15 @@
       "file": "generated/tr808/crash.wav",
       "blobSha": "f94d6d5dafa13d0f388f074ae3c74b13406642ed",
       "byteLength": 220546
+    },
+    {
+      "id": "tr808-crash-long",
+      "voice": "crash",
+      "label": "808 Cymbal Long",
+      "sourcePath": "cy8/CY5075.WAV",
+      "file": "generated/tr808/crash-long.wav",
+      "blobSha": "51341fbd397cd6fb1a2ad7d7ff0a35e2e8869701",
+      "byteLength": 308746
     }
   ]
 }
