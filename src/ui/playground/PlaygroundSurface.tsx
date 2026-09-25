@@ -793,7 +793,7 @@ export function PlaygroundSurface({
             (entry) => entry.voice === voice,
           );
           const currentSound =
-            SOUND_PRESETS[voice][soundIndex[voice]]?.label ?? "Core";
+            SOUND_PRESETS[voice][soundIndex[voice]]?.label ?? "Custom";
           const laneIsPlaying =
             activeStep !== undefined &&
             sequencerStore.getStepVelocity(
