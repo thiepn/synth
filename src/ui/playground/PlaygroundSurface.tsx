@@ -252,6 +252,8 @@ export function PlaygroundSurface({
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [remixPulse, setRemixPulse] = useState(0);
+  const [auditionStep, setAuditionStep] =
+    useState<number | undefined>(undefined);
   const [soundIndex, setSoundIndex] =
     useState<Record<DrumVoiceId, number>>(INITIAL_SOUND_INDEX);
   const [notice, setNotice] = useState("Click a pad. Draw a beat.");
@@ -267,12 +269,53 @@ export function PlaygroundSurface({
   const [soundLoading, setSoundLoading] =
     useState<BundledSampleId | null>(null);
   const paintCounterRef = useRef(0);
+  const auditionStartRef = useRef<number | null>(null);
+  const auditionIntervalRef = useRef<number | null>(null);
   const paintRef = useRef<{
     pointerId: number;
     desiredOn: boolean;
     lastKey: string;
     gestureId: string;
   } | null>(null);
+
+  const stopVisualAudition = () => {
+    if (auditionStartRef.current !== null) {
+      window.clearTimeout(auditionStartRef.current);
+      auditionStartRef.current = null;
+    }
+    if (auditionIntervalRef.current !== null) {
+      window.clearInterval(auditionIntervalRef.current);
+      auditionIntervalRef.current = null;
+    }
+    setAuditionStep(undefined);
+  };
+
+  const startVisualAudition = (
+    stepCount: number,
+    bpm: number,
+  ) => {
+    stopVisualAudition();
+
+    const safeSteps = Math.max(1, stepCount);
+    const stepMs =
+      (60_000 / Math.max(30, Math.min(300, bpm))) / 4;
+
+    auditionStartRef.current = window.setTimeout(() => {
+      auditionStartRef.current = null;
+      let step = 0;
+      setAuditionStep(step);
+
+      auditionIntervalRef.current =
+        window.setInterval(() => {
+          step += 1;
+          if (step >= safeSteps) {
+            stopVisualAudition();
+            return;
+          }
+          setAuditionStep(step);
+        }, stepMs);
+    }, 35);
+  };
 
   useEffect(() => {
     const stopPaint = () => {
@@ -286,6 +329,12 @@ export function PlaygroundSurface({
     return () => {
       window.removeEventListener("pointerup", stopPaint);
       window.removeEventListener("pointercancel", stopPaint);
+      if (auditionStartRef.current !== null) {
+        window.clearTimeout(auditionStartRef.current);
+      }
+      if (auditionIntervalRef.current !== null) {
+        window.clearInterval(auditionIntervalRef.current);
+      }
     };
   }, []);
 
@@ -452,11 +501,18 @@ export function PlaygroundSurface({
             TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
         ) % sequencer.lengthSteps
       : undefined;
+  const visualStep = activeStep ?? auditionStep;
 
   const playing = playbackCoordinator.isPlayingForMode(
     "create",
     transport,
   );
+
+  useEffect(() => {
+    if (playing) {
+      stopVisualAudition();
+    }
+  }, [playing]);
 
   const lanes = useMemo(
     () =>
@@ -626,6 +682,10 @@ export function PlaygroundSurface({
         generated.pattern,
         transport.bpm,
       );
+      startVisualAudition(
+        sequencer.lengthSteps,
+        transport.bpm,
+      );
     }
     setRemixCounter((value) => value + 1);
     setRemixPulse((value) => value + 1);
@@ -657,6 +717,10 @@ export function PlaygroundSurface({
     if (!playing) {
       void drumEngine.auditionPattern(
         result.pattern,
+        transport.bpm,
+      );
+      startVisualAudition(
+        sequencer.lengthSteps,
         transport.bpm,
       );
     }
@@ -867,10 +931,10 @@ export function PlaygroundSurface({
                 ?.label ?? "Custom";
             const selected = voice === selectedVoice;
             const laneIsPlaying =
-              activeStep !== undefined &&
+              visualStep !== undefined &&
               sequencerStore.getStepVelocity(
                 definition.id,
-                activeStep,
+                visualStep,
               ) !== undefined;
 
             return (
@@ -889,12 +953,12 @@ export function PlaygroundSurface({
                   } as CSSProperties
                 }
               >
-                {laneIsPlaying && activeStep !== undefined ? (
+                {laneIsPlaying && visualStep !== undefined ? (
                   <span
                     key={
                       definition.id +
                       "-hit-" +
-                      activeStep
+                      visualStep
                     }
                     className="playground-beat-pad__hit"
                     aria-hidden="true"
@@ -948,7 +1012,7 @@ export function PlaygroundSurface({
                             key={stepIndex}
                             className={[
                               on ? "is-on" : "",
-                              activeStep === stepIndex
+                              visualStep === stepIndex
                                 ? "is-current"
                                 : "",
                             ]
@@ -1104,9 +1168,9 @@ export function PlaygroundSurface({
                 paintRef.current = null;
               }}
             >
-              {activeStep !== undefined &&
-              activeStep >= pageStart &&
-              activeStep <
+              {visualStep !== undefined &&
+              visualStep >= pageStart &&
+              visualStep <
                 pageStart +
                   Math.min(
                     pageSize,
@@ -1117,7 +1181,7 @@ export function PlaygroundSurface({
                   aria-hidden="true"
                   style={{
                     left:
-                      ((activeStep - pageStart + 0.5) /
+                      ((visualStep - pageStart + 0.5) /
                         Math.min(
                           pageSize,
                           sequencer.lengthSteps - pageStart,
@@ -1144,7 +1208,7 @@ export function PlaygroundSurface({
                     );
                   const on = velocity !== undefined;
                   const current =
-                    activeStep === stepIndex;
+                    visualStep === stepIndex;
 
                   return (
                     <button
