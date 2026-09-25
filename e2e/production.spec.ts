@@ -16,17 +16,17 @@ const MODES = [
 ] as const;
 
 async function enterStudio(page: Page) {
+  const create = page.getByRole("button", {
+    name: "Mode 01: CREATE",
+  });
+  if (await create.isVisible()) return;
+
   const openStudio = page.getByRole("button", {
     name: "Open Studio",
   });
-  if (await openStudio.isVisible()) {
-    await openStudio.click();
-  }
-  await expect(
-    page.getByRole("button", {
-      name: "Mode 01: CREATE",
-    }),
-  ).toBeVisible();
+  await expect(openStudio).toBeVisible();
+  await openStudio.click();
+  await expect(create).toBeVisible();
 }
 
 async function waitForProjectReady(page: Page) {
@@ -275,6 +275,20 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
   await expect(kickStep).toHaveAttribute("aria-pressed", "false");
 
   await kickStep.click();
+  await expect(
+    page.getByRole("button", {
+      name: "KICK step 2, on",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.keyboard.press("Control+z");
+  await expect(
+    page.getByRole("button", {
+      name: "KICK step 2, off",
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
+
+  await page.keyboard.press("Control+Shift+z");
   await expect(
     page.getByRole("button", {
       name: "KICK step 2, on",
