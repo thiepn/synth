@@ -474,12 +474,21 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toHaveCount(0);
 
+  await page.getByRole("button", {
+    name: "Open Studio",
+  }).click();
+  await expect(
+    page.locator(".project-readout--interactive"),
+  ).toContainText("SAVED");
   await expect
     .poll(
       () => indexedDbCount(page, "assets"),
       { timeout: 8_000 },
     )
     .toBe(1);
+  await page.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
 
   const play = page.getByRole("button", {
     name: "Start transport",
