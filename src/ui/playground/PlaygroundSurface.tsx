@@ -245,6 +245,9 @@ export function PlaygroundSurface({
     voice: null as DrumVoiceId | null,
     serial: 0,
   });
+  const [selectedVoice, setSelectedVoice] =
+    useState<DrumVoiceId>("kick");
+  const [stepPage, setStepPage] = useState(0);
   const [soundPickerVoice, setSoundPickerVoice] =
     useState<DrumVoiceId | null>(null);
   const [soundLoading, setSoundLoading] =
@@ -384,6 +387,8 @@ export function PlaygroundSurface({
       if (!voice) return;
 
       event.preventDefault();
+      setSelectedVoice(voice);
+      setSoundPickerVoice(null);
       setPadPulse((current) => ({
         voice,
         serial: current.serial + 1,
@@ -435,6 +440,32 @@ export function PlaygroundSurface({
       })).filter((entry) => Boolean(entry.lane)),
     [sequencer.pattern],
   );
+
+  const pageSize = 16;
+  const pageCount = Math.max(
+    1,
+    Math.ceil(sequencer.lengthSteps / pageSize),
+  );
+  const pageStart = stepPage * pageSize;
+  const selectedDefinition =
+    SEQUENCER_LANES.find(
+      (definition) => definition.voice === selectedVoice,
+    ) ?? SEQUENCER_LANES[0];
+  const selectedLane = sequencer.pattern.lanes.find(
+    (lane) => lane.id === selectedDefinition.id,
+  );
+  const selectedPad = DRUM_PADS.find(
+    (pad) => pad.voice === selectedVoice,
+  );
+  const selectedSound =
+    SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
+      ?.label ?? "Custom";
+
+  useEffect(() => {
+    setStepPage((current) =>
+      Math.min(current, pageCount - 1),
+    );
+  }, [pageCount]);
 
   const triggerVoice = (
     voice: DrumVoiceId,
@@ -781,49 +812,105 @@ export function PlaygroundSurface({
         </div>
       </div>
 
-      <div className="playground-beat" aria-label="Beat sequencer">
-        {lanes.map(({ definition, lane }) => {
-          if (!lane) return null;
+      <div className="playground-workbench">
+        <section
+          className="playground-pad-grid"
+          aria-label="Playable instruments"
+        >
+          {lanes.map(({ definition, lane }) => {
+            if (!lane) return null;
 
-          const voice = definition.voice;
-          const color = LANE_COLORS[voice];
-          const pad = DRUM_PADS.find(
-            (entry) => entry.voice === voice,
-          );
-          const currentSound =
-            SOUND_PRESETS[voice][soundIndex[voice]]?.label ?? "Custom";
-          const laneIsPlaying =
-            activeStep !== undefined &&
-            sequencerStore.getStepVelocity(
-              definition.id,
-              activeStep,
-            ) !== undefined;
+            const voice = definition.voice;
+            const color = LANE_COLORS[voice];
+            const pad = DRUM_PADS.find(
+              (entry) => entry.voice === voice,
+            );
+            const currentSound =
+              SOUND_PRESETS[voice][soundIndex[voice]]
+                ?.label ?? "Custom";
+            const selected = voice === selectedVoice;
+            const laneIsPlaying =
+              activeStep !== undefined &&
+              sequencerStore.getStepVelocity(
+                definition.id,
+                activeStep,
+              ) !== undefined;
 
-          return (
-            <article
-              key={definition.id}
-              className={
-                laneIsPlaying
-                  ? "playground-lane is-playing"
-                  : "playground-lane"
-              }
-              style={
-                {
-                  "--lane-color": color,
-                } as CSSProperties
-              }
-            >
-              <div className="playground-instrument">
+            return (
+              <article
+                key={definition.id}
+                className={[
+                  "playground-beat-pad",
+                  selected ? "is-selected" : "",
+                  laneIsPlaying ? "is-playing" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                style={
+                  {
+                    "--lane-color": color,
+                  } as CSSProperties
+                }
+              >
                 <button
                   type="button"
-                  className="playground-pad"
-                  onClick={() => triggerVoice(voice)}
-                  aria-label={"Play " + displayLaneName(definition)}
+                  className="playground-beat-pad__trigger"
+                  onClick={() => {
+                    setSelectedVoice(voice);
+                    setSoundPickerVoice(null);
+                    triggerVoice(voice);
+                  }}
+                  aria-pressed={selected}
+                  aria-label={
+                    "Play " +
+                    displayLaneName(definition) +
+                    (selected ? ", selected" : "")
+                  }
                 >
-                  <span className="playground-pad__icon" aria-hidden="true">
+                  <span
+                    className="playground-beat-pad__key"
+                    aria-hidden="true"
+                  >
                     {pad?.key ?? definition.code}
                   </span>
-                  <strong>{displayLaneName(definition)}</strong>
+                  <strong>
+                    {displayLaneName(definition)}
+                  </strong>
+                  <span
+                    className="playground-mini-pattern"
+                    aria-hidden="true"
+                  >
+                    {Array.from(
+                      {
+                        length: Math.min(
+                          pageSize,
+                          sequencer.lengthSteps - pageStart,
+                        ),
+                      },
+                      (_, offset) => {
+                        const stepIndex =
+                          pageStart + offset;
+                        const on =
+                          sequencerStore.getStepVelocity(
+                            definition.id,
+                            stepIndex,
+                          ) !== undefined;
+                        return (
+                          <i
+                            key={stepIndex}
+                            className={[
+                              on ? "is-on" : "",
+                              activeStep === stepIndex
+                                ? "is-current"
+                                : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                          />
+                        );
+                      },
+                    )}
+                  </span>
                   {padPulse.voice === voice ? (
                     <span
                       key={padPulse.serial}
@@ -835,169 +922,293 @@ export function PlaygroundSurface({
 
                 <button
                   type="button"
-                  className="playground-sound-cycle"
-                  onClick={() => setSoundPickerVoice(voice)}
+                  className="playground-beat-pad__sound"
+                  onClick={() => {
+                    setSelectedVoice(voice);
+                    setSoundPickerVoice(voice);
+                  }}
                   aria-label={
                     "Change " +
                     displayLaneName(definition) +
                     " sound. Current sound " +
                     currentSound
                   }
-                  title="Choose a sound"
                 >
-                  <span>{currentSound}</span>
+                  {currentSound}
+                  <span aria-hidden="true">›</span>
+                </button>
+              </article>
+            );
+          })}
+        </section>
+
+        {selectedLane ? (
+          <section
+            className="playground-focus"
+            aria-label={
+              displayLaneName(selectedDefinition) +
+              " pattern editor"
+            }
+            style={
+              {
+                "--lane-color":
+                  LANE_COLORS[selectedVoice],
+              } as CSSProperties
+            }
+          >
+            <header className="playground-focus__header">
+              <div className="playground-focus__identity">
+                <span
+                  className="playground-focus__swatch"
+                  aria-hidden="true"
+                />
+                <div>
+                  <small>DRAW THE RHYTHM</small>
+                  <strong>
+                    {displayLaneName(selectedDefinition)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="playground-focus__tools">
+                {pageCount > 1 ? (
+                  <div
+                    className="playground-page-control"
+                    aria-label="Pattern page"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStepPage((page) =>
+                          Math.max(0, page - 1),
+                        )
+                      }
+                      disabled={stepPage === 0}
+                      aria-label="Previous 16 steps"
+                    >
+                      ‹
+                    </button>
+                    <span>
+                      {stepPage + 1}/{pageCount}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStepPage((page) =>
+                          Math.min(
+                            pageCount - 1,
+                            page + 1,
+                          ),
+                        )
+                      }
+                      disabled={
+                        stepPage === pageCount - 1
+                      }
+                      aria-label="Next 16 steps"
+                    >
+                      ›
+                    </button>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  className="playground-focus__sound"
+                  onClick={() =>
+                    setSoundPickerVoice(selectedVoice)
+                  }
+                  aria-label={
+                    "Change " +
+                    displayLaneName(selectedDefinition) +
+                    " sound. Current sound " +
+                    selectedSound
+                  }
+                >
+                  <span>{selectedSound}</span>
                   <b aria-hidden="true">›</b>
                 </button>
               </div>
+            </header>
 
-              <div
-                className="playground-steps"
-                onPointerMove={continuePaint}
-                onPointerUp={() => {
-                  const gesture = paintRef.current;
-                  if (!gesture) return;
-                  sequencerStore.endPaintGesture(
-                    gesture.gestureId,
-                  );
-                  paintRef.current = null;
-                }}
-                onPointerCancel={() => {
-                  const gesture = paintRef.current;
-                  if (!gesture) return;
-                  sequencerStore.endPaintGesture(
-                    gesture.gestureId,
-                  );
-                  paintRef.current = null;
-                }}
-              >
-                {Array.from(
-                  { length: sequencer.lengthSteps },
-                  (_, stepIndex) => {
-                    const velocity = sequencerStore.getStepVelocity(
-                      definition.id,
+            <div
+              className="playground-steps playground-steps--focus"
+              onPointerMove={continuePaint}
+              onPointerUp={() => {
+                const gesture = paintRef.current;
+                if (!gesture) return;
+                sequencerStore.endPaintGesture(
+                  gesture.gestureId,
+                );
+                paintRef.current = null;
+              }}
+              onPointerCancel={() => {
+                const gesture = paintRef.current;
+                if (!gesture) return;
+                sequencerStore.endPaintGesture(
+                  gesture.gestureId,
+                );
+                paintRef.current = null;
+              }}
+            >
+              {Array.from(
+                {
+                  length: Math.min(
+                    pageSize,
+                    sequencer.lengthSteps - pageStart,
+                  ),
+                },
+                (_, offset) => {
+                  const stepIndex = pageStart + offset;
+                  const velocity =
+                    sequencerStore.getStepVelocity(
+                      selectedDefinition.id,
                       stepIndex,
                     );
-                    const on = velocity !== undefined;
-                    const current = activeStep === stepIndex;
+                  const on = velocity !== undefined;
+                  const current =
+                    activeStep === stepIndex;
 
-                    return (
-                      <button
-                        type="button"
-                        key={stepIndex}
-                        className={[
-                          "playground-step",
-                          on ? "is-on" : "",
-                          current ? "is-current" : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        style={
-                          {
-                            "--step-strength":
-                              velocity === undefined
-                                ? 0
-                                : Math.max(0.3, velocity),
-                          } as CSSProperties
-                        }
-                        data-play-step="true"
-                        data-lane-id={definition.id}
-                        data-step-index={stepIndex}
-                        aria-pressed={on}
-                        aria-label={
-                          displayLaneName(definition) +
-                          " step " +
-                          (stepIndex + 1) +
-                          (on ? ", on" : ", off")
-                        }
-                        onPointerDown={(event) =>
-                          beginPaint(
-                            event,
-                            definition.id,
-                            stepIndex,
-                          )
-                        }
-                        onClick={(event) => {
-                          if (event.detail !== 0) return;
-                          activateFromKeyboard(
-                            definition.id,
-                            stepIndex,
-                          );
-                        }}
-                      >
-                        <span aria-hidden="true" />
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-              {soundPickerVoice === voice ? (
-                <section
-                  className="playground-sound-drawer"
-                  role="region"
-                  aria-label={(pad?.label ?? voice) + " sounds"}
-                >
-                  <header className="playground-sound-drawer__header">
-                    <div>
-                      <span
-                        className="playground-sound-drawer__dot"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <small>{pad?.label ?? voice}</small>
-                        <strong>Choose a sound</strong>
-                      </div>
-                    </div>
+                  return (
                     <button
                       type="button"
-                      onClick={() => setSoundPickerVoice(null)}
-                      aria-label="Close sound choices"
+                      key={stepIndex}
+                      className={[
+                        "playground-step",
+                        on ? "is-on" : "",
+                        current ? "is-current" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      style={
+                        {
+                          "--step-strength":
+                            velocity === undefined
+                              ? 0
+                              : Math.max(
+                                  0.3,
+                                  velocity,
+                                ),
+                        } as CSSProperties
+                      }
+                      data-play-step="true"
+                      data-lane-id={
+                        selectedDefinition.id
+                      }
+                      data-step-index={stepIndex}
+                      aria-pressed={on}
+                      aria-label={
+                        displayLaneName(
+                          selectedDefinition,
+                        ) +
+                        " step " +
+                        (stepIndex + 1) +
+                        (on ? ", on" : ", off")
+                      }
+                      onPointerDown={(event) =>
+                        beginPaint(
+                          event,
+                          selectedDefinition.id,
+                          stepIndex,
+                        )
+                      }
+                      onClick={(event) => {
+                        if (event.detail !== 0) return;
+                        activateFromKeyboard(
+                          selectedDefinition.id,
+                          stepIndex,
+                        );
+                      }}
                     >
-                      ×
+                      <span aria-hidden="true" />
                     </button>
-                  </header>
+                  );
+                },
+              )}
+            </div>
 
-                  <div className="playground-sound-choices">
-                    {SOUND_PRESETS[voice].map(
-                      (preset, index) => (
-                        <button
-                          type="button"
-                          key={preset.label}
-                          className={
-                            soundIndex[voice] === index
-                              ? "is-active"
-                              : ""
-                          }
-                          onClick={() =>
-                            void chooseSound(voice, index)
-                          }
-                          disabled={Boolean(soundLoading)}
-                          aria-busy={
-                            preset.bundledSampleId === soundLoading
-                              ? true
-                              : undefined
-                          }
-                          aria-label={
-                            preset.label +
-                            " " +
-                            (pad?.label ?? voice) +
-                            " sound"
-                          }
-                        >
-                          <span aria-hidden="true" />
-                          {preset.bundledSampleId === soundLoading
-                            ? "Loading…"
-                            : preset.label}
-                        </button>
-                      ),
-                    )}
+            {soundPickerVoice === selectedVoice ? (
+              <section
+                className="playground-sound-drawer"
+                role="region"
+                aria-label={
+                  displayLaneName(selectedDefinition) +
+                  " sounds"
+                }
+              >
+                <header className="playground-sound-drawer__header">
+                  <div>
+                    <span
+                      className="playground-sound-drawer__dot"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <small>
+                        {displayLaneName(
+                          selectedDefinition,
+                        )}
+                      </small>
+                      <strong>Choose a sound</strong>
+                    </div>
                   </div>
-                </section>
-              ) : null}
-            </article>
-          );
-        })}
-      </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSoundPickerVoice(null)
+                    }
+                    aria-label="Close sound choices"
+                  >
+                    ×
+                  </button>
+                </header>
 
+                <div className="playground-sound-choices">
+                  {SOUND_PRESETS[selectedVoice].map(
+                    (preset, index) => (
+                      <button
+                        type="button"
+                        key={preset.label}
+                        className={
+                          soundIndex[selectedVoice] ===
+                          index
+                            ? "is-active"
+                            : ""
+                        }
+                        onClick={() =>
+                          void chooseSound(
+                            selectedVoice,
+                            index,
+                          )
+                        }
+                        disabled={Boolean(soundLoading)}
+                        aria-busy={
+                          preset.bundledSampleId ===
+                          soundLoading
+                            ? true
+                            : undefined
+                        }
+                        aria-label={
+                          preset.label +
+                          " " +
+                          displayLaneName(
+                            selectedDefinition,
+                          ) +
+                          " sound"
+                        }
+                      >
+                        <span aria-hidden="true" />
+                        {preset.bundledSampleId ===
+                        soundLoading
+                          ? "Loading…"
+                          : preset.label}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </section>
+            ) : null}
+          </section>
+        ) : null}
+      </div>
 
       <footer className="playground-footer">
         <p className="playground-hint">
