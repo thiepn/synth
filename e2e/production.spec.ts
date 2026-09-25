@@ -442,11 +442,8 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     page.getByRole("region", {
       name: "KICK sounds",
     }),
-  ).toHaveCount(0);
+  ).toBeVisible();
 
-  await page.getByRole("button", {
-    name: "Change KICK sound. Current sound Deep",
-  }).click();
   await page.getByRole("button", {
     name: "808 Classic KICK sound",
   }).click();
@@ -456,9 +453,11 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toBeVisible();
 
-  await page.getByRole("button", {
-    name: "Change KICK sound. Current sound 808 Classic",
-  }).click();
+  await expect(
+    page.getByRole("region", {
+      name: "KICK sounds",
+    }),
+  ).toBeVisible();
   await page.getByRole("button", {
     name: "808 Short KICK sound",
   }).click();
@@ -467,6 +466,13 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
       name: "Change KICK sound. Current sound 808 Short",
     }),
   ).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("region", {
+      name: "KICK sounds",
+    }),
+  ).toHaveCount(0);
 
   await expect
     .poll(
