@@ -4,7 +4,11 @@ import { arrangementStore } from "../arrange/ArrangementStore";
 import { audioTransport } from "../audio/AudioTransport";
 import { drumEngine } from "../audio/DrumEngine";
 import { sampleAssetStore } from "../audio/SampleAssetStore";
-import { drumSoundStore } from "../audio/drumSoundModel";
+import {
+  drumSoundStore,
+  type DrumSoundSnapshot,
+} from "../audio/drumSoundModel";
+import type { SoundSpec } from "../domain/contracts";
 import { beatFamilyStore } from "../family/BeatFamilyStore";
 import { generationHistoryStore } from "../history/GenerationHistoryStore";
 import { masteringStore } from "../master/MasteringStore";
@@ -100,6 +104,59 @@ function withoutRevision<T extends { revision: number }>(
 ): Omit<T, "revision"> {
   const { revision: _revision, ...rest } = value;
   return rest;
+}
+
+function collectSoundSpecAssetIds(
+  spec: SoundSpec,
+  output: Set<string>,
+): void {
+  if (spec.kind === "sample") {
+    output.add(spec.assetId);
+    return;
+  }
+
+  if (spec.kind === "hybrid") {
+    output.add(spec.sample.assetId);
+  }
+}
+
+function referencedDrumAssetIds(
+  snapshot: DrumSoundSnapshot,
+): Set<string> {
+  const output = new Set<string>();
+
+  const collectSources = (
+    states: DrumSoundSnapshot["sourceStates"],
+  ) => {
+    for (const state of Object.values(states)) {
+      if (state.sample) {
+        output.add(state.sample.assetId);
+      }
+    }
+  };
+
+  const collectKit = (
+    activeKit: DrumSoundSnapshot["activeKit"],
+  ) => {
+    if (!activeKit) return;
+    for (const sound of activeKit.sounds) {
+      collectSoundSpecAssetIds(sound.spec, output);
+    }
+  };
+
+  collectSources(snapshot.sourceStates);
+  collectKit(snapshot.activeKit);
+
+  for (const endpoint of [
+    snapshot.morphA,
+    snapshot.morphB,
+  ]) {
+    if (!endpoint) continue;
+    collectSources(endpoint.sourceStates);
+    collectKit(endpoint.activeKit);
+  }
+
+  return output;
 }
 
 export class ProjectStore {
@@ -694,9 +751,14 @@ export class ProjectStore {
       this.documentRevision = nextRevision;
       this.lastSavedAt = now;
       this.conflict = undefined;
-      for (const assetId of document.assetIds) {
-        this.persistedAssetIds.add(assetId);
-      }
+
+      const nextPersistedAssetIds = new Set(
+        document.assetIds,
+      );
+      const droppedAsset = [...this.persistedAssetIds].some(
+        (assetId) => !nextPersistedAssetIds.has(assetId),
+      );
+      this.persistedAssetIds = nextPersistedAssetIds;
 
       if (serialAtStart === this.changeSerial) {
         this.dirty = false;
@@ -704,6 +766,10 @@ export class ProjectStore {
       } else {
         this.dirty = true;
         this.saveStatus = "dirty";
+      }
+
+      if (droppedAsset) {
+        await localProjectDatabase.garbageCollectAssets();
       }
 
       await this.refreshSummaries();
@@ -756,10 +822,9 @@ export class ProjectStore {
     const foundation =
       arrangementFoundationStore.getSnapshot();
     const history = generationHistoryStore.getSnapshot();
-    const assetIds = sampleAssetStore
-      .getSnapshot()
-      .assets.map((asset) => asset.reference.id)
-      .sort();
+    const assetIds = [
+      ...this.persistableAssetIds(),
+    ].sort();
 
     return {
       schemaVersion: SYNTH_PROJECT_DOCUMENT_VERSION,
@@ -814,18 +879,41 @@ export class ProjectStore {
     };
   }
 
+  private persistableAssetIds(): Set<string> {
+    const referencedBundled = referencedDrumAssetIds(
+      drumSoundStore.getSnapshot(),
+    );
+
+    return new Set(
+      sampleAssetStore
+        .getSnapshot()
+        .assets
+        .filter(
+          (asset) =>
+            asset.reference.origin !== "bundled" ||
+            referencedBundled.has(asset.reference.id),
+        )
+        .map((asset) => asset.reference.id),
+    );
+  }
+
   private captureAssets(
     updatedAt: string,
     onlyUnpersisted = false,
   ): PersistedAudioAsset[] {
+    const persistable = this.persistableAssetIds();
+
     return sampleAssetStore
       .getSnapshot()
       .assets
       .filter(
         (state) =>
-          !onlyUnpersisted ||
-          !this.persistedAssetIds.has(
-            state.reference.id,
+          persistable.has(state.reference.id) &&
+          (
+            !onlyUnpersisted ||
+            !this.persistedAssetIds.has(
+              state.reference.id,
+            )
           ),
       )
       .map((state) => {
