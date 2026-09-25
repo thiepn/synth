@@ -39,6 +39,7 @@ import {
   type SequencerLaneDefinition,
 } from "../../music/foundationPattern";
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
+import { useProjectSnapshot } from "../../project/useProject";
 import { sequencerStore } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { getStyleDNA } from "../../style/styleDNA";
@@ -249,6 +250,7 @@ export function PlaygroundSurface({
   const transport = useTransportSnapshot();
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
+  const project = useProjectSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [remixPulse, setRemixPulse] = useState(0);
@@ -572,6 +574,36 @@ export function PlaygroundSurface({
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
 
+  const projectAlert =
+    project.saveStatus === "conflict"
+      ? {
+          label: "Conflict",
+          aria:
+            "Project conflict. Open Studio to resolve the newer saved revision.",
+          detail:
+            project.conflict?.message ??
+            project.lastError ??
+            "A newer saved project revision exists.",
+        }
+      : project.saveStatus === "error"
+        ? {
+            label: "Save issue",
+            aria:
+              "Project save error. Open Studio for project recovery controls.",
+            detail:
+              project.lastError ??
+              "The project could not be saved.",
+          }
+        : project.saveStatus === "unsupported"
+          ? {
+              label: "Session only",
+              aria:
+                "Local project storage is unavailable. Open Studio for project controls.",
+              detail:
+                "Changes are available only in this browser session unless exported.",
+            }
+          : null;
+
   useEffect(() => {
     setStepPage((current) =>
       Math.min(current, pageCount - 1),
@@ -870,6 +902,22 @@ export function PlaygroundSurface({
         </div>
 
         <div className="playground-topbar__actions">
+          {projectAlert ? (
+            <button
+              type="button"
+              className={
+                "playground-project-alert playground-project-alert--" +
+                project.saveStatus
+              }
+              onClick={onOpenStudio}
+              aria-label={projectAlert.aria}
+              title={projectAlert.detail}
+            >
+              <span aria-hidden="true">!</span>
+              {projectAlert.label}
+            </button>
+          ) : null}
+
           <button
             type="button"
             className="playground-history-button"
