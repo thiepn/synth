@@ -256,7 +256,7 @@ export function PlaygroundSurface({
     useState<number | undefined>(undefined);
   const [soundIndex, setSoundIndex] =
     useState<Record<DrumVoiceId, number>>(INITIAL_SOUND_INDEX);
-  const [notice, setNotice] = useState("Click a pad. Draw a beat.");
+  const [notice, setNotice] = useState("Tap a pad. Draw a beat.");
   const [padPulse, setPadPulse] = useState({
     voice: null as DrumVoiceId | null,
     serial: 0,
