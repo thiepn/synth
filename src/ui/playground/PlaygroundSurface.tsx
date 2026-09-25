@@ -497,7 +497,10 @@ export function PlaygroundSurface({
 
   useEffect(() => {
     const styleVector = sequencer.pattern.provenance?.style;
-    if (!styleVector) return;
+    if (!styleVector) {
+      setStyle("funk");
+      return;
+    }
 
     const strongest = Object.entries(styleVector).sort(
       (a, b) => b[1] - a[1],
