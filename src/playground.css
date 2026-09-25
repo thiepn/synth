@@ -514,11 +514,7 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(
-        in srgb,
-        white calc(var(--step-strength) * 12%),
-        transparent
-      ),
+      rgba(255, 255, 255, 0.12),
       transparent
     ),
     var(--lane-color);

@@ -26,7 +26,6 @@ import {
 import { rerollBeat } from "../../generation/beatVariation";
 import {
   DRUM_PADS,
-  FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
   type DrumVoiceId,
   type SequencerLaneDefinition,
