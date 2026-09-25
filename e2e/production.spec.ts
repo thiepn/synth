@@ -688,6 +688,95 @@ test("named version restore rolls canonical sequencer state back safely", async 
   ).not.toContainText("SAVE ERROR");
 });
 
+test("explicit user import survives bundled-sample identity collision", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.locator(".playground-surface"),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Change KICK sound. Current sound Core",
+  }).click();
+  await page.getByRole("button", {
+    name: "808 Short KICK sound",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Change KICK sound. Current sound 808 Short",
+    }),
+  ).toBeVisible();
+
+  const builtInBytes = await page.evaluate(async () => {
+    const response = await fetch(
+      new URL(
+        "./samples/generated/tr808/kick-short.wav",
+        document.baseURI,
+      ),
+    );
+    if (!response.ok) {
+      throw new Error("Built-in QA sample unavailable.");
+    }
+    return Array.from(
+      new Uint8Array(
+        await response.arrayBuffer(),
+      ),
+    );
+  });
+
+  await enterStudio(page);
+  await page.getByRole("button", {
+    name: "Mode 03: SOUND",
+  }).click();
+  await expect(page.locator(".sound-surface")).toBeVisible();
+
+  const samplePanel = page.locator(".sample-source-panel");
+  await samplePanel
+    .locator("input.sample-file-input")
+    .setInputFiles({
+      name: "my-808-kick.wav",
+      mimeType: "audio/wav",
+      buffer: Buffer.from(builtInBytes),
+    });
+
+  await expect(
+    samplePanel.locator(".sample-library__row").filter({
+      hasText: "my-808-kick.wav",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Change KICK sound. Current sound Custom",
+  }).click();
+  await page.getByRole("button", {
+    name: "Core KICK sound",
+  }).click();
+
+  await expect
+    .poll(
+      () => indexedDbCount(page, "assets"),
+      { timeout: 8_000 },
+    )
+    .toBe(1);
+
+  await page.reload();
+  await enterStudio(page);
+  await page.getByRole("button", {
+    name: "Mode 03: SOUND",
+  }).click();
+
+  await expect(
+    page.locator(".sample-library__row").filter({
+      hasText: "my-808-kick.wav",
+    }),
+  ).toBeVisible();
+});
+
 test("sample cache is evicted when content-addressed audio is removed and reimported", async ({
   page,
 }) => {
