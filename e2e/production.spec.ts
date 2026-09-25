@@ -456,6 +456,25 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     }),
   ).toBeVisible();
 
+  await page.getByRole("button", {
+    name: "Change KICK sound. Current sound 808 Classic",
+  }).click();
+  await page.getByRole("button", {
+    name: "808 Short KICK sound",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Change KICK sound. Current sound 808 Short",
+    }),
+  ).toBeVisible();
+
+  await expect
+    .poll(
+      () => indexedDbCount(page, "assets"),
+      { timeout: 8_000 },
+    )
+    .toBe(1);
+
   const play = page.getByRole("button", {
     name: "Start transport",
   });
