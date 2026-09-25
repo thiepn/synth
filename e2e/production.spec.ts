@@ -585,6 +585,12 @@ test("cross-tab revision conflict is detected and can reload the newer revision"
   const second = await context.newPage();
   await second.goto("/");
   await waitForProjectReady(second);
+  await second.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
+  await expect(
+    second.locator(".playground-surface"),
+  ).toBeVisible();
 
   const firstDialog = await openProjectDialog(page);
   await firstDialog
@@ -596,6 +602,12 @@ test("cross-tab revision conflict is detected and can reload the newer revision"
   await firstDialog.getByRole("button", {
     name: "SAVE NOW",
   }).click();
+
+  const conflictAlert = second.getByRole("button", {
+    name: "Project conflict. Open Studio to resolve the newer saved revision.",
+  });
+  await expect(conflictAlert).toContainText("Conflict");
+  await conflictAlert.click();
 
   await expect(
     second.locator(".project-readout--interactive"),
