@@ -211,29 +211,55 @@ export class SequencerStore {
   toggleStep(laneId: string, stepIndex: number): void {
     if (!this.isValidStep(stepIndex)) return;
 
+    const enabled =
+      this.getStepVelocity(laneId, stepIndex) === undefined;
+    this.setStepEnabled(laneId, stepIndex, enabled);
+  }
+
+  setStepEnabled(
+    laneId: string,
+    stepIndex: number,
+    enabled: boolean,
+    gestureId?: string,
+  ): void {
+    if (!this.isValidStep(stepIndex)) return;
+
     const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
     if (!lane) return;
 
-    this.commit((draft) => {
-      const draftLane = draft.lanes.find((entry) => entry.id === laneId);
-      if (!draftLane) return;
+    const existing = eventAtStep(lane, stepIndex);
+    if (Boolean(existing) === enabled) return;
 
-      const existing = eventAtStep(draftLane, stepIndex);
-      if (existing) {
-        draftLane.events = draftLane.events.filter(
-          (event) => event.id !== existing.id,
+    this.commit(
+      (draft) => {
+        const draftLane = draft.lanes.find(
+          (entry) => entry.id === laneId,
         );
-      } else {
-        draftLane.events.push(
-          createStepEvent(
-            laneId,
-            stepIndex,
-            laneDefaultVelocity(laneId, stepIndex),
-          ),
+        if (!draftLane) return;
+
+        const draftExisting = eventAtStep(
+          draftLane,
+          stepIndex,
         );
-        draftLane.events.sort((a, b) => a.tick - b.tick);
-      }
-    });
+
+        if (enabled) {
+          if (draftExisting) return;
+          draftLane.events.push(
+            createStepEvent(
+              laneId,
+              stepIndex,
+              laneDefaultVelocity(laneId, stepIndex),
+            ),
+          );
+          draftLane.events.sort((a, b) => a.tick - b.tick);
+        } else if (draftExisting) {
+          draftLane.events = draftLane.events.filter(
+            (event) => event.id !== draftExisting.id,
+          );
+        }
+      },
+      gestureId ? "gesture:" + gestureId : null,
+    );
   }
 
   setStepVelocity(
