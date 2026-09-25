@@ -943,11 +943,38 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
       if (!cached) missing.push(asset);
     }
 
+    const sampleManifestUrl = new URL(
+      "./samples/cc0-manifest.json",
+      document.baseURI,
+    );
+    const sampleResponse = await fetch(
+      sampleManifestUrl,
+    );
+    const sampleManifest = await sampleResponse.json() as {
+      samples?: Array<{ file?: string }>;
+    };
+    const samples = sampleManifest.samples ?? [];
+    const missingSamples: string[] = [];
+
+    for (const sample of samples) {
+      if (!sample.file) continue;
+      const url = new URL(
+        "./samples/" + sample.file,
+        document.baseURI,
+      ).href;
+      const cached = await caches.match(url);
+      if (!cached) {
+        missingSamples.push(sample.file);
+      }
+    }
+
     return {
       buildId: manifest.buildId,
       assetCount: assets.length,
+      sampleCount: samples.length,
       cacheNames,
       missing,
+      missingSamples,
       controlled: Boolean(
         navigator.serviceWorker.controller,
       ),
@@ -960,7 +987,9 @@ test("offline shell reloads and an unvisited lazy mode remains available", async
   );
   expect(cacheDiagnostic.controlled).toBe(true);
   expect(cacheDiagnostic.assetCount).toBeGreaterThan(5);
+  expect(cacheDiagnostic.sampleCount).toBeGreaterThanOrEqual(21);
   expect(cacheDiagnostic.missing).toEqual([]);
+  expect(cacheDiagnostic.missingSamples).toEqual([]);
 
   const runtimeErrors = watchRuntimeErrors(page);
   const failedRequests: string[] = [];
@@ -1005,6 +1034,51 @@ test.describe("mobile interaction shell", () => {
     },
     isMobile: true,
     hasTouch: true,
+  });
+
+  test("playground presents an eight-pad groovebox without mobile overflow", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(
+      page.locator(".playground-surface"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".playground-beat-pad"),
+    ).toHaveCount(8);
+    await expect(
+      page.getByRole("region", {
+        name: "KICK pattern editor",
+      }),
+    ).toBeVisible();
+
+    const gridColumns = await page
+      .locator(".playground-pad-grid")
+      .evaluate((node) =>
+        getComputedStyle(node)
+          .gridTemplateColumns
+          .split(" ")
+          .filter(Boolean).length,
+      );
+    expect(gridColumns).toBe(4);
+
+    await page.getByRole("button", {
+      name: "Play SNARE",
+    }).click();
+    await expect(
+      page.getByRole("region", {
+        name: "SNARE pattern editor",
+      }),
+    ).toBeVisible();
+
+    const overflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(
+      overflow.innerWidth + 1,
+    );
   });
 
   test("all seven modes, project and transport remain reachable without body overflow", async ({
