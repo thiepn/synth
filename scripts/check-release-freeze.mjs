@@ -18,9 +18,9 @@ const packageLock = JSON.parse(
 
 const failures = [];
 
-if (packageJson.version !== "1.0.0-rc.1") {
+if (packageJson.version !== "1.0.0") {
   failures.push(
-    "package version must be 1.0.0-rc.1 during Phase 39.",
+    "package version must be exactly 1.0.0 for the production release.",
   );
 }
 
@@ -58,6 +58,9 @@ const contracts = [
   ["package.json", '"qa:soak"'],
   [".github/workflows/ci.yml", "Release-candidate soak"],
   ["docs/phase-38/PHASE_38.md", "14 passed"],
+  ["docs/phase-39/PHASE_39.md", "28 passed"],
+  ["docs/phase-39/PHASE_39.md", "6 passed"],
+  ["docs/phase-40/PHASE_40.md", "v1.0.0"],
 ];
 
 for (const [path, text] of contracts) {
@@ -81,5 +84,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  "Release freeze contracts verified for 1.0.0-rc.1.",
+  "Release freeze contracts verified for Synth v1.0.0.",
 );
