@@ -443,6 +443,15 @@
     0 16px 34px rgba(0, 0, 0, 0.16);
 }
 
+.playground-beat-pad__trigger:active {
+  transform: scale(0.97);
+}
+
+.playground-beat-pad.is-playing .playground-beat-pad__key {
+  transform: scale(1.12);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--lane-color) 42%, transparent);
+}
+
 .playground-beat-pad.is-playing {
   background:
     linear-gradient(
@@ -1211,12 +1220,17 @@
 
   .playground-hero {
     display: grid;
-    gap: 22px;
-    padding: 28px 14px 22px;
+    gap: 14px;
+    padding: 18px 14px 16px;
+  }
+
+  .playground-hero p {
+    display: none;
   }
 
   .playground-hero h1 {
-    font-size: clamp(2.6rem, 15vw, 4.4rem);
+    font-size: clamp(2rem, 10vw, 3rem);
+    line-height: 0.94;
   }
 
   .playground-actions {
@@ -1240,22 +1254,51 @@
   }
 
   .playground-pad-grid {
-    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .playground-beat-pad {
-    border-radius: 18px;
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 16px;
   }
 
   .playground-beat-pad__trigger {
-    min-height: 76px;
-    padding: 11px 10px 10px;
+    min-height: 82px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    justify-items: center;
+    gap: 7px;
+    padding: 9px 5px 8px;
+    text-align: center;
+  }
+
+  .playground-beat-pad__trigger strong {
+    max-width: 100%;
+    font-size: 0.68rem;
+  }
+
+  .playground-beat-pad__key {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    font-size: 0.52rem;
+  }
+
+  .playground-mini-pattern {
+    width: 100%;
+    gap: 1.5px;
+  }
+
+  .playground-mini-pattern i {
+    height: 3px;
   }
 
   .playground-beat-pad__sound {
-    min-width: 64px;
-    max-width: 76px;
-    padding-inline: 7px;
+    display: none;
   }
 
   .playground-focus {
@@ -1374,26 +1417,11 @@
   }
 
   .playground-pad-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .playground-beat-pad {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .playground-beat-pad__trigger {
-    min-height: 72px;
-  }
-
-  .playground-beat-pad__sound {
-    max-width: none;
-    min-height: 32px;
-    border-top: 1px solid rgba(255, 255, 255, 0.055);
-    border-left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
+    min-height: 76px;
   }
 
   .playground-focus__header {
