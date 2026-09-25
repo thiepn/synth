@@ -643,9 +643,9 @@
 }
 
 .playground-sound-drawer {
-  --lane-color: #ffffff;
-  width: min(980px, calc(100% - clamp(36px, 7vw, 108px)));
-  margin: 14px auto 0;
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 2px 0 0;
   padding: 14px;
   border: 1px solid color-mix(in srgb, var(--lane-color) 35%, rgba(255, 255, 255, 0.08));
   border-radius: 22px;
@@ -971,10 +971,10 @@
   }
 
   .playground-sound-drawer {
-    width: calc(100% - 20px);
-    margin-top: 10px;
+    width: 100%;
+    margin-top: 2px;
     padding: 11px;
-    border-radius: 18px;
+    border-radius: 16px;
   }
 
   .playground-sound-choices {
