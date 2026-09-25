@@ -269,6 +269,10 @@
   white-space: nowrap;
 }
 
+.playground-project-alert > b {
+  font: inherit;
+}
+
 .playground-project-alert > span {
   width: 18px;
   height: 18px;
@@ -1390,6 +1394,17 @@
 }
 
 @media (max-width: 420px) {
+  .playground-project-alert {
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .playground-project-alert > b {
+    display: none;
+  }
+
   .playground-topbar__center {
     display: grid;
     grid-template-columns: 1fr 1fr;
