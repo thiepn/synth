@@ -1283,6 +1283,10 @@
     min-height: 0;
   }
 
+  .playground-playhead {
+    display: none;
+  }
+
   .playground-steps--focus .playground-step {
     min-height: 42px;
     aspect-ratio: 1.15;
