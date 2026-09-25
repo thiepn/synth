@@ -367,6 +367,19 @@
 
 .playground-play.is-playing {
   background: #ffd84a;
+  box-shadow:
+    0 0 0 4px rgba(255, 216, 74, 0.08),
+    0 14px 36px rgba(255, 216, 74, 0.18);
+}
+
+.playground-play.is-playing > span {
+  animation: playground-play-pulse 700ms ease-in-out infinite alternate;
+}
+
+@keyframes playground-play-pulse {
+  to {
+    transform: scale(1.12);
+  }
 }
 
 .playground-remix {
@@ -388,10 +401,38 @@
 
 
 .playground-workbench {
+  position: relative;
   width: min(1440px, calc(100% - clamp(36px, 7vw, 108px)));
   margin: 0 auto;
   display: grid;
   gap: 14px;
+}
+
+.playground-remix-wave {
+  position: absolute;
+  z-index: 5;
+  inset: -10px;
+  border: 2px solid rgba(194, 108, 255, 0.7);
+  border-radius: 34px;
+  pointer-events: none;
+  animation: playground-remix-wave 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes playground-remix-wave {
+  from {
+    opacity: 0.9;
+    transform: scale(0.985);
+    box-shadow:
+      0 0 0 0 rgba(120, 103, 255, 0.22),
+      inset 0 0 50px rgba(194, 108, 255, 0.07);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.025);
+    box-shadow:
+      0 0 0 16px rgba(120, 103, 255, 0),
+      inset 0 0 90px rgba(194, 108, 255, 0);
+  }
 }
 
 .playground-pad-grid {
@@ -444,12 +485,38 @@
 }
 
 .playground-beat-pad__trigger:active {
-  transform: scale(0.97);
+  transform: translateY(2px) scale(0.965);
+  filter: brightness(1.08);
 }
 
 .playground-beat-pad.is-playing .playground-beat-pad__key {
   transform: scale(1.12);
   box-shadow: 0 0 18px color-mix(in srgb, var(--lane-color) 42%, transparent);
+}
+
+.playground-beat-pad__hit {
+  position: absolute;
+  z-index: 2;
+  inset: 6px;
+  border: 2px solid var(--lane-color);
+  border-radius: 16px;
+  opacity: 0;
+  pointer-events: none;
+  animation: playground-pad-hit 180ms ease-out;
+}
+
+@keyframes playground-pad-hit {
+  0% {
+    opacity: 0.72;
+    transform: scale(0.94);
+  }
+  55% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.035);
+  }
 }
 
 .playground-beat-pad.is-playing {
@@ -1452,7 +1519,10 @@
   .playground-mini-pattern i,
   .playground-surface::before,
   .playground-surface::after,
-  .playground-step.is-current.is-on > span {
+  .playground-step.is-current.is-on > span,
+  .playground-beat-pad__hit,
+  .playground-remix-wave,
+  .playground-play.is-playing > span {
     animation: none;
   }
 }
