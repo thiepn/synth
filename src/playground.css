@@ -1117,22 +1117,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .playground-lane {
-    grid-template-columns: 144px minmax(0, 1fr);
-  }
-
-  .playground-instrument {
-    grid-template-columns: 1fr;
-  }
-
-  .playground-sound-cycle {
-    width: 100%;
-    min-height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1289,29 +1273,6 @@
     max-width: 120px;
   }
 
-  .playground-lane {
-    min-height: 0;
-    grid-template-columns: 1fr;
-    gap: 7px;
-    padding: 7px;
-    border-radius: 20px;
-  }
-
-  .playground-instrument {
-    grid-template-columns: minmax(0, 1fr) 96px;
-  }
-
-  .playground-pad {
-    min-height: 48px;
-    border-radius: 14px;
-  }
-
-  .playground-sound-cycle {
-    width: 96px;
-    min-height: 48px;
-    border-radius: 14px;
-  }
-
   .playground-steps {
     grid-template-columns: repeat(8, minmax(28px, 1fr));
     gap: 6px;
@@ -1406,13 +1367,6 @@
     margin-left: auto;
   }
 
-  .playground-instrument {
-    grid-template-columns: minmax(0, 1fr) 88px;
-  }
-
-  .playground-sound-cycle {
-    width: 88px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
