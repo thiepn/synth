@@ -91,6 +91,7 @@ The release publisher must:
 - verify package version `1.1.0`
 - re-run the release-freeze contract
 - recheck `main` immediately before creating the tag/release
+- reject any pre-existing `v1.1.0` tag that points to a different SHA
 - publish tag `v1.1.0`
 - use `docs/playground-v1.1/RELEASE_NOTES.md`
 - remain idempotent if the release already exists
