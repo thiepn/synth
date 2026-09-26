@@ -243,6 +243,24 @@ export class AudioTransport {
     this.publish();
   }
 
+  restartFromBeginning(): void {
+    this.pausedAbsoluteTick = 0;
+    this.anchorAbsoluteTick = 0;
+    this.anchorAudioTime = this.context?.currentTime ?? 0;
+    this.bumpSchedulerEpoch();
+    this.resetSchedulerCursor();
+
+    if (
+      this.desiredPlaying &&
+      this.status === "running" &&
+      this.context?.state === "running"
+    ) {
+      this.scheduleWindow();
+    }
+
+    this.publish();
+  }
+
   async toggle(): Promise<void> {
     if (this.desiredPlaying) {
       this.pause();
