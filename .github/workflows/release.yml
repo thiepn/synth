@@ -1,4 +1,4 @@
-name: Publish v1.0.0
+name: Publish v1.1.0
 
 on:
   workflow_run:
@@ -34,8 +34,8 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [ "$version" != "1.0.0" ]; then
-            echo "::notice title=Release publisher idle::Certified main is $version, not 1.0.0."
+          if [ "$version" != "1.1.0" ]; then
+            echo "::notice title=Release publisher idle::Certified main is $version, not 1.1.0."
             echo "publish=false" >> "$GITHUB_OUTPUT"
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
@@ -62,4 +62,4 @@ jobs:
           gh release create "$tag" \
             --target "$RELEASE_SHA" \
             --title "Synth $tag" \
-            --notes-file docs/phase-40/RELEASE_NOTES.md
+            --notes-file docs/playground-v1.1/RELEASE_NOTES.md
