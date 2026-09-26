@@ -5,17 +5,18 @@ import {
 } from "@playwright/test";
 
 async function enterStudio(page: Page) {
+  const create = page.getByRole("button", {
+    name: "Mode 01: CREATE",
+  });
+  if (await create.isVisible()) return;
+
   const openStudio = page.getByRole("button", {
     name: "Open Studio",
+    exact: true,
   });
-  if (await openStudio.isVisible()) {
-    await openStudio.click();
-  }
-  await expect(
-    page.getByRole("button", {
-      name: "Mode 01: CREATE",
-    }),
-  ).toBeVisible();
+  await expect(openStudio).toBeVisible();
+  await openStudio.click();
+  await expect(create).toBeVisible();
 }
 
 async function waitForProjectReady(page: Page) {
