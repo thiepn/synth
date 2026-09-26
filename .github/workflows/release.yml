@@ -28,8 +28,25 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Verify certified SHA is still main HEAD
+        id: head
+        shell: bash
+        env:
+          CERTIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_main="$(gh api repos/${{ github.repository }}/commits/main --jq .sha)"
+          echo "current_main=$current_main" >> "$GITHUB_OUTPUT"
+          if [ "$CERTIFIED_SHA" != "$current_main" ]; then
+            echo "::notice title=Release publisher idle::Certified SHA $CERTIFIED_SHA is no longer current main HEAD ($current_main)."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Verify production release version
         id: version
+        if: steps.head.outputs.publish == 'true'
         shell: bash
         run: |
           version="$(node -p "require('./package.json').version")"
@@ -42,11 +59,11 @@ jobs:
           fi
 
       - name: Verify frozen release contract
-        if: steps.version.outputs.publish == 'true'
+        if: steps.head.outputs.publish == 'true' && steps.version.outputs.publish == 'true'
         run: node scripts/check-release-freeze.mjs
 
       - name: Publish Git tag and GitHub Release
-        if: steps.version.outputs.publish == 'true'
+        if: steps.head.outputs.publish == 'true' && steps.version.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
