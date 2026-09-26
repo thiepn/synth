@@ -124,6 +124,269 @@ test("Playground desktop discovery and step context are release-safe", async ({
   expect(errors).toEqual([]);
 });
 
+test("Playground A B banks preserve independent beat edits", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const step = page.getByRole("button", {
+    name: /KICK step 2,/i,
+  });
+  const initial = await step.getAttribute("aria-pressed");
+
+  await step.click();
+  const edited = initial === "true" ? "false" : "true";
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    edited,
+  );
+
+  await page.getByRole("button", {
+    name: /Duplicate →B/i,
+  }).click();
+
+  await expect(
+    page.getByRole("button", {
+      name: "B",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await step.click();
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    initial ?? "false",
+  );
+
+  await page.getByRole("button", {
+    name: "A",
+    exact: true,
+  }).click();
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    edited,
+  );
+
+  await page.getByRole("button", {
+    name: "B",
+    exact: true,
+  }).click();
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    initial ?? "false",
+  );
+
+  expect(errors).toEqual([]);
+});
+
+test("Playground lane transforms are deterministic and undoable", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Clear selected lane",
+  }).click();
+
+  const step1 = page.getByRole("button", {
+    name: /KICK step 1,/i,
+  });
+  const step3 = page.getByRole("button", {
+    name: /KICK step 3,/i,
+  });
+  const step14 = page.getByRole("button", {
+    name: /KICK step 14,/i,
+  });
+  const step16 = page.getByRole("button", {
+    name: /KICK step 16,/i,
+  });
+
+  await step1.click();
+  await step3.click();
+  await expect(step1).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(step3).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", {
+    name: "Reverse selected lane",
+  }).click();
+
+  await expect(step1).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(step3).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(step14).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(step16).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).click();
+
+  await expect(step1).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(step3).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  expect(errors).toEqual([]);
+});
+
+test("Playground velocity editing changes an existing hit without stopping flow", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const step = page.getByRole("button", {
+    name: /KICK step 2,/i,
+  });
+
+  if (
+    (await step.getAttribute("aria-pressed")) !==
+    "true"
+  ) {
+    await step.click();
+  }
+
+  const beforeLabel =
+    (await step.getAttribute("aria-label")) ?? "";
+  const box = await step.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(
+    box!.x + box!.width / 2,
+    box!.y + box!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    box!.x + box!.width / 2,
+    box!.y + Math.max(2, box!.height * 0.08),
+    { steps: 5 },
+  );
+  await page.mouse.up();
+
+  await expect
+    .poll(() => step.getAttribute("aria-label"))
+    .not.toBe(beforeLabel);
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  expect(errors).toEqual([]);
+});
+
+test("Playground count in restart repeat and momentary monitoring stay responsive", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const countIn = page.getByRole("button", {
+    name: "Toggle one bar count-in",
+  });
+  await countIn.click();
+  await expect(countIn).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", {
+    name: "Start transport with count-in",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Cancel count-in",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Cancel count-in",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Start transport with count-in",
+    }),
+  ).toBeVisible();
+
+  await countIn.click();
+  await page.getByRole("button", {
+    name: "Start transport",
+  }).click();
+
+  await page.keyboard.press("r");
+  await expect(
+    page.locator(".playground-notice"),
+  ).toHaveText("Back to step 1");
+
+  await page.getByRole("button", {
+    name: "Pause transport",
+  }).click();
+
+  const repeat = page.getByRole("button", {
+    name: "Pad hold repeat Off",
+  });
+  await repeat.click();
+  await expect(
+    page.getByRole("button", {
+      name: "Pad hold repeat 1/4",
+    }),
+  ).toBeVisible();
+
+  const mute = page.getByRole("button", {
+    name: "Hold to momentarily mute selected lane",
+  });
+  const muteBox = await mute.boundingBox();
+  expect(muteBox).not.toBeNull();
+
+  await page.mouse.move(
+    muteBox!.x + muteBox!.width / 2,
+    muteBox!.y + muteBox!.height / 2,
+  );
+  await page.mouse.down();
+  await expect(mute).toHaveClass(/is-active/);
+  await page.mouse.up();
+  await expect(mute).not.toHaveClass(/is-active/);
+
+  const solo = page.getByRole("button", {
+    name: "Hold to momentarily solo selected lane",
+  });
+  const soloBox = await solo.boundingBox();
+  expect(soloBox).not.toBeNull();
+
+  await page.mouse.move(
+    soloBox!.x + soloBox!.width / 2,
+    soloBox!.y + soloBox!.height / 2,
+  );
+  await page.mouse.down();
+  await expect(solo).toHaveClass(/is-active/);
+  await page.mouse.up();
+  await expect(solo).not.toHaveClass(/is-active/);
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground sound favorites and recents remain fast", async ({
   page,
 }) => {
