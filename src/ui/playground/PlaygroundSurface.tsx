@@ -1547,14 +1547,13 @@ export function PlaygroundSurface({
 
   useEffect(() => {
     const handleFlowShortcut = (event: KeyboardEvent) => {
-      if (
-        event.repeat ||
-        eventTargetConsumesKeyboard(event.target)
-      ) {
-        return;
-      }
+      if (event.repeat) return;
 
       if (event.code === "Space") {
+        if (eventTargetConsumesKeyboard(event.target)) {
+          return;
+        }
+
         event.preventDefault();
         event.stopImmediatePropagation();
         if (event.shiftKey) {
@@ -1573,6 +1572,18 @@ export function PlaygroundSurface({
       ) {
         return;
       }
+
+      const target = event.target;
+      const typingTarget =
+        target instanceof HTMLElement &&
+        (
+          target.isContentEditable ||
+          target.matches(
+            "input, textarea, select, [role='textbox'], [role='spinbutton']",
+          )
+        );
+
+      if (typingTarget) return;
 
       event.preventDefault();
       restartPlayback();
