@@ -103,6 +103,23 @@ The seven-mode Studio remains available for advanced sequencing, synthesis, arra
 - Playground QA wired into normal CI
 - release-freeze protection for the v1.1 certification path
 
+## Sound bank, audio and persistence hardening
+
+The v1.1 release also includes non-UI work that landed after the original v1.0.0 certification:
+
+- curated CC0 TR-808 samples exposed as built-in Playground sound choices
+- build-time download pinned to a specific upstream commit with file verification
+- third-party audio provenance documented in `docs/THIRD_PARTY_AUDIO.md`
+- all bundled sample files precached by the PWA service worker for offline use
+- bundled/user asset provenance kept separate so an explicit user import wins identity collisions
+- only referenced bundled audio is persisted with projects
+- orphaned bundled audio is garbage-collected after committed autosave without deleting user audio
+- named project versions protect bundled audio still referenced by historical snapshots
+- tom and percussion synthesis/default materials retuned toward shorter, more drum-like behavior
+- Playground tom/percussion presets retuned to reduce excessive synthetic noise/character
+
+These changes remain covered by the full production browser suite in addition to the focused Playground suite.
+
 ## Compatibility
 
 v1.1.0 intentionally does not change:
