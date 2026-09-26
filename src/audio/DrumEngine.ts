@@ -2076,75 +2076,118 @@ export class DrumEngine {
     const spec = this.material("tom");
     const impact = this.materialImpact(spec);
     const tone = this.materialTone(spec);
-    const decay = this.materialDecay(spec, 0.16, 0.66);
+    const decay = this.materialDecay(spec, 0.15, 0.62);
     const amp = velocityGain(velocity) * Math.max(0, levelGain);
-    const baseHz = 72 + spec.pitch * 155;
+    const baseHz = 66 + spec.pitch * 138;
+
+    // A tom should read as a struck membrane first, not as a pitched synth.
+    // Keep the initial pitch bend short and restrained, then let a small
+    // inharmonic skin mode add realism without turning into audible FM.
     const pitchStart =
-      baseHz * (1.25 + spec.character * 1.45);
+      baseHz * (1.08 + impact * 0.24 + spec.character * 0.1);
+    const pitchSettle =
+      0.022 + (1 - impact) * 0.032;
 
     const body = context.createOscillator();
-    body.type = spec.body > 0.72 ? "triangle" : "sine";
+    body.type = "sine";
     body.frequency.setValueAtTime(pitchStart, at);
     body.frequency.exponentialRampToValueAtTime(
       baseHz,
-      at + 0.055 + (1 - impact) * 0.07,
+      at + pitchSettle,
     );
 
     const bodyFilter = context.createBiquadFilter();
     bodyFilter.type = "lowpass";
-    bodyFilter.frequency.value = 850 + tone * 2600;
-    bodyFilter.Q.value = 0.45 + spec.body * 1.4;
+    bodyFilter.frequency.value = 620 + tone * 1750;
+    bodyFilter.Q.value = 0.35 + spec.body * 0.8;
+
     const bodyEnvelope = context.createGain();
     bodyEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     bodyEnvelope.gain.linearRampToValueAtTime(
-      amp * (0.22 + spec.body * 0.48),
-      at + 0.002,
+      amp * (0.34 + spec.body * 0.56),
+      at + 0.0014,
     );
     bodyEnvelope.gain.exponentialRampToValueAtTime(
       MIN_GAIN,
       at + decay,
     );
 
+    const skin = context.createOscillator();
+    skin.type = "sine";
+    const skinRatio = 1.54 + spec.character * 0.16;
+    skin.frequency.setValueAtTime(
+      baseHz * skinRatio * (1.035 + impact * 0.04),
+      at,
+    );
+    skin.frequency.exponentialRampToValueAtTime(
+      baseHz * skinRatio,
+      at + pitchSettle * 0.82,
+    );
+
+    const skinEnvelope = context.createGain();
+    skinEnvelope.gain.setValueAtTime(MIN_GAIN, at);
+    skinEnvelope.gain.linearRampToValueAtTime(
+      Math.max(
+        MIN_GAIN,
+        amp *
+          (0.025 +
+            spec.character * 0.075 +
+            spec.body * 0.035),
+      ),
+      at + 0.001,
+    );
+    skinEnvelope.gain.exponentialRampToValueAtTime(
+      MIN_GAIN,
+      at + decay * (0.34 + spec.body * 0.2),
+    );
+
     const attack = context.createBufferSource();
     attack.buffer = this.createNoiseBuffer(context);
     const attackFilter = context.createBiquadFilter();
     attackFilter.type = "bandpass";
-    attackFilter.frequency.value = 900 + tone * 2600;
-    attackFilter.Q.value = 0.8;
+    attackFilter.frequency.value = 1050 + tone * 1750;
+    attackFilter.Q.value = 1.6 + spec.body * 2.2;
     const attackEnvelope = context.createGain();
     attackEnvelope.gain.setValueAtTime(MIN_GAIN, at);
     attackEnvelope.gain.linearRampToValueAtTime(
       Math.max(
         MIN_GAIN,
-        amp * spec.noise * (0.05 + impact * 0.18),
+        amp *
+          (0.004 +
+            spec.noise * 0.04 +
+            impact * 0.016),
       ),
-      at + 0.0007,
+      at + 0.00045,
     );
     attackEnvelope.gain.exponentialRampToValueAtTime(
       MIN_GAIN,
-      at + 0.02 + spec.air * 0.018,
+      at + 0.006 + spec.air * 0.008,
     );
 
     const kill = context.createGain();
     body.connect(bodyFilter);
     bodyFilter.connect(bodyEnvelope);
     bodyEnvelope.connect(kill);
+    skin.connect(skinEnvelope);
+    skinEnvelope.connect(kill);
     attack.connect(attackFilter);
     attackFilter.connect(attackEnvelope);
     attackEnvelope.connect(kill);
     kill.connect(this.channelInput("tom"));
 
     body.start(at);
+    skin.start(at);
     attack.start(at);
-    body.stop(at + decay + 0.05);
-    attack.stop(at + 0.06);
+    body.stop(at + decay + 0.045);
+    skin.stop(at + decay * 0.58 + 0.035);
+    attack.stop(at + 0.025);
 
     this.registerVoice(
       "tom",
       at,
-      at + decay + 0.05,
+      at + decay + 0.045,
       epoch,
-      [body, attack],
+      [body, skin, attack],
       kill,
     );
   }
@@ -2162,78 +2205,96 @@ export class DrumEngine {
     const spec = this.material("percussion");
     const tone = this.materialTone(spec);
     const impact = this.materialImpact(spec);
-    const decay = this.materialDecay(spec, 0.055, 0.36);
+    const decay = this.materialDecay(spec, 0.045, 0.24);
     const amp = velocityGain(velocity) * Math.max(0, levelGain);
-
-    const carrier = context.createOscillator();
-    const modulator = context.createOscillator();
-    const modGain = context.createGain();
-    const carrierHz = 180 + spec.pitch * 980;
-    carrier.type = spec.body > 0.65 ? "triangle" : "sine";
-    carrier.frequency.value = carrierHz;
-    modulator.type = spec.character > 0.6 ? "square" : "triangle";
-    modulator.frequency.value =
-      38 + tone * 190 + spec.pitch * 120;
-    modGain.gain.value =
-      55 + spec.character * 760 + impact * 120;
-    modulator.connect(modGain);
-    modGain.connect(carrier.frequency);
-
-    const resonator = context.createBiquadFilter();
-    resonator.type = "bandpass";
-    resonator.frequency.value = carrierHz * (1.1 + tone * 0.6);
-    resonator.Q.value = 0.7 + spec.body * 5.2;
-
-    const envelope = context.createGain();
-    envelope.gain.setValueAtTime(MIN_GAIN, at);
-    envelope.gain.linearRampToValueAtTime(
-      amp * (0.12 + spec.body * 0.28 + impact * 0.08),
-      at + 0.0008,
-    );
-    envelope.gain.exponentialRampToValueAtTime(
-      MIN_GAIN,
-      at + decay,
-    );
-
-    const texture = context.createBufferSource();
-    texture.buffer = this.createNoiseBuffer(context);
-    const textureFilter = context.createBiquadFilter();
-    textureFilter.type = "bandpass";
-    textureFilter.frequency.value = 1200 + tone * 4200;
-    textureFilter.Q.value = 0.5 + spec.air * 1.5;
-    const textureEnvelope = context.createGain();
-    textureEnvelope.gain.setValueAtTime(MIN_GAIN, at);
-    textureEnvelope.gain.linearRampToValueAtTime(
-      Math.max(MIN_GAIN, amp * spec.noise * 0.16),
-      at + 0.0006,
-    );
-    textureEnvelope.gain.exponentialRampToValueAtTime(
-      MIN_GAIN,
-      at + decay * 0.55,
-    );
-
+    const baseHz = 145 + spec.pitch * 455;
     const kill = context.createGain();
-    carrier.connect(resonator);
-    resonator.connect(envelope);
-    envelope.connect(kill);
-    texture.connect(textureFilter);
-    textureFilter.connect(textureEnvelope);
-    textureEnvelope.connect(kill);
     kill.connect(this.channelInput("percussion"));
 
-    carrier.start(at);
-    modulator.start(at);
-    texture.start(at);
-    carrier.stop(at + decay + 0.04);
-    modulator.stop(at + decay + 0.04);
-    texture.stop(at + decay * 0.6 + 0.04);
+    // Model a struck resonant object with short inharmonic modes instead of
+    // wide-deviation FM. Character changes the material/partial spacing while
+    // remaining recognizably percussive at the extremes.
+    const modeRatios = [
+      1,
+      1.46 + spec.body * 0.14,
+      2.08 + spec.character * 0.34,
+    ];
+    const modeLevels = [
+      0.2 + spec.body * 0.3,
+      0.045 + spec.body * 0.11,
+      0.012 + spec.character * 0.055,
+    ];
+    const modeDecays = [1, 0.62, 0.38];
+    const sources: AudioScheduledSourceNode[] = [];
+
+    modeRatios.forEach((ratio, index) => {
+      const mode = context.createOscillator();
+      mode.type = "sine";
+      const targetHz = baseHz * ratio;
+      mode.frequency.setValueAtTime(
+        targetHz * (1.018 + impact * 0.045),
+        at,
+      );
+      mode.frequency.exponentialRampToValueAtTime(
+        targetHz,
+        at + 0.012 + (1 - impact) * 0.012,
+      );
+
+      const modeEnvelope = context.createGain();
+      modeEnvelope.gain.setValueAtTime(MIN_GAIN, at);
+      modeEnvelope.gain.linearRampToValueAtTime(
+        Math.max(MIN_GAIN, amp * modeLevels[index]),
+        at + 0.00055 + index * 0.00015,
+      );
+      modeEnvelope.gain.exponentialRampToValueAtTime(
+        MIN_GAIN,
+        at + decay * modeDecays[index],
+      );
+
+      mode.connect(modeEnvelope);
+      modeEnvelope.connect(kill);
+      mode.start(at);
+      mode.stop(at + decay * modeDecays[index] + 0.03);
+      sources.push(mode);
+    });
+
+    const attack = context.createBufferSource();
+    attack.buffer = this.createNoiseBuffer(context);
+    const attackFilter = context.createBiquadFilter();
+    attackFilter.type = "bandpass";
+    attackFilter.frequency.value =
+      1150 + tone * 2100 + spec.air * 900;
+    attackFilter.Q.value = 1.8 + spec.body * 2.6;
+    const attackEnvelope = context.createGain();
+    attackEnvelope.gain.setValueAtTime(MIN_GAIN, at);
+    attackEnvelope.gain.linearRampToValueAtTime(
+      Math.max(
+        MIN_GAIN,
+        amp *
+          (0.0035 +
+            spec.noise * 0.035 +
+            impact * 0.013),
+      ),
+      at + 0.0004,
+    );
+    attackEnvelope.gain.exponentialRampToValueAtTime(
+      MIN_GAIN,
+      at + 0.0045 + spec.air * 0.007,
+    );
+
+    attack.connect(attackFilter);
+    attackFilter.connect(attackEnvelope);
+    attackEnvelope.connect(kill);
+    attack.start(at);
+    attack.stop(at + 0.022);
+    sources.push(attack);
 
     this.registerVoice(
       "percussion",
       at,
       at + decay + 0.04,
       epoch,
-      [carrier, modulator, texture],
+      sources,
       kill,
     );
   }
