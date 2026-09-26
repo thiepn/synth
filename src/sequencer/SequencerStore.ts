@@ -918,9 +918,8 @@ export class SequencerStore {
       1,
       Math.min(patternLength, clipboard.laneLengthSteps),
     );
-    const activeLimit =
-      this.getLaneLengthSteps(laneId) *
-      FOUNDATION_STEP_TICKS;
+    const replacementLimit =
+      laneLength * FOUNDATION_STEP_TICKS;
 
     this.commit((draft) => {
       const lane = draft.lanes.find(
@@ -929,7 +928,7 @@ export class SequencerStore {
       if (!lane) return;
 
       const dormant = lane.events
-        .filter((event) => event.tick >= activeLimit)
+        .filter((event) => event.tick >= replacementLimit)
         .map(cloneStepEvent);
       const pasted = clipboard.events
         .map((event) => {
