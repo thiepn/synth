@@ -930,29 +930,25 @@ export class SequencerStore {
       const dormant = lane.events
         .filter((event) => event.tick >= replacementLimit)
         .map(cloneStepEvent);
-      const pasted = clipboard.events
-        .map((event) => {
-          const step = Math.round(
-            event.tick / FOUNDATION_STEP_TICKS,
-          );
-          if (step < 0 || step >= laneLength) return null;
-
-          return {
-            ...cloneStepEvent(event),
-            id: eventId(laneId, step),
-            tick: step * FOUNDATION_STEP_TICKS,
-            grooveBase: undefined,
-            generatorTags: [
-              ...(event.generatorTags ?? []).filter(
-                (tag) => !tag.startsWith("groove-engine"),
-              ),
-              "lane-paste",
-            ],
-          };
-        })
-        .filter(
-          (event): event is StepEvent => event !== null,
+      const pasted: StepEvent[] = [];
+      for (const event of clipboard.events) {
+        const step = Math.round(
+          event.tick / FOUNDATION_STEP_TICKS,
         );
+        if (step < 0 || step >= laneLength) continue;
+
+        const next = cloneStepEvent(event);
+        next.id = eventId(laneId, step);
+        next.tick = step * FOUNDATION_STEP_TICKS;
+        delete next.grooveBase;
+        next.generatorTags = [
+          ...(event.generatorTags ?? []).filter(
+            (tag) => !tag.startsWith("groove-engine"),
+          ),
+          "lane-paste",
+        ];
+        pasted.push(next);
+      }
 
       lane.loopLengthTicks =
         laneLength === patternLength

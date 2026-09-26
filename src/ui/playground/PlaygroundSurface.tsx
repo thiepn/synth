@@ -402,10 +402,14 @@ export function PlaygroundSurface({
     duration: number | number[] = 8,
   ) => {
     if (!hapticsEnabled) return;
-    const vibrate = globalThis.navigator?.vibrate;
-    if (typeof vibrate !== "function") return;
+    if (
+      typeof globalThis.navigator?.vibrate !==
+      "function"
+    ) {
+      return;
+    }
     try {
-      vibrate.call(globalThis.navigator, duration);
+      globalThis.navigator.vibrate(duration);
     } catch {
       // Vibration is best-effort and unsupported on many browsers.
     }
@@ -436,10 +440,12 @@ export function PlaygroundSurface({
       const next = !current;
       persistHapticsPreference(next);
       if (next) {
-        const vibrate = globalThis.navigator?.vibrate;
-        if (typeof vibrate === "function") {
+        if (
+          typeof globalThis.navigator?.vibrate ===
+          "function"
+        ) {
           try {
-            vibrate.call(globalThis.navigator, 12);
+            globalThis.navigator.vibrate(12);
           } catch {
             // Ignore unsupported vibration calls.
           }
