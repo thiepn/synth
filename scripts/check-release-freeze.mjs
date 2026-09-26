@@ -76,6 +76,8 @@ const contracts = [
   ["README.md", "**Release:** Synth v1.1.0"],
   ["src/App.tsx", "<span>v1.1.0</span>"],
   [".github/workflows/release.yml", "Publish v1.1.0"],
+  [".github/workflows/release.yml", "Verify certified SHA is still main HEAD"],
+  [".github/workflows/release.yml", "Main advanced to"],
   [".github/workflows/release.yml", "gh release create"],
   [".github/workflows/release.yml", "github.event.workflow_run.conclusion == 'success'"],
 ];
