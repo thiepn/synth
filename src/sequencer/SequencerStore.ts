@@ -33,6 +33,12 @@ export type SequencerLengthSteps =
 
 export type SequencerHit = PatternPlaybackHit;
 
+export interface LaneClipboardData {
+  sourceLaneId: string;
+  laneLengthSteps: number;
+  events: StepEvent[];
+}
+
 export interface SequencerSnapshot {
   pattern: Pattern;
   lengthSteps: SequencerLengthSteps;
@@ -679,6 +685,310 @@ export class SequencerStore {
       );
     });
 
+    return true;
+  }
+
+  reverseLane(laneId: string): boolean {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+
+    const laneLength = this.getLaneLengthSteps(laneId);
+    const activeLimit = laneLength * FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const active = lane.events
+        .filter((event) => event.tick < activeLimit)
+        .map((event) => {
+          const step = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          const reversed = laneLength - 1 - step;
+          return {
+            ...cloneStepEvent(event),
+            id: eventId(laneId, reversed),
+            tick: reversed * FOUNDATION_STEP_TICKS,
+            grooveBase: undefined,
+          };
+        });
+      const dormant = lane.events
+        .filter((event) => event.tick >= activeLimit)
+        .map(cloneStepEvent);
+
+      lane.events = [...active, ...dormant].sort(
+        (a, b) => a.tick - b.tick,
+      );
+    });
+
+    return true;
+  }
+
+  scaleLaneDensity(
+    laneId: string,
+    factor: 0.5 | 2,
+  ): boolean {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+
+    const laneLength = this.getLaneLengthSteps(laneId);
+    const activeLimit = laneLength * FOUNDATION_STEP_TICKS;
+    const active = source.events
+      .filter((event) => event.tick < activeLimit)
+      .map(cloneStepEvent)
+      .sort((a, b) => a.tick - b.tick);
+
+    if (active.length === 0) return true;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const dormant = lane.events
+        .filter((event) => event.tick >= activeLimit)
+        .map(cloneStepEvent);
+
+      let nextActive: StepEvent[];
+
+      if (factor === 0.5) {
+        if (active.length <= 1) {
+          nextActive = active;
+        } else {
+          const targetCount = Math.max(
+            1,
+            Math.ceil(active.length / 2),
+          );
+          const ranked = active
+            .map((event, index) => {
+              const step = Math.round(
+                event.tick / FOUNDATION_STEP_TICKS,
+              );
+              const downbeatWeight =
+                step % 4 === 0
+                  ? 0.24
+                  : step % 2 === 0
+                    ? 0.1
+                    : 0;
+              const accentWeight =
+                event.accent === "accent"
+                  ? 0.16
+                  : event.accent === "ghost"
+                    ? -0.08
+                    : 0;
+              return {
+                event,
+                score:
+                  event.velocity +
+                  downbeatWeight +
+                  accentWeight -
+                  index * 0.00001,
+              };
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, targetCount)
+            .map(({ event }) => cloneStepEvent(event));
+
+          nextActive = ranked.sort(
+            (a, b) => a.tick - b.tick,
+          );
+        }
+      } else {
+        const byStep = new Map(
+          active.map((event) => [
+            Math.round(
+              event.tick / FOUNDATION_STEP_TICKS,
+            ),
+            cloneStepEvent(event),
+          ]),
+        );
+        const targetCount = Math.min(
+          laneLength,
+          Math.max(active.length, active.length * 2),
+        );
+
+        const sourceSteps = [...byStep.keys()].sort(
+          (a, b) => a - b,
+        );
+        for (const step of sourceSteps) {
+          if (byStep.size >= targetCount) break;
+
+          const candidates = [
+            (step + 1) % laneLength,
+            (step - 1 + laneLength) % laneLength,
+          ];
+
+          for (const candidate of candidates) {
+            if (
+              byStep.size >= targetCount ||
+              byStep.has(candidate)
+            ) {
+              continue;
+            }
+
+            const sourceEvent = byStep.get(step);
+            if (!sourceEvent) continue;
+            const velocity = normalizeVelocity(
+              sourceEvent.velocity * 0.74,
+            );
+            byStep.set(candidate, {
+              ...cloneStepEvent(sourceEvent),
+              id: eventId(laneId, candidate),
+              tick: candidate * FOUNDATION_STEP_TICKS,
+              velocity,
+              accent: accentFromVelocity(velocity),
+              grooveBase: undefined,
+              generatorTags: [
+                ...(sourceEvent.generatorTags ?? []).filter(
+                  (tag) => !tag.startsWith("groove-engine"),
+                ),
+                "density-double",
+              ],
+            });
+          }
+        }
+
+        if (byStep.size < targetCount) {
+          for (
+            let step = 0;
+            step < laneLength && byStep.size < targetCount;
+            step += 1
+          ) {
+            if (byStep.has(step)) continue;
+            byStep.set(
+              step,
+              createStepEvent(laneId, step, 0.52),
+            );
+          }
+        }
+
+        nextActive = [...byStep.values()].sort(
+          (a, b) => a.tick - b.tick,
+        );
+      }
+
+      lane.events = [...nextActive, ...dormant].sort(
+        (a, b) => a.tick - b.tick,
+      );
+    });
+
+    return true;
+  }
+
+  copyLane(laneId: string): LaneClipboardData | undefined {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source) return undefined;
+
+    const laneLengthSteps =
+      this.getLaneLengthSteps(laneId);
+    const activeLimit =
+      laneLengthSteps * FOUNDATION_STEP_TICKS;
+
+    return {
+      sourceLaneId: laneId,
+      laneLengthSteps,
+      events: source.events
+        .filter((event) => event.tick < activeLimit)
+        .map(cloneStepEvent),
+    };
+  }
+
+  pasteLane(
+    laneId: string,
+    clipboard: LaneClipboardData,
+  ): boolean {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+
+    const patternLength =
+      lengthStepsFromPattern(this.pattern);
+    const laneLength = Math.max(
+      1,
+      Math.min(patternLength, clipboard.laneLengthSteps),
+    );
+    const activeLimit =
+      this.getLaneLengthSteps(laneId) *
+      FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const dormant = lane.events
+        .filter((event) => event.tick >= activeLimit)
+        .map(cloneStepEvent);
+      const pasted = clipboard.events
+        .map((event) => {
+          const step = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          if (step < 0 || step >= laneLength) return null;
+
+          return {
+            ...cloneStepEvent(event),
+            id: eventId(laneId, step),
+            tick: step * FOUNDATION_STEP_TICKS,
+            grooveBase: undefined,
+            generatorTags: [
+              ...(event.generatorTags ?? []).filter(
+                (tag) => !tag.startsWith("groove-engine"),
+              ),
+              "lane-paste",
+            ],
+          };
+        })
+        .filter(
+          (event): event is StepEvent => event !== null,
+        );
+
+      lane.loopLengthTicks =
+        laneLength === patternLength
+          ? undefined
+          : laneLength * FOUNDATION_STEP_TICKS;
+      lane.events = [...pasted, ...dormant].sort(
+        (a, b) => a.tick - b.tick,
+      );
+    });
+
+    return true;
+  }
+
+  paintStepDynamic(
+    laneId: string,
+    stepIndex: number,
+    dynamic: "accent" | "ghost",
+    gestureId?: string,
+  ): boolean {
+    if (!this.isValidStep(stepIndex)) return false;
+
+    const lane = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!lane || lane.lock.rhythm || lane.lock.dynamics) {
+      return false;
+    }
+
+    const velocity = dynamic === "accent" ? 0.96 : 0.22;
+    this.setStepVelocity(
+      laneId,
+      stepIndex,
+      velocity,
+      gestureId,
+    );
     return true;
   }
 
