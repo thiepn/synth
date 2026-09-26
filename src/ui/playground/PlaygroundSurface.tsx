@@ -1035,15 +1035,15 @@ export function PlaygroundSurface({
   };
 
   const undoLastRemix = () => {
-    if (!lastRemixSourceNodeId) return;
+    const sourceNodeId = lastRemixSourceNodeId;
+    if (!sourceNodeId) return;
+
     const restored =
-      generationHistoryStore.restore(
-        lastRemixSourceNodeId,
-      );
+      generationHistoryStore.restore(sourceNodeId);
     sequencerStore.restorePatternSnapshot(restored);
     setPatternBanks((current) => ({
       ...current,
-      [activePatternBank]: lastRemixSourceNodeId,
+      [activePatternBank]: sourceNodeId,
     }));
     setLastRemixSourceNodeId(null);
     setNotice("Remix undone");
