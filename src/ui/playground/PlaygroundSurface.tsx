@@ -998,22 +998,6 @@ export function PlaygroundSurface({
     setNotice(Math.round(audioTransport.getSnapshot().bpm) + " BPM");
   };
 
-  const cycleSound = (
-    voice: DrumVoiceId,
-    direction: -1 | 1,
-  ) => {
-    const presets = SOUND_PRESETS[voice];
-    if (presets.length === 0 || soundLoading) return;
-
-    const current = soundIndex[voice];
-    const normalized = current >= 0 ? current : 0;
-    const next =
-      (normalized + direction + presets.length) %
-      presets.length;
-
-    void chooseSound(voice, next);
-  };
-
   const editSelectedLane = (
     action:
       | "shiftLeft"
@@ -1117,6 +1101,22 @@ export function PlaygroundSurface({
     } finally {
       setSoundLoading(null);
     }
+  };
+
+  const cycleSound = (
+    voice: DrumVoiceId,
+    direction: -1 | 1,
+  ) => {
+    const presets = SOUND_PRESETS[voice];
+    if (presets.length === 0 || soundLoading) return;
+
+    const current = soundIndex[voice];
+    const normalized = current >= 0 ? current : 0;
+    const next =
+      (normalized + direction + presets.length) %
+      presets.length;
+
+    void chooseSound(voice, next);
   };
 
   return (
@@ -1703,6 +1703,14 @@ export function PlaygroundSurface({
                                   0.3,
                                   velocity,
                                 ),
+                          "--step-opacity":
+                            velocity === undefined
+                              ? 1
+                              : 0.56 + velocity * 0.44,
+                          "--step-indicator-scale":
+                            velocity === undefined
+                              ? 0.72
+                              : 0.62 + velocity * 0.38,
                         } as CSSProperties
                       }
                       data-play-step="true"
