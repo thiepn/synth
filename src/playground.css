@@ -259,6 +259,7 @@
 }
 
 .playground-studio-button,
+.playground-help-button,
 .playground-history-button,
 .playground-project-alert,
 .studio-playground-return {
@@ -319,6 +320,7 @@
   background: rgba(255, 85, 119, 0.15);
 }
 
+.playground-help-button,
 .playground-history-button {
   width: 44px;
   height: 44px;
@@ -328,10 +330,19 @@
   border-radius: 50%;
   background: var(--pg-panel);
   color: var(--pg-text);
-  font-size: 1.08rem;
   font-weight: 800;
 }
 
+.playground-help-button {
+  font-size: 0.86rem;
+}
+
+.playground-history-button {
+  width: 44px;
+  font-size: 1.08rem;
+}
+
+.playground-help-button:hover,
 .playground-history-button:hover:not(:disabled) {
   background: var(--pg-panel-strong);
   transform: translateY(-1px);
@@ -361,6 +372,43 @@
   transform: translateY(-1px);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  [data-tip] {
+    position: relative;
+  }
+
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    z-index: 80;
+    left: 50%;
+    top: calc(100% + 9px);
+    max-width: 220px;
+    padding: 7px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    background: rgba(15, 16, 27, 0.97);
+    color: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    font-size: 0.56rem;
+    font-weight: 750;
+    line-height: 1.25;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -3px);
+    transition:
+      opacity 110ms ease,
+      transform 110ms ease;
+  }
+
+  [data-tip]:hover::after,
+  [data-tip]:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 .studio-playground-return {
   min-height: 34px;
   padding: 0 10px;
@@ -369,6 +417,71 @@
   color: var(--phosphor);
   font: 700 0.58rem/1 var(--font-mono);
   letter-spacing: 0.08em;
+}
+
+.playground-coach {
+  width: min(1440px, calc(100% - clamp(36px, 7vw, 108px)));
+  min-height: 48px;
+  margin: 10px auto -2px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 12px;
+  border: 1px solid rgba(99, 222, 244, 0.16);
+  border-radius: 15px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(99, 222, 244, 0.07),
+      rgba(120, 103, 255, 0.035)
+    );
+  color: var(--pg-text);
+  animation: playground-coach-in 180ms ease-out;
+}
+
+@keyframes playground-coach-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.playground-coach > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.playground-coach strong {
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.playground-coach span {
+  color: var(--pg-muted);
+  font-size: 0.6rem;
+  line-height: 1.35;
+}
+
+.playground-coach__desktop {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.playground-coach > button {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--pg-muted);
+  cursor: pointer;
 }
 
 .playground-session-bar {
@@ -1350,6 +1463,48 @@
   font-weight: 800;
 }
 
+.playground-lane-empty {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: -2px 0 10px;
+  padding: 9px 11px;
+  border: 1px dashed color-mix(
+    in srgb,
+    var(--lane-color) 24%,
+    rgba(255, 255, 255, 0.09)
+  );
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.playground-lane-empty > span {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--lane-color) 12%,
+    transparent
+  );
+  color: var(--lane-color);
+  font-weight: 900;
+}
+
+.playground-lane-empty p {
+  margin: 0;
+  color: var(--pg-muted);
+  font-size: 0.61rem;
+  line-height: 1.35;
+}
+
+.playground-lane-empty strong {
+  color: var(--pg-text);
+}
+
 .playground-lane-toolbar {
   min-width: 0;
   display: flex;
@@ -1734,49 +1889,369 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-.playground-sound-choices {
+.playground-sound-shortcuts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.playground-sound-shortcuts > div {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
   gap: 7px;
 }
 
-.playground-sound-choices button {
+.playground-sound-shortcuts > div > span {
+  color: var(--pg-muted);
+  font-size: 0.53rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playground-sound-shortcuts > div > div {
   min-width: 0;
-  min-height: 48px;
-  display: grid;
-  place-items: center;
+  display: flex;
   gap: 5px;
-  padding: 7px 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.playground-sound-shortcuts > div > div::-webkit-scrollbar {
+  display: none;
+}
+
+.playground-sound-shortcuts button {
+  min-height: 32px;
+  flex: 0 0 auto;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pg-text);
+  cursor: pointer;
+  font-size: 0.58rem;
+  font-weight: 760;
+}
+
+.playground-sound-shortcuts button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.playground-sound-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 7px;
+}
+
+.playground-sound-choice {
+  min-width: 0;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.055);
-  color: var(--pg-text);
-  cursor: pointer;
-  font-size: 0.66rem;
-  font-weight: 780;
 }
 
-.playground-sound-choices button:hover {
-  border-color: color-mix(in srgb, var(--lane-color) 35%, rgba(255, 255, 255, 0.1));
+.playground-sound-choice:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--lane-color) 35%,
+    rgba(255, 255, 255, 0.1)
+  );
   background: rgba(255, 255, 255, 0.09);
   transform: translateY(-1px);
 }
 
-.playground-sound-choices button > span {
+.playground-sound-choice.is-active {
+  border-color: color-mix(
+    in srgb,
+    var(--lane-color) 58%,
+    rgba(255, 255, 255, 0.1)
+  );
+  background: color-mix(
+    in srgb,
+    var(--lane-color) 13%,
+    rgba(255, 255, 255, 0.045)
+  );
+}
+
+.playground-sound-choice__main,
+.playground-sound-choice__star {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pg-text);
+  cursor: pointer;
+}
+
+.playground-sound-choice__main {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  padding: 7px 4px 7px 7px;
+  font-size: 0.65rem;
+  font-weight: 780;
+}
+
+.playground-sound-choice__main > span {
   width: 7px;
   height: 7px;
-  border: 1px solid color-mix(in srgb, var(--lane-color) 65%, white);
+  border: 1px solid color-mix(
+    in srgb,
+    var(--lane-color) 65%,
+    white
+  );
   border-radius: 50%;
 }
 
-.playground-sound-choices button.is-active {
-  border-color: color-mix(in srgb, var(--lane-color) 58%, rgba(255, 255, 255, 0.1));
-  background: color-mix(in srgb, var(--lane-color) 13%, rgba(255, 255, 255, 0.045));
+.playground-sound-choice.is-active
+  .playground-sound-choice__main > span {
+  background: var(--lane-color);
+  box-shadow: 0 0 12px
+    color-mix(
+      in srgb,
+      var(--lane-color) 50%,
+      transparent
+    );
 }
 
-.playground-sound-choices button.is-active > span {
-  background: var(--lane-color);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--lane-color) 50%, transparent);
+.playground-sound-choice__star {
+  display: grid;
+  place-items: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.24);
+  font-size: 0.69rem;
+}
+
+.playground-sound-choice__star:hover,
+.playground-sound-choice__star.is-active {
+  color: #ffd84a;
+  background: rgba(255, 216, 74, 0.06);
+}
+
+.playground-context-dismiss {
+  position: fixed;
+  z-index: 69;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.playground-step-context {
+  position: fixed;
+  z-index: 70;
+  width: 210px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 16px;
+  background: rgba(18, 19, 31, 0.98);
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(18px);
+  animation: playground-context-in 110ms ease-out;
+}
+
+@keyframes playground-context-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.playground-step-context > header {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.playground-step-context > header span {
+  color: var(--pg-muted);
+  font-size: 0.55rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playground-step-context > header strong {
+  font-size: 0.62rem;
+}
+
+.playground-step-context > button {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 11px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  color: var(--pg-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.66rem;
+  font-weight: 760;
+}
+
+.playground-step-context > button:last-child {
+  border-bottom: 0;
+}
+
+.playground-step-context > button:hover,
+.playground-step-context > button:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.playground-step-context > button b {
+  width: 20px;
+  color: #9c93ff;
+  text-align: center;
+}
+
+.playground-help-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 5, 10, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.playground-help {
+  width: min(680px, 100%);
+  max-height: min(720px, 88vh);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(120, 103, 255, 0.13),
+      transparent 18rem
+    ),
+    rgba(18, 19, 31, 0.99);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+}
+
+.playground-help > header,
+.playground-help > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.playground-help > header {
+  padding-bottom: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.playground-help > header small,
+.playground-help > header strong {
+  display: block;
+}
+
+.playground-help > header small {
+  margin-bottom: 3px;
+  color: #9c93ff;
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.playground-help > header strong {
+  font-size: 1.05rem;
+}
+
+.playground-help > header button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--pg-text);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.playground-help__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 13px 0;
+}
+
+.playground-help__grid > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.playground-help h3 {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+}
+
+.playground-help p {
+  margin: 5px 0;
+  color: var(--pg-muted);
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.playground-help kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 2px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-bottom-color: rgba(255, 255, 255, 0.22);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--pg-text);
+  font: 750 0.55rem/1.2 ui-monospace, monospace;
+  text-align: center;
+}
+
+.playground-help > footer {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.playground-help > footer span {
+  color: var(--pg-muted);
+  font-size: 0.58rem;
+}
+
+.playground-help > footer button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7867ff, #c26cff);
+  color: white;
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 850;
 }
 
 .playground-mobile-dock {
@@ -1826,7 +2301,10 @@
   }
 
   .playground-focus__sound,
-  .playground-sound-choices button,
+  .playground-sound-choice__main,
+  .playground-sound-choice__star,
+  .playground-sound-shortcuts button,
+  .playground-step-context > button,
   .playground-lane-toolbar > button,
   .playground-session-actions > button,
   .playground-project-menu__open,
@@ -1911,6 +2389,47 @@
 }
 
 @media (max-width: 760px) {
+  .playground-coach {
+    width: calc(100% - 20px);
+    margin-top: 7px;
+    gap: 8px;
+    padding: 8px 9px;
+  }
+
+  .playground-coach > div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .playground-coach__desktop {
+    display: none;
+  }
+
+  .playground-help-backdrop {
+    align-items: end;
+    padding:
+      12px
+      10px
+      calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .playground-help {
+    max-height: min(72vh, 620px);
+    border-radius: 22px;
+  }
+
+  .playground-help__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .playground-step-context > button {
+    min-height: 46px;
+  }
+
+  .playground-sound-shortcuts > div {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
   .playground-surface {
     padding-bottom:
       calc(78px + env(safe-area-inset-bottom));
@@ -2002,6 +2521,7 @@
     gap: 5px;
   }
 
+  .playground-help-button,
   .playground-history-button {
     width: 40px;
     height: 40px;
@@ -2434,6 +2954,10 @@
   .playground-history-button,
   .playground-project-alert,
   .playground-studio-button,
+  .playground-help-button,
+  .playground-coach,
+  .playground-help,
+  .playground-step-context,
   .playground-session-bar,
   .playground-session-actions > button,
   .playground-project-menu,
@@ -2471,6 +2995,10 @@
   .playground-history-button,
   .playground-project-alert,
   .playground-studio-button,
+  .playground-help-button,
+  .playground-coach,
+  .playground-help,
+  .playground-step-context,
   .playground-session-bar,
   .playground-session-actions > button,
   .playground-project-menu,
@@ -2488,7 +3016,10 @@
   .playground-sound-cycle,
   .playground-sound-cycle > button,
   .playground-lane-toolbar > button,
-  .playground-sound-choices button,
+  .playground-sound-choice,
+  .playground-sound-choice__main,
+  .playground-sound-choice__star,
+  .playground-sound-shortcuts button,
   .playground-step {
     border: 1px solid ButtonText;
     background: Canvas;
