@@ -251,6 +251,30 @@ function displayLaneName(lane: SequencerLaneDefinition): string {
   return LANE_NAMES[lane.voice] ?? lane.name;
 }
 
+type TouchEditMode = "draw" | "accent" | "ghost";
+
+const HAPTICS_STORAGE_KEY = "synth.playground.haptics";
+
+function readHapticsPreference(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(
+      HAPTICS_STORAGE_KEY,
+    ) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistHapticsPreference(enabled: boolean): void {
+  try {
+    globalThis.localStorage?.setItem(
+      HAPTICS_STORAGE_KEY,
+      enabled ? "1" : "0",
+    );
+  } catch {
+    // Haptics preference remains session-only when storage is blocked.
+  }
+}
 
 function ProjectHealthAlert({
   onOpenStudio,
@@ -346,8 +370,10 @@ export function PlaygroundSurface({
     desiredOn: boolean;
     lastKey: string;
     gestureId: string;
-    mode: "paint" | "pending" | "velocity";
+    mode: "paint" | "pending" | "velocity" | "pageSwipe";
     dynamic?: "accent" | "ghost";
+    pointerType: string;
+    swipeDirection?: -1 | 1;
     startLaneId: string;
     startStepIndex: number;
     startX: number;
@@ -357,7 +383,80 @@ export function PlaygroundSurface({
   const laneClipboardRef = useRef<LaneClipboardData | null>(null);
   const [laneClipboardLabel, setLaneClipboardLabel] =
     useState<string | null>(null);
+  const [touchEditMode, setTouchEditMode] =
+    useState<TouchEditMode>("draw");
+  const [hapticsEnabled, setHapticsEnabled] =
+    useState(readHapticsPreference);
   const tapTimesRef = useRef<number[]>([]);
+  const focusRef = useRef<HTMLElement | null>(null);
+  const padLongPressTimerRef = useRef<number | null>(null);
+  const padLongPressRef = useRef<{
+    voice: DrumVoiceId;
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const suppressPadClickRef = useRef<DrumVoiceId | null>(null);
+
+  const pulseHaptic = (
+    duration: number | number[] = 8,
+  ) => {
+    if (!hapticsEnabled) return;
+    const vibrate = globalThis.navigator?.vibrate;
+    if (typeof vibrate !== "function") return;
+    try {
+      vibrate.call(globalThis.navigator, duration);
+    } catch {
+      // Vibration is best-effort and unsupported on many browsers.
+    }
+  };
+
+  const cycleTouchEditMode = () => {
+    setTouchEditMode((current) => {
+      const next: TouchEditMode =
+        current === "draw"
+          ? "accent"
+          : current === "accent"
+            ? "ghost"
+            : "draw";
+      pulseHaptic(7);
+      setNotice(
+        next === "draw"
+          ? "Touch mode · Draw"
+          : next === "accent"
+            ? "Touch mode · Accent"
+            : "Touch mode · Ghost",
+      );
+      return next;
+    });
+  };
+
+  const toggleHaptics = () => {
+    setHapticsEnabled((current) => {
+      const next = !current;
+      persistHapticsPreference(next);
+      if (next) {
+        const vibrate = globalThis.navigator?.vibrate;
+        if (typeof vibrate === "function") {
+          try {
+            vibrate.call(globalThis.navigator, 12);
+          } catch {
+            // Ignore unsupported vibration calls.
+          }
+        }
+      }
+      setNotice(next ? "Haptics on" : "Haptics off");
+      return next;
+    });
+  };
+
+  const clearPadLongPress = () => {
+    if (padLongPressTimerRef.current !== null) {
+      window.clearTimeout(padLongPressTimerRef.current);
+      padLongPressTimerRef.current = null;
+    }
+    padLongPressRef.current = null;
+  };
 
   const stopVisualAudition = () => {
     if (auditionStartRef.current !== null) {
@@ -700,6 +799,13 @@ export function PlaygroundSurface({
       voice,
       serial: current.serial + 1,
     }));
+    pulseHaptic(
+      velocity >= 0.9
+        ? 11
+        : velocity <= 0.3
+          ? 4
+          : 7,
+    );
     void drumEngine.triggerNow(voice, velocity);
   };
 
