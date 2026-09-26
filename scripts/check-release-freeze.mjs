@@ -54,8 +54,13 @@ for (const [group, dependencies] of Object.entries({
 const contracts = [
   ["src/domain/contracts.ts", "PROJECT_SCHEMA_VERSION = 1"],
   ["src/project/projectTypes.ts", "SYNTH_PROJECT_DOCUMENT_VERSION"],
+  ["package.json", '"check:playground"'],
+  ["package.json", '"qa:playground"'],
   ["package.json", '"qa:e2e"'],
   ["package.json", '"qa:soak"'],
+  ["scripts/check-playground-release.mjs", "Playground Q1-Q8 release contracts verified."],
+  ["e2e/playground.spec.ts", "Playground desktop discovery and step context are release-safe"],
+  [".github/workflows/ci.yml", "Playground release QA"],
   [".github/workflows/ci.yml", "Release-candidate soak"],
   ["docs/phase-38/PHASE_38.md", "14 passed"],
   ["docs/phase-39/PHASE_39.md", "28 passed"],
