@@ -877,6 +877,54 @@ export function PlaygroundSurface({
   }, []);
 
   useEffect(() => {
+    const styleVector = sequencer.pattern.provenance?.style;
+    if (!styleVector) {
+      setStyle("funk");
+      return;
+    }
+
+    const strongest = Object.entries(styleVector).sort(
+      (a, b) => b[1] - a[1],
+    )[0]?.[0] as BeatStyleId | undefined;
+
+    if (strongest) {
+      setStyle(strongest);
+    }
+  }, [sequencer.pattern.provenance]);
+
+  const recentRemixes = useMemo(
+    () =>
+      history.nodes
+        .filter((node) => node.operation === "reroll")
+        .slice(-6)
+        .reverse(),
+    [history.nodes],
+  );
+
+  const activeStep =
+    transport.status === "running"
+      ? Math.floor(
+          transport.position.absoluteTick /
+            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        ) % sequencer.lengthSteps
+      : undefined;
+  const visualStep = activeStep ?? auditionStep;
+
+  const playing = playbackCoordinator.isPlayingForMode(
+    "create",
+    transport,
+  );
+
+  useEffect(() => {
+    if (playing) {
+      stopVisualAudition();
+      if (countInBeat !== null) {
+        cancelCountIn();
+      }
+    }
+  }, [playing, countInBeat]);
+
+  useEffect(() => {
     const handleFlowShortcut = (event: KeyboardEvent) => {
       if (
         event.repeat ||
@@ -929,54 +977,6 @@ export function PlaygroundSurface({
     transport.meter.denominator,
     transport.meter.numerator,
   ]);
-
-  useEffect(() => {
-    const styleVector = sequencer.pattern.provenance?.style;
-    if (!styleVector) {
-      setStyle("funk");
-      return;
-    }
-
-    const strongest = Object.entries(styleVector).sort(
-      (a, b) => b[1] - a[1],
-    )[0]?.[0] as BeatStyleId | undefined;
-
-    if (strongest) {
-      setStyle(strongest);
-    }
-  }, [sequencer.pattern.provenance]);
-
-  const recentRemixes = useMemo(
-    () =>
-      history.nodes
-        .filter((node) => node.operation === "reroll")
-        .slice(-6)
-        .reverse(),
-    [history.nodes],
-  );
-
-  const activeStep =
-    transport.status === "running"
-      ? Math.floor(
-          transport.position.absoluteTick /
-            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
-        ) % sequencer.lengthSteps
-      : undefined;
-  const visualStep = activeStep ?? auditionStep;
-
-  const playing = playbackCoordinator.isPlayingForMode(
-    "create",
-    transport,
-  );
-
-  useEffect(() => {
-    if (playing) {
-      stopVisualAudition();
-      if (countInBeat !== null) {
-        cancelCountIn();
-      }
-    }
-  }, [playing, countInBeat]);
 
   const lanes = useMemo(
     () =>
