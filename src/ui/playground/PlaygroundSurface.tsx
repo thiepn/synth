@@ -1218,16 +1218,32 @@ export function PlaygroundSurface({
   }, [notice]);
 
   useEffect(() => {
-    const closeTransientUi = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setSoundPickerVoice(null);
+    const handleDiscoveryKeys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSoundPickerVoice(null);
+        setProjectMenuOpen(false);
+        setStepContext(null);
+        setHelpOpen(false);
+        return;
+      }
+
+      if (
+        event.key === "?" &&
+        !eventTargetConsumesKeyboard(event.target)
+      ) {
+        event.preventDefault();
+        setHelpOpen((current) => !current);
+      }
     };
 
-    window.addEventListener("keydown", closeTransientUi);
+    window.addEventListener(
+      "keydown",
+      handleDiscoveryKeys,
+    );
     return () =>
       window.removeEventListener(
         "keydown",
-        closeTransientUi,
+        handleDiscoveryKeys,
       );
   }, []);
 
@@ -1508,6 +1524,12 @@ export function PlaygroundSurface({
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
+  const favoriteSoundIndices =
+    favoriteSounds[selectedVoice];
+  const recentSoundIndices =
+    recentSounds[selectedVoice].filter(
+      (index) => !favoriteSoundIndices.includes(index),
+    );
   const favoriteProjectIds = project.favoriteProjectIds;
   const currentProjectFavorite =
     Boolean(project.projectId) &&
@@ -1638,6 +1660,7 @@ export function PlaygroundSurface({
     voice: DrumVoiceId,
     velocity = 0.88,
   ) => {
+    completeFirstUseAction("pad");
     setPadPulse((current) => ({
       voice,
       serial: current.serial + 1,
@@ -1897,6 +1920,13 @@ export function PlaygroundSurface({
   ) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
+    completeFirstUseAction("step");
+    beginStepContextLongPress(
+      event,
+      laneId,
+      stepIndex,
+    );
+
     const touchDynamic =
       event.pointerType !== "mouse" &&
       touchEditMode !== "draw"
@@ -1981,6 +2011,7 @@ export function PlaygroundSurface({
   const continuePaint = (
     event: ReactPointerEvent<HTMLDivElement>,
   ) => {
+    moveStepContextLongPress(event);
     const gesture = paintRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
 
@@ -2117,6 +2148,12 @@ export function PlaygroundSurface({
     pointerId: number,
     cancelled = false,
   ) => {
+    const pendingContext =
+      stepContextPendingRef.current;
+    if (pendingContext?.pointerId === pointerId) {
+      clearStepContextLongPress();
+    }
+
     const gesture = paintRef.current;
     if (!gesture || gesture.pointerId !== pointerId) return;
 
@@ -2352,6 +2389,7 @@ export function PlaygroundSurface({
   };
 
   const remix = () => {
+    completeFirstUseAction("remix");
     checkpointCurrentPattern("Before Remix");
     const result = rerollBeat({
       source: sequencer.pattern,
@@ -2651,6 +2689,8 @@ export function PlaygroundSurface({
         ...current,
         [voice]: nextIndex,
       }));
+      recordSoundUse(voice, nextIndex);
+      completeFirstUseAction("sound");
       triggerVoice(voice, 0.9);
       setNotice(
         (DRUM_PADS.find((pad) => pad.voice === voice)?.label ?? voice) +
