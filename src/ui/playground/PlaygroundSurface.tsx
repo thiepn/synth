@@ -855,8 +855,18 @@ export function PlaygroundSurface({
         !on,
       );
     } else if (action === "normal") {
-      if (sequencerStore.isLaneRhythmLocked(laneId)) {
-        setNotice("Unlock rhythm to edit this step");
+      const lane = sequencerStore
+        .getSnapshot()
+        .pattern.lanes.find(
+          (entry) => entry.id === laneId,
+        );
+      if (
+        lane?.lock.rhythm ||
+        lane?.lock.dynamics
+      ) {
+        setNotice(
+          "Unlock rhythm/dynamics to edit this step",
+        );
       } else {
         sequencerStore.setStepVelocity(
           laneId,
@@ -1214,7 +1224,7 @@ export function PlaygroundSurface({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 2400);
+    const timer = window.setTimeout(() => setNotice(""), 1800);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -1233,6 +1243,9 @@ export function PlaygroundSurface({
         !eventTargetConsumesKeyboard(event.target)
       ) {
         event.preventDefault();
+        setProjectMenuOpen(false);
+        setStepContext(null);
+        setSoundPickerVoice(null);
         setHelpOpen((current) => !current);
       }
     };
@@ -3042,7 +3055,12 @@ export function PlaygroundSurface({
           <button
             type="button"
             className="playground-help-button"
-            onClick={() => setHelpOpen(true)}
+            onClick={() => {
+              setProjectMenuOpen(false);
+              setStepContext(null);
+              setSoundPickerVoice(null);
+              setHelpOpen(true);
+            }}
             aria-label="Open Playground help"
             data-tip="Help & shortcuts · ?"
           >
@@ -4505,6 +4523,7 @@ export function PlaygroundSurface({
               </div>
               <button
                 type="button"
+                autoFocus
                 onClick={() => setHelpOpen(false)}
                 aria-label="Close help"
               >
