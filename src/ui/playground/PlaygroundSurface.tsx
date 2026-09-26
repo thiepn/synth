@@ -2202,6 +2202,12 @@ export function PlaygroundSurface({
                       className={[
                         "playground-step",
                         on ? "is-on" : "",
+                        velocity !== undefined && velocity >= 0.85
+                          ? "is-accent"
+                          : "",
+                        velocity !== undefined && velocity <= 0.3
+                          ? "is-ghost"
+                          : "",
                         current ? "is-current" : "",
                       ]
                         .filter(Boolean)
