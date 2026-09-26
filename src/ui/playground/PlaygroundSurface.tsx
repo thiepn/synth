@@ -1202,6 +1202,7 @@ export function PlaygroundSurface({
       }
       clearPadLongPress();
       clearPadRepeat();
+      clearStepContextLongPress();
       countInTokenRef.current += 1;
       if (countInTimerRef.current !== null) {
         window.clearTimeout(countInTimerRef.current);
@@ -1521,6 +1522,15 @@ export function PlaygroundSurface({
   const selectedLane = sequencer.pattern.lanes.find(
     (lane) => lane.id === selectedDefinition.id,
   );
+  const selectedLaneHasHits =
+    selectedLane?.events.some(
+      (event) =>
+        event.tick <
+        sequencerStore.getLaneLengthSteps(
+          selectedDefinition.id,
+        ) *
+          TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+    ) ?? false;
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
@@ -3014,6 +3024,7 @@ export function PlaygroundSurface({
             disabled={!sequencer.canUndo}
             aria-label="Undo"
             title="Undo · Ctrl/Cmd-Z"
+            data-tip="Undo · Ctrl/Cmd-Z"
           >
             ↶
           </button>
@@ -3024,14 +3035,25 @@ export function PlaygroundSurface({
             disabled={!sequencer.canRedo}
             aria-label="Redo"
             title="Redo · Ctrl/Cmd-Shift-Z"
+            data-tip="Redo · Ctrl/Cmd-Shift-Z"
           >
             ↷
+          </button>
+          <button
+            type="button"
+            className="playground-help-button"
+            onClick={() => setHelpOpen(true)}
+            aria-label="Open Playground help"
+            data-tip="Help & shortcuts · ?"
+          >
+            ?
           </button>
           <button
             type="button"
             className="playground-studio-button"
             onClick={openStudio}
             aria-label="Open Studio"
+            data-tip="Open advanced Studio"
           >
             Studio
             <span aria-hidden="true">↗</span>
@@ -3369,6 +3391,30 @@ export function PlaygroundSurface({
           </button>
         </div>
       </div>
+
+      {firstUseHintVisible ? (
+        <aside
+          className="playground-coach"
+          aria-label="Quick start"
+        >
+          <div>
+            <strong>Start anywhere.</strong>
+            <span>
+              Tap a pad · draw a few steps · long-press a pad for sounds.
+            </span>
+          </div>
+          <span className="playground-coach__desktop">
+            Shift-drag accents · Alt-drag ghosts · ? for all shortcuts
+          </span>
+          <button
+            type="button"
+            onClick={dismissFirstUseHint}
+            aria-label="Dismiss quick start"
+          >
+            ×
+          </button>
+        </aside>
+      ) : null}
 
       <section
         className="playground-experiment-bar"
@@ -3833,6 +3879,16 @@ export function PlaygroundSurface({
               </div>
             </header>
 
+            {!selectedLaneHasHits ? (
+              <div className="playground-lane-empty">
+                <span aria-hidden="true">＋</span>
+                <p>
+                  <strong>This lane is empty.</strong>
+                  Tap a step, use a Fill button, or press ✦ to make a rhythm.
+                </p>
+              </div>
+            ) : null}
+
             <div
               className="playground-lane-toolbar"
               aria-label="Selected lane quick actions"
@@ -4129,6 +4185,16 @@ export function PlaygroundSurface({
                           stepIndex,
                         )
                       }
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        clearStepContextLongPress();
+                        openStepContext(
+                          selectedDefinition.id,
+                          stepIndex,
+                          event.clientX,
+                          event.clientY,
+                        );
+                      }}
                       onClick={(event) => {
                         if (event.detail !== 0) return;
                         activateFromKeyboard(
@@ -4184,51 +4250,148 @@ export function PlaygroundSurface({
                   </button>
                 </header>
 
+                {favoriteSoundIndices.length > 0 ||
+                recentSoundIndices.length > 0 ? (
+                  <div className="playground-sound-shortcuts">
+                    {favoriteSoundIndices.length > 0 ? (
+                      <div>
+                        <span>Favorites</span>
+                        <div>
+                          {favoriteSoundIndices.map((index) => {
+                            const preset =
+                              SOUND_PRESETS[selectedVoice][index];
+                            if (!preset) return null;
+                            return (
+                              <button
+                                type="button"
+                                key={"fav-" + index}
+                                onClick={() =>
+                                  void chooseSound(
+                                    selectedVoice,
+                                    index,
+                                  )
+                                }
+                              >
+                                ★ {preset.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {recentSoundIndices.length > 0 ? (
+                      <div>
+                        <span>Recent</span>
+                        <div>
+                          {recentSoundIndices.map((index) => {
+                            const preset =
+                              SOUND_PRESETS[selectedVoice][index];
+                            if (!preset) return null;
+                            return (
+                              <button
+                                type="button"
+                                key={"recent-" + index}
+                                onClick={() =>
+                                  void chooseSound(
+                                    selectedVoice,
+                                    index,
+                                  )
+                                }
+                              >
+                                {preset.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="playground-sound-choices">
                   {SOUND_PRESETS[selectedVoice].map(
-                    (preset, index) => (
-                      <button
-                        type="button"
-                        key={preset.label}
-                        className={
-                          soundIndex[selectedVoice] ===
-                          index
-                            ? "is-active"
-                            : ""
-                        }
-                        aria-pressed={
-                          soundIndex[selectedVoice] ===
-                          index
-                        }
-                        onClick={() =>
-                          void chooseSound(
-                            selectedVoice,
-                            index,
-                          )
-                        }
-                        disabled={Boolean(soundLoading)}
-                        aria-busy={
-                          preset.bundledSampleId ===
-                          soundLoading
-                            ? true
-                            : undefined
-                        }
-                        aria-label={
-                          preset.label +
-                          " " +
-                          displayLaneName(
-                            selectedDefinition,
-                          ) +
-                          " sound"
-                        }
-                      >
-                        <span aria-hidden="true" />
-                        {preset.bundledSampleId ===
-                        soundLoading
-                          ? "Loading…"
-                          : preset.label}
-                      </button>
-                    ),
+                    (preset, index) => {
+                      const active =
+                        soundIndex[selectedVoice] === index;
+                      const favorite =
+                        favoriteSoundIndices.includes(index);
+
+                      return (
+                        <div
+                          key={preset.label}
+                          className={
+                            active
+                              ? "playground-sound-choice is-active"
+                              : "playground-sound-choice"
+                          }
+                        >
+                          <button
+                            type="button"
+                            className="playground-sound-choice__main"
+                            aria-pressed={active}
+                            onClick={() =>
+                              void chooseSound(
+                                selectedVoice,
+                                index,
+                              )
+                            }
+                            disabled={Boolean(soundLoading)}
+                            aria-busy={
+                              preset.bundledSampleId ===
+                              soundLoading
+                                ? true
+                                : undefined
+                            }
+                            aria-label={
+                              preset.label +
+                              " " +
+                              displayLaneName(
+                                selectedDefinition,
+                              ) +
+                              " sound"
+                            }
+                          >
+                            <span aria-hidden="true" />
+                            {preset.bundledSampleId ===
+                            soundLoading
+                              ? "Loading…"
+                              : preset.label}
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              favorite
+                                ? "playground-sound-choice__star is-active"
+                                : "playground-sound-choice__star"
+                            }
+                            onClick={() =>
+                              toggleFavoriteSound(
+                                selectedVoice,
+                                index,
+                              )
+                            }
+                            aria-pressed={favorite}
+                            aria-label={
+                              favorite
+                                ? "Remove " +
+                                  preset.label +
+                                  " from favorite sounds"
+                                : "Favorite " +
+                                  preset.label +
+                                  " sound"
+                            }
+                            data-tip={
+                              favorite
+                                ? "Remove favorite"
+                                : "Favorite sound"
+                            }
+                          >
+                            ★
+                          </button>
+                        </div>
+                      );
+                    },
                   )}
                 </div>
               </section>
@@ -4236,6 +4399,163 @@ export function PlaygroundSurface({
           </section>
         ) : null}
       </div>
+
+      {stepContext ? (
+        <>
+          <button
+            type="button"
+            className="playground-context-dismiss"
+            onClick={() => setStepContext(null)}
+            aria-label="Close step actions"
+          />
+          <div
+            className="playground-step-context"
+            role="menu"
+            aria-label={
+              "Step " +
+              (stepContext.stepIndex + 1) +
+              " actions"
+            }
+            style={{
+              left: stepContext.x,
+              top: stepContext.y,
+            }}
+          >
+            <header>
+              <span>
+                Step {stepContext.stepIndex + 1}
+              </span>
+              <strong>
+                {sequencerStore.getStepVelocity(
+                  stepContext.laneId,
+                  stepContext.stepIndex,
+                ) === undefined
+                  ? "Empty"
+                  : "Hit"}
+              </strong>
+            </header>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() =>
+                applyStepContextAction("normal")
+              }
+            >
+              <b>●</b>
+              Normal hit
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() =>
+                applyStepContextAction("accent")
+              }
+            >
+              <b>!</b>
+              Accent
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() =>
+                applyStepContextAction("ghost")
+              }
+            >
+              <b>○</b>
+              Ghost
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() =>
+                applyStepContextAction("toggle")
+              }
+            >
+              <b>×</b>
+              {sequencerStore.getStepVelocity(
+                stepContext.laneId,
+                stepContext.stepIndex,
+              ) === undefined
+                ? "Add hit"
+                : "Clear step"}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {helpOpen ? (
+        <div
+          className="playground-help-backdrop"
+          onPointerDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setHelpOpen(false);
+            }
+          }}
+        >
+          <section
+            className="playground-help"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Playground help and shortcuts"
+          >
+            <header>
+              <div>
+                <small>PLAYGROUND HELP</small>
+                <strong>Fast ways to make a beat</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(false)}
+                aria-label="Close help"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="playground-help__grid">
+              <div>
+                <h3>Play</h3>
+                <p><kbd>Space</kbd> Play / pause</p>
+                <p><kbd>R</kbd> or <kbd>Shift</kbd>+<kbd>Space</kbd> Restart</p>
+                <p><kbd>A S D F J K L ;</kbd> Play pads</p>
+              </div>
+              <div>
+                <h3>Draw</h3>
+                <p>Click / drag empty steps to add hits.</p>
+                <p>Drag an active hit vertically for velocity.</p>
+                <p><kbd>Shift</kbd>-drag Accent · <kbd>Alt</kbd>-drag Ghost</p>
+              </div>
+              <div>
+                <h3>Touch</h3>
+                <p>Swipe the step grid to change pages.</p>
+                <p>Long-press a pad for its sound picker.</p>
+                <p>Long-press a step for quick step actions.</p>
+              </div>
+              <div>
+                <h3>Experiment</h3>
+                <p>Remix is reversible and keeps recent versions.</p>
+                <p>A/B patterns let you compare two directions.</p>
+                <p>Right-click a step for Normal / Accent / Ghost / Clear.</p>
+              </div>
+            </div>
+
+            <footer>
+              <span>
+                Most actions are undoable. Advanced controls stay in Studio.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  dismissFirstUseHint();
+                  setHelpOpen(false);
+                }}
+              >
+                Got it
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
 
       <nav
         className="playground-mobile-dock"
