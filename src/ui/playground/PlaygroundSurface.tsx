@@ -45,7 +45,10 @@ import {
 } from "../../music/foundationPattern";
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
 import { useProjectSnapshot } from "../../project/useProject";
-import { sequencerStore } from "../../sequencer/SequencerStore";
+import {
+  sequencerStore,
+  type LaneClipboardData,
+} from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import { getStyleDNA } from "../../style/styleDNA";
 
@@ -344,12 +347,16 @@ export function PlaygroundSurface({
     lastKey: string;
     gestureId: string;
     mode: "paint" | "pending" | "velocity";
+    dynamic?: "accent" | "ghost";
     startLaneId: string;
     startStepIndex: number;
     startX: number;
     startY: number;
     startVelocity?: number;
   } | null>(null);
+  const laneClipboardRef = useRef<LaneClipboardData | null>(null);
+  const [laneClipboardLabel, setLaneClipboardLabel] =
+    useState<string | null>(null);
   const tapTimesRef = useRef<number[]>([]);
 
   const stopVisualAudition = () => {
@@ -730,9 +737,16 @@ export function PlaygroundSurface({
   ) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
+    const dynamic =
+      event.altKey
+        ? "ghost"
+        : event.shiftKey
+          ? "accent"
+          : undefined;
     const existingVelocity =
       sequencerStore.getStepVelocity(laneId, stepIndex);
-    const desiredOn = existingVelocity === undefined;
+    const desiredOn =
+      dynamic ? true : existingVelocity === undefined;
     const key = laneId + ":" + stepIndex;
     const gestureId =
       "playground-" +
@@ -744,7 +758,11 @@ export function PlaygroundSurface({
       desiredOn,
       lastKey: key,
       gestureId,
-      mode: desiredOn ? "paint" : "pending",
+      mode:
+        dynamic || desiredOn
+          ? "paint"
+          : "pending",
+      dynamic,
       startLaneId: laneId,
       startStepIndex: stepIndex,
       startX: event.clientX,
@@ -754,7 +772,27 @@ export function PlaygroundSurface({
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
 
-    if (desiredOn) {
+    if (dynamic) {
+      const painted = sequencerStore.paintStepDynamic(
+        laneId,
+        stepIndex,
+        dynamic,
+        gestureId,
+      );
+      if (!painted) {
+        setNotice("Unlock rhythm/dynamics to paint accents");
+      } else {
+        const voice = SEQUENCER_LANES.find(
+          (lane) => lane.id === laneId,
+        )?.voice;
+        if (voice) {
+          triggerVoice(
+            voice,
+            dynamic === "accent" ? 0.96 : 0.22,
+          );
+        }
+      }
+    } else if (desiredOn) {
       setStep(
         laneId,
         stepIndex,
@@ -857,6 +895,17 @@ export function PlaygroundSurface({
     if (gesture.lastKey === key) return;
 
     gesture.lastKey = key;
+
+    if (gesture.dynamic) {
+      sequencerStore.paintStepDynamic(
+        laneId,
+        stepIndex,
+        gesture.dynamic,
+        gesture.gestureId,
+      );
+      return;
+    }
+
     setStep(
       laneId,
       stepIndex,
@@ -894,6 +943,12 @@ export function PlaygroundSurface({
           "Velocity " + Math.round(velocity * 100) + "%",
         );
       }
+    } else if (!cancelled && gesture.dynamic) {
+      setNotice(
+        gesture.dynamic === "accent"
+          ? "Accent painted"
+          : "Ghost notes painted",
+      );
     }
 
     sequencerStore.endPaintGesture(gesture.gestureId);
@@ -903,7 +958,30 @@ export function PlaygroundSurface({
   const activateFromKeyboard = (
     laneId: string,
     stepIndex: number,
+    dynamic?: "accent" | "ghost",
   ) => {
+    if (dynamic) {
+      const painted = sequencerStore.paintStepDynamic(
+        laneId,
+        stepIndex,
+        dynamic,
+      );
+      if (!painted) {
+        setNotice("Unlock rhythm/dynamics to paint accents");
+        return;
+      }
+      const voice = SEQUENCER_LANES.find(
+        (lane) => lane.id === laneId,
+      )?.voice;
+      if (voice) {
+        triggerVoice(
+          voice,
+          dynamic === "accent" ? 0.96 : 0.22,
+        );
+      }
+      return;
+    }
+
     const desiredOn =
       sequencerStore.getStepVelocity(laneId, stepIndex) === undefined;
     setStep(laneId, stepIndex, desiredOn, desiredOn);
@@ -1092,6 +1170,63 @@ export function PlaygroundSurface({
     setNotice("Remixed");
   };
 
+  const remixSelectedLane = () => {
+    const laneId = selectedDefinition.id;
+    if (sequencerStore.isLaneRhythmLocked(laneId)) {
+      setNotice("Unlock rhythm to remix this lane");
+      return;
+    }
+
+    checkpointCurrentPattern(
+      "Before lane Remix · " +
+        displayLaneName(selectedDefinition),
+    );
+
+    try {
+      const result = rerollBeat({
+        source: sequencerStore.getSnapshot().pattern,
+        seed:
+          "playground-lane-remix:" +
+          laneId +
+          ":" +
+          String(remixCounter).padStart(4, "0"),
+        style,
+        intent: intentForStyle(style),
+        distance: 0.52,
+        bpm: transport.bpm,
+        targetLaneIds: [laneId],
+      });
+
+      setRemixCounter((value) => value + 1);
+
+      if (!result.accepted) {
+        setNotice("Lane Remix kept the current rhythm");
+        return;
+      }
+
+      const committed = commitCreativePattern(
+        result.pattern,
+        "reroll",
+        "LANE REMIX",
+        displayLaneName(selectedDefinition) + " Remix",
+      );
+      setLastRemixSourceNodeId(committed.parentNodeId);
+      if (!playing) {
+        triggerVoice(selectedVoice, 0.88);
+      }
+      setRemixPulse((value) => value + 1);
+      setNotice(
+        displayLaneName(selectedDefinition) + " remixed",
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Lane Remix failed",
+      );
+    }
+  };
+
   const tapTempo = () => {
     const now = performance.now();
     const previous = tapTimesRef.current;
@@ -1132,6 +1267,11 @@ export function PlaygroundSurface({
     action:
       | "shiftLeft"
       | "shiftRight"
+      | "reverse"
+      | "densityHalf"
+      | "densityDouble"
+      | "copy"
+      | "paste"
       | "clear"
       | "fillQuarter"
       | "fillEighth"
@@ -1140,10 +1280,62 @@ export function PlaygroundSurface({
     const laneId = selectedDefinition.id;
     let changed = false;
 
-    if (action === "shiftLeft") {
+    if (action === "copy") {
+      const copied = sequencerStore.copyLane(laneId);
+      if (!copied) {
+        setNotice("Nothing to copy");
+        return;
+      }
+      laneClipboardRef.current = copied;
+      const label =
+        displayLaneName(selectedDefinition);
+      setLaneClipboardLabel(label);
+      setNotice(label + " copied");
+      return;
+    }
+
+    if (action === "paste") {
+      const clipboard = laneClipboardRef.current;
+      if (!clipboard) {
+        setNotice("Copy a lane first");
+        return;
+      }
+      checkpointCurrentPattern(
+        "Before lane paste · " +
+          displayLaneName(selectedDefinition),
+      );
+      changed = sequencerStore.pasteLane(
+        laneId,
+        clipboard,
+      );
+    } else if (action === "shiftLeft") {
       changed = sequencerStore.shiftLane(laneId, -1);
     } else if (action === "shiftRight") {
       changed = sequencerStore.shiftLane(laneId, 1);
+    } else if (action === "reverse") {
+      checkpointCurrentPattern(
+        "Before reverse · " +
+          displayLaneName(selectedDefinition),
+      );
+      changed = sequencerStore.reverseLane(laneId);
+    } else if (action === "densityHalf") {
+      checkpointCurrentPattern(
+        "Before density half · " +
+          displayLaneName(selectedDefinition),
+      );
+      changed = sequencerStore.scaleLaneDensity(
+        laneId,
+        0.5,
+      );
+    } else if (action === "densityDouble") {
+      checkpointCurrentPattern(
+        "Before density double · " +
+          displayLaneName(selectedDefinition),
+      );
+      changed = sequencerStore.scaleLaneDensity(
+        laneId,
+        2,
+      );
     } else if (action === "clear") {
       checkpointCurrentPattern(
         "Before clear · " +
@@ -1174,16 +1366,25 @@ export function PlaygroundSurface({
 
     const label =
       action === "shiftLeft"
-        ? "Shifted left"
+        ? "Rotated left"
         : action === "shiftRight"
-          ? "Shifted right"
-          : action === "clear"
-            ? "Lane cleared"
-            : action === "fillQuarter"
-              ? "Quarter-note fill"
-              : action === "fillEighth"
-                ? "Eighth-note fill"
-                : "Sixteenth-note fill";
+          ? "Rotated right"
+          : action === "reverse"
+            ? "Lane reversed"
+            : action === "densityHalf"
+              ? "Density halved"
+              : action === "densityDouble"
+                ? "Density doubled"
+                : action === "paste"
+                  ? "Pasted " +
+                    (laneClipboardLabel ?? "lane")
+                  : action === "clear"
+                    ? "Lane cleared"
+                    : action === "fillQuarter"
+                      ? "Quarter-note fill"
+                      : action === "fillEighth"
+                        ? "Eighth-note fill"
+                        : "Sixteenth-note fill";
     setNotice(label);
   };
 
@@ -1797,22 +1998,81 @@ export function PlaygroundSurface({
               className="playground-lane-toolbar"
               aria-label="Selected lane quick actions"
             >
-              <span>Lane</span>
+              <span>Transform</span>
+              <button
+                type="button"
+                onClick={remixSelectedLane}
+                aria-label="Remix selected lane only"
+                title="Remix only this instrument"
+              >
+                ✦
+              </button>
               <button
                 type="button"
                 onClick={() => editSelectedLane("shiftLeft")}
-                aria-label="Shift lane one step left"
-                title="Shift one step left"
+                aria-label="Rotate lane one step left"
+                title="Rotate one step left"
               >
-                ←
+                ↶
               </button>
               <button
                 type="button"
                 onClick={() => editSelectedLane("shiftRight")}
-                aria-label="Shift lane one step right"
-                title="Shift one step right"
+                aria-label="Rotate lane one step right"
+                title="Rotate one step right"
               >
-                →
+                ↷
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("reverse")}
+                aria-label="Reverse selected lane"
+                title="Reverse rhythm"
+              >
+                Rev
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("densityHalf")}
+                aria-label="Halve selected lane density"
+                title="Keep roughly half the hits"
+              >
+                ½D
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("densityDouble")}
+                aria-label="Double selected lane density"
+                title="Add hits to roughly double density"
+              >
+                ×2D
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("copy")}
+                aria-label="Copy selected lane rhythm"
+                title="Copy lane"
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("paste")}
+                disabled={!laneClipboardLabel}
+                aria-label={
+                  laneClipboardLabel
+                    ? "Paste copied " +
+                      laneClipboardLabel +
+                      " rhythm into selected lane"
+                    : "Paste lane rhythm"
+                }
+                title={
+                  laneClipboardLabel
+                    ? "Paste " + laneClipboardLabel
+                    : "Copy a lane first"
+                }
+              >
+                Paste
               </button>
               <i aria-hidden="true" />
               <span>Fill</span>
@@ -1995,6 +2255,11 @@ export function PlaygroundSurface({
                         activateFromKeyboard(
                           selectedDefinition.id,
                           stepIndex,
+                          event.altKey
+                            ? "ghost"
+                            : event.shiftKey
+                              ? "accent"
+                              : undefined,
                         );
                       }}
                     >
@@ -2095,7 +2360,7 @@ export function PlaygroundSurface({
 
       <footer className="playground-footer">
         <p className="playground-hint">
-          Tap a pad · drag steps to draw · drag an active step up/down for velocity · tap BPM for tempo · space = play
+          Tap a pad · drag steps to draw · Shift-drag = accent · Alt-drag = ghost · active step up/down = velocity · space = play
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
