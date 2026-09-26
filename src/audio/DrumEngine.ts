@@ -646,9 +646,11 @@ export class DrumEngine {
           creativePatternResolver.resolveSequencerPattern(
             sequencer.pattern,
           );
-        hits = getPatternHitsForAbsoluteStep(
-          activePattern,
-          stepIndex,
+        hits = sequencerStore.filterHitsForTransientMonitoring(
+          getPatternHitsForAbsoluteStep(
+            activePattern,
+            stepIndex,
+          ),
         );
         swing = activePattern.groove?.swing ?? 0;
       }
