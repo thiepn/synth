@@ -44,7 +44,9 @@ import {
   type SequencerLaneDefinition,
 } from "../../music/foundationPattern";
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
+import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
+import { triggerBlobDownload } from "../../render/wavEncoder";
 import {
   sequencerStore,
   type LaneClipboardData,
@@ -256,6 +258,81 @@ type PadRepeatDivision = 0 | 1 | 2 | 4;
 type MomentaryMonitorMode = "mute" | "solo";
 
 const HAPTICS_STORAGE_KEY = "synth.playground.haptics";
+const PLAYGROUND_SESSION_PREFIX =
+  "synth.playground.session.";
+
+interface PlaygroundSessionState {
+  selectedVoice?: DrumVoiceId;
+  stepPage?: number;
+  followPlayhead?: boolean;
+  touchEditMode?: TouchEditMode;
+}
+
+function readPlaygroundSession(
+  projectId: string,
+): PlaygroundSessionState {
+  try {
+    const raw = globalThis.localStorage?.getItem(
+      PLAYGROUND_SESSION_PREFIX + projectId,
+    );
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as PlaygroundSessionState;
+    return parsed && typeof parsed === "object"
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistPlaygroundSession(
+  projectId: string,
+  state: PlaygroundSessionState,
+): void {
+  try {
+    globalThis.localStorage?.setItem(
+      PLAYGROUND_SESSION_PREFIX + projectId,
+      JSON.stringify(state),
+    );
+  } catch {
+    // Session UI state remains in-memory if storage is blocked.
+  }
+}
+
+function projectSaveLabel(
+  status: ReturnType<typeof useProjectSnapshot>["saveStatus"],
+  dirty: boolean,
+): string {
+  switch (status) {
+    case "saving":
+      return "Saving…";
+    case "dirty":
+      return "Autosaving…";
+    case "clean":
+      return "Saved";
+    case "conflict":
+      return "Conflict";
+    case "error":
+      return "Save issue";
+    case "unsupported":
+      return "Session only";
+    case "loading":
+      return "Loading…";
+    default:
+      return dirty ? "Unsaved" : "Starting…";
+  }
+}
+
+function shortProjectTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
 
 function readHapticsPreference(): boolean {
   try {
@@ -341,6 +418,7 @@ export function PlaygroundSurface({
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
   const history = useGenerationHistorySnapshot();
+  const project = useProjectSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [remixPulse, setRemixPulse] = useState(0);
@@ -399,6 +477,14 @@ export function PlaygroundSurface({
     useState<PadRepeatDivision>(0);
   const [momentaryMonitor, setMomentaryMonitor] =
     useState<MomentaryMonitorMode | null>(null);
+  const [projectNameDraft, setProjectNameDraft] =
+    useState(project.name);
+  const [projectMenuOpen, setProjectMenuOpen] =
+    useState(false);
+  const [projectBusy, setProjectBusy] =
+    useState<string | null>(null);
+  const [sessionHydratedProjectId, setSessionHydratedProjectId] =
+    useState<string | null>(null);
   const tapTimesRef = useRef<number[]>([]);
   const focusRef = useRef<HTMLElement | null>(null);
   const padLongPressTimerRef = useRef<number | null>(null);
@@ -1045,6 +1131,14 @@ export function PlaygroundSurface({
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
+  const favoriteProjectIds = project.favoriteProjectIds;
+  const currentProjectFavorite =
+    Boolean(project.projectId) &&
+    favoriteProjectIds.includes(project.projectId ?? "");
+  const recentProjects = useMemo(
+    () => project.summaries.slice(0, 6),
+    [project.summaries],
+  );
   const repeatLabel =
     padRepeatDivision === 0
       ? "Off"
@@ -1061,6 +1155,82 @@ export function PlaygroundSurface({
       Math.min(current, pageCount - 1),
     );
   }, [pageCount]);
+
+  useEffect(() => {
+    setProjectNameDraft(project.name);
+    setProjectMenuOpen(false);
+
+    const projectId = project.projectId;
+    if (!projectId) {
+      setSessionHydratedProjectId(null);
+      return;
+    }
+
+    const saved = readPlaygroundSession(projectId);
+    if (
+      saved.selectedVoice &&
+      DRUM_PADS.some(
+        (pad) => pad.voice === saved.selectedVoice,
+      )
+    ) {
+      setSelectedVoice(saved.selectedVoice);
+    } else {
+      setSelectedVoice("kick");
+    }
+
+    if (
+      typeof saved.stepPage === "number" &&
+      Number.isFinite(saved.stepPage)
+    ) {
+      setStepPage(
+        Math.max(0, Math.floor(saved.stepPage)),
+      );
+    } else {
+      setStepPage(0);
+    }
+
+    if (typeof saved.followPlayhead === "boolean") {
+      setFollowPlayhead(saved.followPlayhead);
+    } else {
+      setFollowPlayhead(true);
+    }
+
+    if (
+      saved.touchEditMode === "draw" ||
+      saved.touchEditMode === "accent" ||
+      saved.touchEditMode === "ghost"
+    ) {
+      setTouchEditMode(saved.touchEditMode);
+    } else {
+      setTouchEditMode("draw");
+    }
+
+    setSessionHydratedProjectId(projectId);
+  }, [project.projectId, project.name]);
+
+  useEffect(() => {
+    const projectId = project.projectId;
+    if (
+      !projectId ||
+      sessionHydratedProjectId !== projectId
+    ) {
+      return;
+    }
+
+    persistPlaygroundSession(projectId, {
+      selectedVoice,
+      stepPage,
+      followPlayhead,
+      touchEditMode,
+    });
+  }, [
+    followPlayhead,
+    project.projectId,
+    selectedVoice,
+    sessionHydratedProjectId,
+    stepPage,
+    touchEditMode,
+  ]);
 
   useEffect(() => {
     if (
@@ -2150,6 +2320,180 @@ export function PlaygroundSurface({
         behavior: "smooth",
       });
     });
+  };
+
+  const commitProjectName = () => {
+    projectStore.rename(projectNameDraft);
+    setProjectNameDraft(
+      projectStore.getSnapshot().name,
+    );
+  };
+
+  const prepareProjectSwitch = () => {
+    cancelCountIn();
+    clearPadRepeat();
+    clearPadLongPress();
+    sequencerStore.clearTransientMonitoring();
+    setMomentaryMonitor(null);
+    setSoundPickerVoice(null);
+  };
+
+  const createFreshProject = async () => {
+    if (projectBusy) return;
+    setProjectBusy("new");
+
+    try {
+      prepareProjectSwitch();
+      const id = await projectStore.createNewProject(
+        "New Beat",
+      );
+      if (id) {
+        setSelectedVoice("kick");
+        setStepPage(0);
+        setFollowPlayhead(true);
+        setTouchEditMode("draw");
+        setProjectMenuOpen(false);
+        setNotice("New beat ready");
+      } else {
+        setNotice(
+          projectStore.getSnapshot().lastError ??
+            "New beat could not be created",
+        );
+      }
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
+  const duplicateCurrentProject = async () => {
+    if (projectBusy) return;
+    setProjectBusy("duplicate");
+
+    try {
+      const id = await projectStore.saveAsNew(
+        project.name + " Copy",
+      );
+      if (id) {
+        setProjectMenuOpen(false);
+        setNotice("Duplicate ready");
+      } else {
+        setNotice(
+          projectStore.getSnapshot().lastError ??
+            "Project could not be duplicated",
+        );
+      }
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
+  const createRecoverySnapshot = async () => {
+    if (projectBusy) return;
+    setProjectBusy("snapshot");
+
+    try {
+      const label =
+        "Recovery " +
+        new Intl.DateTimeFormat(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date());
+      const version =
+        await projectStore.createVersion(label);
+      setNotice(
+        version
+          ? "Recovery snapshot saved"
+          : projectStore.getSnapshot().lastError ??
+              "Snapshot could not be saved",
+      );
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
+  const shareOrExportProject = async () => {
+    if (projectBusy) return;
+    setProjectBusy("share");
+
+    try {
+      const backup = await projectStore.exportBackup();
+      if (!backup) {
+        setNotice(
+          projectStore.getSnapshot().lastError ??
+            "Backup could not be created",
+        );
+        return;
+      }
+
+      const file = new File(
+        [backup.blob],
+        backup.filename,
+        {
+          type:
+            backup.blob.type ||
+            "application/zip",
+        },
+      );
+      const shareData: ShareData = {
+        title: project.name,
+        files: [file],
+      };
+
+      if (
+        typeof navigator.share === "function" &&
+        (!navigator.canShare ||
+          navigator.canShare(shareData))
+      ) {
+        try {
+          await navigator.share(shareData);
+          setNotice("Project shared");
+          return;
+        } catch (error) {
+          if (
+            error instanceof DOMException &&
+            error.name === "AbortError"
+          ) {
+            setNotice("Share cancelled");
+            return;
+          }
+        }
+      }
+
+      triggerBlobDownload(
+        backup.blob,
+        backup.filename,
+      );
+      setNotice("Project backup exported");
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
+  const openRecentProject = async (
+    projectId: string,
+  ) => {
+    if (projectBusy || projectId === project.projectId) {
+      setProjectMenuOpen(false);
+      return;
+    }
+
+    setProjectBusy("open");
+    try {
+      prepareProjectSwitch();
+      const opened =
+        await projectStore.openProject(projectId);
+      if (opened) {
+        setProjectMenuOpen(false);
+        setNotice("Project opened");
+      } else {
+        setNotice(
+          projectStore.getSnapshot().lastError ??
+            "Project could not be opened",
+        );
+      }
+    } finally {
+      setProjectBusy(null);
+    }
   };
 
   return (
