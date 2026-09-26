@@ -333,7 +333,14 @@ export function PlaygroundSurface({
     desiredOn: boolean;
     lastKey: string;
     gestureId: string;
+    mode: "paint" | "pending" | "velocity";
+    startLaneId: string;
+    startStepIndex: number;
+    startX: number;
+    startY: number;
+    startVelocity?: number;
   } | null>(null);
+  const tapTimesRef = useRef<number[]>([]);
 
   const stopVisualAudition = () => {
     if (auditionStartRef.current !== null) {
@@ -399,17 +406,23 @@ export function PlaygroundSurface({
   };
 
   useEffect(() => {
-    const stopPaint = () => {
-      const gesture = paintRef.current;
-      if (!gesture) return;
-      sequencerStore.endPaintGesture(gesture.gestureId);
-      paintRef.current = null;
+    const finishPointer = (event: PointerEvent) => {
+      finishPaint(event.pointerId);
     };
-    window.addEventListener("pointerup", stopPaint);
-    window.addEventListener("pointercancel", stopPaint);
+    const cancelPointer = (event: PointerEvent) => {
+      finishPaint(event.pointerId, true);
+    };
+
+    window.addEventListener("pointerup", finishPointer);
+    window.addEventListener("pointercancel", cancelPointer);
     return () => {
-      window.removeEventListener("pointerup", stopPaint);
-      window.removeEventListener("pointercancel", stopPaint);
+      window.removeEventListener("pointerup", finishPointer);
+      window.removeEventListener("pointercancel", cancelPointer);
+      const gesture = paintRef.current;
+      if (gesture) {
+        sequencerStore.endPaintGesture(gesture.gestureId);
+        paintRef.current = null;
+      }
       if (auditionStartRef.current !== null) {
         window.clearTimeout(auditionStartRef.current);
       }
@@ -698,8 +711,9 @@ export function PlaygroundSurface({
   ) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
-    const desiredOn =
-      sequencerStore.getStepVelocity(laneId, stepIndex) === undefined;
+    const existingVelocity =
+      sequencerStore.getStepVelocity(laneId, stepIndex);
+    const desiredOn = existingVelocity === undefined;
     const key = laneId + ":" + stepIndex;
     const gestureId =
       "playground-" +
@@ -711,14 +725,26 @@ export function PlaygroundSurface({
       desiredOn,
       lastKey: key,
       gestureId,
+      mode: desiredOn ? "paint" : "pending",
+      startLaneId: laneId,
+      startStepIndex: stepIndex,
+      startX: event.clientX,
+      startY: event.clientY,
+      startVelocity: existingVelocity,
     };
-    setStep(
-      laneId,
-      stepIndex,
-      desiredOn,
-      desiredOn,
-      gestureId,
-    );
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    if (desiredOn) {
+      setStep(
+        laneId,
+        stepIndex,
+        true,
+        true,
+        gestureId,
+      );
+    }
+
     event.preventDefault();
   };
 
@@ -728,9 +754,80 @@ export function PlaygroundSurface({
     const gesture = paintRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
 
+    if (gesture.mode === "velocity") {
+      const startVelocity = gesture.startVelocity ?? 0.76;
+      const nextVelocity = Math.max(
+        0.05,
+        Math.min(
+          1,
+          startVelocity -
+            (event.clientY - gesture.startY) / 96,
+        ),
+      );
+      sequencerStore.setStepVelocity(
+        gesture.startLaneId,
+        gesture.startStepIndex,
+        nextVelocity,
+        gesture.gestureId,
+      );
+      return;
+    }
+
     const target = document
       .elementFromPoint(event.clientX, event.clientY)
       ?.closest("[data-play-step='true']") as HTMLButtonElement | null;
+
+    if (gesture.mode === "pending") {
+      const dx = event.clientX - gesture.startX;
+      const dy = event.clientY - gesture.startY;
+      const distance = Math.hypot(dx, dy);
+
+      if (
+        distance >= 7 &&
+        Math.abs(dy) > Math.abs(dx) * 1.05
+      ) {
+        gesture.mode = "velocity";
+        const startVelocity = gesture.startVelocity ?? 0.76;
+        const nextVelocity = Math.max(
+          0.05,
+          Math.min(1, startVelocity - dy / 96),
+        );
+        sequencerStore.setStepVelocity(
+          gesture.startLaneId,
+          gesture.startStepIndex,
+          nextVelocity,
+          gesture.gestureId,
+        );
+        return;
+      }
+
+      if (!target) return;
+      const targetLaneId = target.dataset.laneId;
+      const targetStepIndex = Number(target.dataset.stepIndex);
+      const startKey =
+        gesture.startLaneId + ":" + gesture.startStepIndex;
+      const targetKey =
+        targetLaneId + ":" + targetStepIndex;
+
+      if (
+        distance >= 7 &&
+        targetLaneId &&
+        Number.isInteger(targetStepIndex) &&
+        targetKey !== startKey
+      ) {
+        gesture.mode = "paint";
+        setStep(
+          gesture.startLaneId,
+          gesture.startStepIndex,
+          false,
+          false,
+          gesture.gestureId,
+        );
+      } else {
+        return;
+      }
+    }
+
     if (!target) return;
 
     const laneId = target.dataset.laneId;
@@ -748,6 +845,40 @@ export function PlaygroundSurface({
       gesture.desiredOn,
       gesture.gestureId,
     );
+  };
+
+  const finishPaint = (
+    pointerId: number,
+    cancelled = false,
+  ) => {
+    const gesture = paintRef.current;
+    if (!gesture || gesture.pointerId !== pointerId) return;
+
+    if (!cancelled && gesture.mode === "pending") {
+      setStep(
+        gesture.startLaneId,
+        gesture.startStepIndex,
+        false,
+        false,
+        gesture.gestureId,
+      );
+    }
+
+    if (!cancelled && gesture.mode === "velocity") {
+      const velocity =
+        sequencerStore.getStepVelocity(
+          gesture.startLaneId,
+          gesture.startStepIndex,
+        ) ?? gesture.startVelocity;
+      if (velocity !== undefined) {
+        setNotice(
+          "Velocity " + Math.round(velocity * 100) + "%",
+        );
+      }
+    }
+
+    sequencerStore.endPaintGesture(gesture.gestureId);
+    paintRef.current = null;
   };
 
   const activateFromKeyboard = (
@@ -829,6 +960,109 @@ export function PlaygroundSurface({
     }
     setRemixPulse((value) => value + 1);
     setNotice("Remixed");
+  };
+
+  const tapTempo = () => {
+    const now = performance.now();
+    const previous = tapTimesRef.current;
+    const last = previous[previous.length - 1];
+
+    const next =
+      last === undefined || now - last > 2_000
+        ? [now]
+        : [...previous, now].slice(-5);
+
+    tapTimesRef.current = next;
+
+    if (next.length < 2) {
+      setNotice("Tap again");
+      return;
+    }
+
+    const intervals = next
+      .slice(1)
+      .map((time, index) => time - next[index])
+      .filter((interval) => interval >= 180 && interval <= 2_000);
+
+    if (intervals.length === 0) {
+      setNotice("Tap again");
+      return;
+    }
+
+    const average =
+      intervals.reduce((sum, interval) => sum + interval, 0) /
+      intervals.length;
+    const bpm = 60_000 / average;
+
+    audioTransport.setBpm(bpm);
+    setNotice(Math.round(audioTransport.getSnapshot().bpm) + " BPM");
+  };
+
+  const cycleSound = (
+    voice: DrumVoiceId,
+    direction: -1 | 1,
+  ) => {
+    const presets = SOUND_PRESETS[voice];
+    if (presets.length === 0 || soundLoading) return;
+
+    const current = soundIndex[voice];
+    const normalized = current >= 0 ? current : 0;
+    const next =
+      (normalized + direction + presets.length) %
+      presets.length;
+
+    void chooseSound(voice, next);
+  };
+
+  const editSelectedLane = (
+    action:
+      | "shiftLeft"
+      | "shiftRight"
+      | "clear"
+      | "fillQuarter"
+      | "fillEighth"
+      | "fillSixteenth",
+  ) => {
+    const laneId = selectedDefinition.id;
+    let changed = false;
+
+    if (action === "shiftLeft") {
+      changed = sequencerStore.shiftLane(laneId, -1);
+    } else if (action === "shiftRight") {
+      changed = sequencerStore.shiftLane(laneId, 1);
+    } else if (action === "clear") {
+      changed = sequencerStore.clearLane(laneId);
+    } else {
+      const interval =
+        action === "fillQuarter"
+          ? 4
+          : action === "fillEighth"
+            ? 2
+            : 1;
+      changed = sequencerStore.fillLane(
+        laneId,
+        interval as 1 | 2 | 4,
+      );
+    }
+
+    if (!changed) {
+      setNotice("Unlock rhythm to edit this lane");
+      return;
+    }
+
+    const label =
+      action === "shiftLeft"
+        ? "Shifted left"
+        : action === "shiftRight"
+          ? "Shifted right"
+          : action === "clear"
+            ? "Lane cleared"
+            : action === "fillQuarter"
+              ? "Quarter-note fill"
+              : action === "fillEighth"
+                ? "Eighth-note fill"
+                : "Sixteenth-note fill";
+    setNotice(label);
   };
 
   const chooseSound = async (
@@ -925,21 +1159,53 @@ export function PlaygroundSurface({
           <div className="playground-tempo" aria-label="Tempo">
             <button
               type="button"
+              className="playground-tempo__scale"
+              onClick={() =>
+                audioTransport.setBpm(transport.bpm * 0.5)
+              }
+              aria-label="Half tempo"
+              title="Half tempo"
+            >
+              ½
+            </button>
+            <button
+              type="button"
               onClick={() => audioTransport.setBpm(transport.bpm - 2)}
               aria-label="Decrease tempo"
             >
               −
             </button>
-            <span>
+            <button
+              type="button"
+              className="playground-tempo__tap"
+              onClick={tapTempo}
+              aria-label={
+                "Tap tempo. Current tempo " +
+                Math.round(transport.bpm) +
+                " BPM"
+              }
+              title="Tap repeatedly to set tempo"
+            >
               <strong>{Math.round(transport.bpm)}</strong>
-              <small>BPM</small>
-            </span>
+              <small>BPM · TAP</small>
+            </button>
             <button
               type="button"
               onClick={() => audioTransport.setBpm(transport.bpm + 2)}
               aria-label="Increase tempo"
             >
               +
+            </button>
+            <button
+              type="button"
+              className="playground-tempo__scale"
+              onClick={() =>
+                audioTransport.setBpm(transport.bpm * 2)
+              }
+              aria-label="Double tempo"
+              title="Double tempo"
+            >
+              ×2
             </button>
           </div>
         </div>
@@ -1244,28 +1510,116 @@ export function PlaygroundSurface({
                   </div>
                 ) : null}
 
-                <button
-                  type="button"
-                  className="playground-focus__sound"
-                  onClick={() =>
-                    setSoundPickerVoice((current) =>
-                      current === selectedVoice
-                        ? null
-                        : selectedVoice,
-                    )
-                  }
+                <div
+                  className="playground-sound-cycle"
                   aria-label={
-                    "Change " +
                     displayLaneName(selectedDefinition) +
-                    " sound. Current sound " +
-                    selectedSound
+                    " sound selector"
                   }
                 >
-                  <span>{selectedSound}</span>
-                  <b aria-hidden="true">›</b>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      cycleSound(selectedVoice, -1)
+                    }
+                    disabled={Boolean(soundLoading)}
+                    aria-label="Previous sound"
+                    title="Previous sound"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="playground-focus__sound"
+                    onClick={() =>
+                      setSoundPickerVoice((current) =>
+                        current === selectedVoice
+                          ? null
+                          : selectedVoice,
+                      )
+                    }
+                    disabled={Boolean(soundLoading)}
+                    aria-label={
+                      "Change " +
+                      displayLaneName(selectedDefinition) +
+                      " sound. Current sound " +
+                      selectedSound
+                    }
+                  >
+                    <span>{selectedSound}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      cycleSound(selectedVoice, 1)
+                    }
+                    disabled={Boolean(soundLoading)}
+                    aria-label="Next sound"
+                    title="Next sound"
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
             </header>
+
+            <div
+              className="playground-lane-toolbar"
+              aria-label="Selected lane quick actions"
+            >
+              <span>Lane</span>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("shiftLeft")}
+                aria-label="Shift lane one step left"
+                title="Shift one step left"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("shiftRight")}
+                aria-label="Shift lane one step right"
+                title="Shift one step right"
+              >
+                →
+              </button>
+              <i aria-hidden="true" />
+              <span>Fill</span>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("fillQuarter")}
+                aria-label="Fill lane with quarter notes"
+                title="Fill quarter notes"
+              >
+                ¼
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("fillEighth")}
+                aria-label="Fill lane with eighth notes"
+                title="Fill eighth notes"
+              >
+                ⅛
+              </button>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("fillSixteenth")}
+                aria-label="Fill lane with sixteenth notes"
+                title="Fill sixteenth notes"
+              >
+                1/16
+              </button>
+              <i aria-hidden="true" />
+              <button
+                type="button"
+                className="playground-lane-toolbar__clear"
+                onClick={() => editSelectedLane("clear")}
+                aria-label="Clear selected lane"
+              >
+                Clear
+              </button>
+            </div>
 
             <div
               className="playground-steps playground-steps--focus"
@@ -1280,22 +1634,12 @@ export function PlaygroundSurface({
                   : undefined
               }
               onPointerMove={continuePaint}
-              onPointerUp={() => {
-                const gesture = paintRef.current;
-                if (!gesture) return;
-                sequencerStore.endPaintGesture(
-                  gesture.gestureId,
-                );
-                paintRef.current = null;
-              }}
-              onPointerCancel={() => {
-                const gesture = paintRef.current;
-                if (!gesture) return;
-                sequencerStore.endPaintGesture(
-                  gesture.gestureId,
-                );
-                paintRef.current = null;
-              }}
+              onPointerUp={(event) =>
+                finishPaint(event.pointerId)
+              }
+              onPointerCancel={(event) =>
+                finishPaint(event.pointerId, true)
+              }
             >
               {visualStep !== undefined &&
               visualStep >= pageStart &&
@@ -1373,7 +1717,11 @@ export function PlaygroundSurface({
                         ) +
                         " step " +
                         (stepIndex + 1) +
-                        (on ? ", on" : ", off")
+                        (on
+                          ? ", on, velocity " +
+                            Math.round((velocity ?? 0) * 100) +
+                            " percent. Drag vertically to change velocity"
+                          : ", off")
                       }
                       onPointerDown={(event) =>
                         beginPaint(
@@ -1487,7 +1835,7 @@ export function PlaygroundSurface({
 
       <footer className="playground-footer">
         <p className="playground-hint">
-          Tap a pad · click or drag steps to draw · space = play
+          Tap a pad · drag steps to draw · drag an active step up/down for velocity · tap BPM for tempo · space = play
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
