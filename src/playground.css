@@ -2822,9 +2822,14 @@
     gap: 6px;
   }
 
-  .playground-sound-choices button {
-    min-height: 44px;
+  .playground-sound-choice {
     border-radius: 12px;
+  }
+
+  .playground-sound-choice__main,
+  .playground-sound-choice__star,
+  .playground-sound-shortcuts button {
+    min-height: 44px;
   }
 
   .playground-footer {
@@ -2844,6 +2849,24 @@
 }
 
 @media (max-width: 420px) {
+  .playground-save-state {
+    max-width: 66px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .playground-session-identity {
+    min-width: 0;
+  }
+
+  .playground-project-name {
+    min-width: 72px;
+  }
+
+  .playground-studio-button {
+    padding-inline: 11px;
+  }
+
   .playground-mobile-dock {
     left: 6px;
     right: 6px;
@@ -2929,7 +2952,10 @@
   .playground-step.is-current.is-on > span,
   .playground-beat-pad__hit,
   .playground-remix-wave,
-  .playground-play.is-playing > span {
+  .playground-play.is-playing > span,
+  .playground-coach,
+  .playground-step-context,
+  .playground-sound-drawer {
     animation: none;
   }
 
@@ -3034,7 +3060,7 @@
 
   .playground-beat-pad__key,
   .playground-step.is-on,
-  .playground-sound-choices button.is-active {
+  .playground-sound-choice.is-active {
     background: Highlight;
     color: HighlightText;
   }
