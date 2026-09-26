@@ -76,6 +76,12 @@ jobs:
             exit 0
           fi
 
+          current_main="$(gh api repos/${{ github.repository }}/commits/main --jq .sha)"
+          if [ "$RELEASE_SHA" != "$current_main" ]; then
+            echo "::notice title=Release publisher idle::Main advanced to $current_main after certification; refusing to publish stale $RELEASE_SHA."
+            exit 0
+          fi
+
           gh release create "$tag" \
             --target "$RELEASE_SHA" \
             --title "Synth $tag" \
