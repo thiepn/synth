@@ -87,8 +87,10 @@ Production build
 The release publisher must:
 
 - run only after successful `CI` completion on `main`
+- verify the certified CI SHA is still the current `main` HEAD
 - verify package version `1.1.0`
 - re-run the release-freeze contract
+- recheck `main` immediately before creating the tag/release
 - publish tag `v1.1.0`
 - use `docs/playground-v1.1/RELEASE_NOTES.md`
 - remain idempotent if the release already exists
