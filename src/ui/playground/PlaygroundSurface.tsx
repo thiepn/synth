@@ -257,7 +257,22 @@ type TouchEditMode = "draw" | "accent" | "ghost";
 type PadRepeatDivision = 0 | 1 | 2 | 4;
 type MomentaryMonitorMode = "mute" | "solo";
 
+interface StepContextState {
+  laneId: string;
+  stepIndex: number;
+  x: number;
+  y: number;
+}
+
+type SoundIndexCollection = Record<DrumVoiceId, number[]>;
+
 const HAPTICS_STORAGE_KEY = "synth.playground.haptics";
+const FAVORITE_SOUNDS_STORAGE_KEY =
+  "synth.playground.favorite-sounds";
+const RECENT_SOUNDS_STORAGE_KEY =
+  "synth.playground.recent-sounds";
+const DISCOVERY_STORAGE_KEY =
+  "synth.playground.discovery-seen";
 const PLAYGROUND_SESSION_PREFIX =
   "synth.playground.session.";
 
@@ -266,6 +281,87 @@ interface PlaygroundSessionState {
   stepPage?: number;
   followPlayhead?: boolean;
   touchEditMode?: TouchEditMode;
+}
+
+function emptySoundIndexCollection(): SoundIndexCollection {
+  return {
+    kick: [],
+    snare: [],
+    clap: [],
+    closedHat: [],
+    openHat: [],
+    tom: [],
+    percussion: [],
+    crash: [],
+  };
+}
+
+function readSoundIndexCollection(
+  key: string,
+): SoundIndexCollection {
+  const fallback = emptySoundIndexCollection();
+
+  try {
+    const raw = globalThis.localStorage?.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<
+      Record<DrumVoiceId, unknown>
+    >;
+
+    for (const pad of DRUM_PADS) {
+      const values = parsed?.[pad.voice];
+      if (!Array.isArray(values)) continue;
+      fallback[pad.voice] = values
+        .filter(
+          (value): value is number =>
+            Number.isInteger(value) &&
+            value >= 0 &&
+            value < SOUND_PRESETS[pad.voice].length,
+        )
+        .slice(0, 8);
+    }
+
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function persistSoundIndexCollection(
+  key: string,
+  value: SoundIndexCollection,
+): void {
+  try {
+    globalThis.localStorage?.setItem(
+      key,
+      JSON.stringify(value),
+    );
+  } catch {
+    // Sound discovery metadata remains session-only if storage is blocked.
+  }
+}
+
+function readDiscoverySeen(): boolean {
+  try {
+    return (
+      globalThis.localStorage?.getItem(
+        DISCOVERY_STORAGE_KEY,
+      ) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function persistDiscoverySeen(): void {
+  try {
+    globalThis.localStorage?.setItem(
+      DISCOVERY_STORAGE_KEY,
+      "1",
+    );
+  } catch {
+    // First-use guidance may reappear if storage is unavailable.
+  }
 }
 
 function readPlaygroundSession(
@@ -485,7 +581,37 @@ export function PlaygroundSurface({
     useState<string | null>(null);
   const [sessionHydratedProjectId, setSessionHydratedProjectId] =
     useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [firstUseHintVisible, setFirstUseHintVisible] =
+    useState(() => !readDiscoverySeen());
+  const [favoriteSounds, setFavoriteSounds] =
+    useState<SoundIndexCollection>(() =>
+      readSoundIndexCollection(
+        FAVORITE_SOUNDS_STORAGE_KEY,
+      ),
+    );
+  const [recentSounds, setRecentSounds] =
+    useState<SoundIndexCollection>(() =>
+      readSoundIndexCollection(
+        RECENT_SOUNDS_STORAGE_KEY,
+      ),
+    );
+  const [stepContext, setStepContext] =
+    useState<StepContextState | null>(null);
   const tapTimesRef = useRef<number[]>([]);
+  const firstUseActionsRef = useRef(new Set<string>());
+  const noticeHistoryRef = useRef({
+    message: "",
+    at: 0,
+  });
+  const stepContextTimerRef = useRef<number | null>(null);
+  const stepContextPendingRef = useRef<{
+    pointerId: number;
+    laneId: string;
+    stepIndex: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const focusRef = useRef<HTMLElement | null>(null);
   const padLongPressTimerRef = useRef<number | null>(null);
   const padLongPressRef = useRef<{
