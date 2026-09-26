@@ -522,7 +522,7 @@ export function PlaygroundSurface({
     useState<number | undefined>(undefined);
   const [soundIndex, setSoundIndex] =
     useState<Record<DrumVoiceId, number>>(INITIAL_SOUND_INDEX);
-  const [notice, setNotice] = useState("Tap a pad. Draw a beat.");
+  const [notice, setNoticeState] = useState("Tap a pad. Draw a beat.");
   const [padPulse, setPadPulse] = useState({
     voice: null as DrumVoiceId | null,
     serial: 0,
@@ -633,6 +633,257 @@ export function PlaygroundSurface({
     pointerId: number;
     mode: MomentaryMonitorMode;
   } | null>(null);
+
+  const setNotice = (message: string) => {
+    if (!message) {
+      noticeHistoryRef.current = {
+        message: "",
+        at: performance.now(),
+      };
+      setNoticeState("");
+      return;
+    }
+
+    const now = performance.now();
+    if (
+      noticeHistoryRef.current.message === message &&
+      now - noticeHistoryRef.current.at < 900
+    ) {
+      return;
+    }
+
+    noticeHistoryRef.current = {
+      message,
+      at: now,
+    };
+    setNoticeState(message);
+  };
+
+  const completeFirstUseAction = (action: string) => {
+    if (!firstUseHintVisible) return;
+    firstUseActionsRef.current.add(action);
+
+    if (firstUseActionsRef.current.size < 2) return;
+    persistDiscoverySeen();
+    window.setTimeout(() => {
+      setFirstUseHintVisible(false);
+    }, 550);
+  };
+
+  const dismissFirstUseHint = () => {
+    persistDiscoverySeen();
+    setFirstUseHintVisible(false);
+  };
+
+  const clearStepContextLongPress = () => {
+    if (stepContextTimerRef.current !== null) {
+      window.clearTimeout(stepContextTimerRef.current);
+      stepContextTimerRef.current = null;
+    }
+    stepContextPendingRef.current = null;
+  };
+
+  const openStepContext = (
+    laneId: string,
+    stepIndex: number,
+    x: number,
+    y: number,
+  ) => {
+    const definition = SEQUENCER_LANES.find(
+      (lane) => lane.id === laneId,
+    );
+    if (definition) {
+      setSelectedVoice(definition.voice);
+    }
+
+    const width = 220;
+    const height = 210;
+    setStepContext({
+      laneId,
+      stepIndex,
+      x: Math.max(
+        8,
+        Math.min(
+          x,
+          Math.max(8, globalThis.innerWidth - width - 8),
+        ),
+      ),
+      y: Math.max(
+        8,
+        Math.min(
+          y,
+          Math.max(8, globalThis.innerHeight - height - 8),
+        ),
+      ),
+    });
+    setSoundPickerVoice(null);
+  };
+
+  const beginStepContextLongPress = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    if (
+      event.pointerType === "mouse" ||
+      touchEditMode !== "draw"
+    ) {
+      return;
+    }
+
+    clearStepContextLongPress();
+    stepContextPendingRef.current = {
+      pointerId: event.pointerId,
+      laneId,
+      stepIndex,
+      x: event.clientX,
+      y: event.clientY,
+    };
+    stepContextTimerRef.current = window.setTimeout(() => {
+      const pending = stepContextPendingRef.current;
+      if (
+        !pending ||
+        pending.pointerId !== event.pointerId
+      ) {
+        return;
+      }
+
+      const gesture = paintRef.current;
+      if (
+        gesture &&
+        gesture.pointerId === event.pointerId
+      ) {
+        sequencerStore.endPaintGesture(
+          gesture.gestureId,
+        );
+        paintRef.current = null;
+      }
+
+      clearStepContextLongPress();
+      openStepContext(
+        laneId,
+        stepIndex,
+        pending.x,
+        pending.y,
+      );
+      pulseHaptic([8, 18, 8]);
+    }, 480);
+  };
+
+  const moveStepContextLongPress = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    const pending = stepContextPendingRef.current;
+    if (
+      !pending ||
+      pending.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    if (
+      Math.hypot(
+        event.clientX - pending.x,
+        event.clientY - pending.y,
+      ) > 11
+    ) {
+      clearStepContextLongPress();
+    }
+  };
+
+  const recordSoundUse = (
+    voice: DrumVoiceId,
+    index: number,
+  ) => {
+    setRecentSounds((current) => {
+      const next = {
+        ...current,
+        [voice]: [
+          index,
+          ...current[voice].filter(
+            (entry) => entry !== index,
+          ),
+        ].slice(0, 5),
+      };
+      persistSoundIndexCollection(
+        RECENT_SOUNDS_STORAGE_KEY,
+        next,
+      );
+      return next;
+    });
+  };
+
+  const toggleFavoriteSound = (
+    voice: DrumVoiceId,
+    index: number,
+  ) => {
+    setFavoriteSounds((current) => {
+      const active = current[voice].includes(index);
+      const next = {
+        ...current,
+        [voice]: active
+          ? current[voice].filter(
+              (entry) => entry !== index,
+            )
+          : [index, ...current[voice]].slice(0, 8),
+      };
+      persistSoundIndexCollection(
+        FAVORITE_SOUNDS_STORAGE_KEY,
+        next,
+      );
+      return next;
+    });
+  };
+
+  const applyStepContextAction = (
+    action: "normal" | "accent" | "ghost" | "toggle",
+  ) => {
+    const context = stepContext;
+    if (!context) return;
+
+    const { laneId, stepIndex } = context;
+    if (action === "toggle") {
+      const on =
+        sequencerStore.getStepVelocity(
+          laneId,
+          stepIndex,
+        ) !== undefined;
+      setStep(
+        laneId,
+        stepIndex,
+        !on,
+        !on,
+      );
+    } else if (action === "normal") {
+      if (sequencerStore.isLaneRhythmLocked(laneId)) {
+        setNotice("Unlock rhythm to edit this step");
+      } else {
+        sequencerStore.setStepVelocity(
+          laneId,
+          stepIndex,
+          0.76,
+        );
+        setNotice("Normal hit");
+      }
+    } else {
+      const changed =
+        sequencerStore.paintStepDynamic(
+          laneId,
+          stepIndex,
+          action,
+        );
+      setNotice(
+        changed
+          ? action === "accent"
+            ? "Accent hit"
+            : "Ghost hit"
+          : "Unlock rhythm/dynamics to edit this step",
+      );
+    }
+
+    setStepContext(null);
+    completeFirstUseAction("context");
+  };
 
   const pulseHaptic = (
     duration: number | number[] = 8,
