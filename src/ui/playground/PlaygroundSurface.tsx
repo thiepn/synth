@@ -1281,6 +1281,10 @@ export function PlaygroundSurface({
         ? document.activeElement
         : null;
 
+    const previousOverflow =
+      document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+
     window.requestAnimationFrame(() => {
       const dialog = helpDialogRef.current;
       if (!dialog) return;
@@ -1331,6 +1335,8 @@ export function PlaygroundSurface({
         trapFocus,
         true,
       );
+      document.documentElement.style.overflow =
+        previousOverflow;
       const previous = previousHelpFocusRef.current;
       previousHelpFocusRef.current = null;
       window.requestAnimationFrame(() => {
@@ -2961,11 +2967,21 @@ export function PlaygroundSurface({
         files: [file],
       };
 
+      let nativeShareAvailable =
+        typeof navigator.share === "function";
       if (
-        typeof navigator.share === "function" &&
-        (!navigator.canShare ||
-          navigator.canShare(shareData))
+        nativeShareAvailable &&
+        typeof navigator.canShare === "function"
       ) {
+        try {
+          nativeShareAvailable =
+            navigator.canShare(shareData);
+        } catch {
+          nativeShareAvailable = false;
+        }
+      }
+
+      if (nativeShareAvailable) {
         try {
           await navigator.share(shareData);
           setNotice("Project shared");
@@ -2978,6 +2994,8 @@ export function PlaygroundSurface({
             setNotice("Share cancelled");
             return;
           }
+          // Native sharing can still reject at runtime.
+          // Fall back to a portable download below.
         }
       }
 
