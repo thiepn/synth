@@ -45,6 +45,13 @@ test("Playground desktop discovery and step context are release-safe", async ({
     name: "Playground help and shortcuts",
   });
   await expect(help).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.style.overflow,
+      ),
+    )
+    .toBe("hidden");
   await expect(
     help.getByRole("button", { name: "Close help" }),
   ).toBeFocused();
@@ -64,6 +71,13 @@ test("Playground desktop discovery and step context are release-safe", async ({
 
   await page.keyboard.press("Escape");
   await expect(help).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.style.overflow,
+      ),
+    )
+    .toBe("");
   await expect(helpButton).toBeFocused();
 
   const step = page.locator(
