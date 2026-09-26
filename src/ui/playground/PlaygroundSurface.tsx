@@ -545,6 +545,7 @@ export function PlaygroundSurface({
       if (auditionIntervalRef.current !== null) {
         window.clearInterval(auditionIntervalRef.current);
       }
+      clearPadLongPress();
       drumEngine.cancelAudition();
     };
   }, []);
@@ -809,6 +810,83 @@ export function PlaygroundSurface({
     void drumEngine.triggerNow(voice, velocity);
   };
 
+  const beginPadLongPress = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    voice: DrumVoiceId,
+  ) => {
+    if (event.pointerType === "mouse") return;
+
+    clearPadLongPress();
+    padLongPressRef.current = {
+      voice,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+    padLongPressTimerRef.current = window.setTimeout(() => {
+      const pending = padLongPressRef.current;
+      if (!pending || pending.voice !== voice) return;
+
+      padLongPressTimerRef.current = null;
+      padLongPressRef.current = null;
+      suppressPadClickRef.current = voice;
+      setSelectedVoice(voice);
+      setSoundPickerVoice(voice);
+      pulseHaptic([12, 22, 12]);
+      setNotice("Choose a " + displayLaneName(
+        SEQUENCER_LANES.find(
+          (lane) => lane.voice === voice,
+        ) ?? SEQUENCER_LANES[0],
+      ) + " sound");
+
+      window.setTimeout(() => {
+        if (suppressPadClickRef.current === voice) {
+          suppressPadClickRef.current = null;
+        }
+      }, 700);
+
+      window.requestAnimationFrame(() => {
+        focusRef.current?.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      });
+    }, 430);
+  };
+
+  const movePadLongPress = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const pending = padLongPressRef.current;
+    if (
+      !pending ||
+      pending.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    if (
+      Math.hypot(
+        event.clientX - pending.x,
+        event.clientY - pending.y,
+      ) > 12
+    ) {
+      clearPadLongPress();
+    }
+  };
+
+  const endPadLongPress = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const pending = padLongPressRef.current;
+    if (
+      pending &&
+      pending.pointerId === event.pointerId
+    ) {
+      clearPadLongPress();
+    }
+  };
+
   const setStep = (
     laneId: string,
     stepIndex: number,
@@ -828,6 +906,10 @@ export function PlaygroundSurface({
       gestureId,
     );
 
+    if (!desiredOn) {
+      pulseHaptic(4);
+    }
+
     if (desiredOn && audition) {
       const voice = SEQUENCER_LANES.find(
         (lane) => lane.id === laneId,
@@ -843,12 +925,17 @@ export function PlaygroundSurface({
   ) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
+    const touchDynamic =
+      event.pointerType !== "mouse" &&
+      touchEditMode !== "draw"
+        ? touchEditMode
+        : undefined;
     const dynamic =
       event.altKey
         ? "ghost"
         : event.shiftKey
           ? "accent"
-          : undefined;
+          : touchDynamic;
     const existingVelocity =
       sequencerStore.getStepVelocity(laneId, stepIndex);
     const desiredOn =
@@ -865,10 +952,15 @@ export function PlaygroundSurface({
       lastKey: key,
       gestureId,
       mode:
-        dynamic || desiredOn
+        dynamic
           ? "paint"
-          : "pending",
+          : event.pointerType === "mouse"
+            ? desiredOn
+              ? "paint"
+              : "pending"
+            : "pending",
       dynamic,
+      pointerType: event.pointerType,
       startLaneId: laneId,
       startStepIndex: stepIndex,
       startX: event.clientX,
@@ -898,7 +990,10 @@ export function PlaygroundSurface({
           );
         }
       }
-    } else if (desiredOn) {
+    } else if (
+      desiredOn &&
+      event.pointerType === "mouse"
+    ) {
       setStep(
         laneId,
         stepIndex,
@@ -916,6 +1011,10 @@ export function PlaygroundSurface({
   ) => {
     const gesture = paintRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
+
+    if (gesture.mode === "pageSwipe") {
+      return;
+    }
 
     if (gesture.mode === "velocity") {
       const startVelocity = gesture.startVelocity ?? 0.76;
@@ -946,11 +1045,23 @@ export function PlaygroundSurface({
       const distance = Math.hypot(dx, dy);
 
       if (
+        gesture.pointerType !== "mouse" &&
+        pageCount > 1 &&
+        Math.abs(dx) >= 34 &&
+        Math.abs(dx) > Math.abs(dy) * 1.25
+      ) {
+        gesture.mode = "pageSwipe";
+        gesture.swipeDirection = dx < 0 ? 1 : -1;
+        return;
+      }
+
+      if (
+        gesture.startVelocity !== undefined &&
         distance >= 7 &&
         Math.abs(dy) > Math.abs(dx) * 1.05
       ) {
         gesture.mode = "velocity";
-        const startVelocity = gesture.startVelocity ?? 0.76;
+        const startVelocity = gesture.startVelocity;
         const nextVelocity = Math.max(
           0.05,
           Math.min(1, startVelocity - dy / 96),
@@ -982,8 +1093,8 @@ export function PlaygroundSurface({
         setStep(
           gesture.startLaneId,
           gesture.startStepIndex,
-          false,
-          false,
+          gesture.desiredOn,
+          gesture.desiredOn,
           gesture.gestureId,
         );
       } else {
@@ -1032,10 +1143,35 @@ export function PlaygroundSurface({
       setStep(
         gesture.startLaneId,
         gesture.startStepIndex,
-        false,
-        false,
+        gesture.desiredOn,
+        gesture.desiredOn,
         gesture.gestureId,
       );
+    } else if (
+      !cancelled &&
+      gesture.mode === "pageSwipe" &&
+      gesture.swipeDirection
+    ) {
+      const direction = gesture.swipeDirection;
+      setStepPage((current) => {
+        const next = Math.max(
+          0,
+          Math.min(pageCount - 1, current + direction),
+        );
+        if (next !== current) {
+          pulseHaptic(7);
+          setNotice(
+            "Steps " +
+              (next * pageSize + 1) +
+              "–" +
+              Math.min(
+                sequencer.lengthSteps,
+                (next + 1) * pageSize,
+              ),
+          );
+        }
+        return next;
+      });
     }
 
     if (!cancelled && gesture.mode === "velocity") {
