@@ -341,7 +341,6 @@ export function PlaygroundSurface({
     useState<PatternBanks>({});
   const [lastRemixSourceNodeId, setLastRemixSourceNodeId] =
     useState<string | null>(null);
-  const bankInitializedRef = useRef(false);
   const paintCounterRef = useRef(0);
   const auditionStartRef = useRef<number | null>(null);
   const auditionIntervalRef = useRef<number | null>(null);
@@ -628,16 +627,6 @@ export function PlaygroundSurface({
       setStyle(strongest);
     }
   }, [sequencer.pattern.provenance]);
-
-  useEffect(() => {
-    if (bankInitializedRef.current) return;
-    bankInitializedRef.current = true;
-    const checkpoint = generationHistoryStore.checkpoint(
-      sequencerStore.getSnapshot().pattern,
-      "Playground A",
-    );
-    setPatternBanks({ A: checkpoint.id });
-  }, []);
 
   const recentRemixes = useMemo(
     () =>
