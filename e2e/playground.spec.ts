@@ -143,7 +143,7 @@ test("Playground A B banks preserve independent beat edits", async ({
   );
 
   await page.getByRole("button", {
-    name: /Duplicate →B/i,
+    name: /Duplicate.*B/i,
   }).click();
 
   await expect(
@@ -263,11 +263,21 @@ test("Playground velocity editing changes an existing hit without stopping flow"
   });
 
   if (
-    (await step.getAttribute("aria-pressed")) !==
+    (await step.getAttribute("aria-pressed")) ===
     "true"
   ) {
     await step.click();
   }
+  await step.click();
+
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /velocity 82 percent/i,
+  );
 
   const beforeLabel =
     (await step.getAttribute("aria-label")) ?? "";
