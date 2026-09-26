@@ -674,11 +674,51 @@ export function PlaygroundSurface({
   };
 
   useEffect(() => {
+    const releaseTransientPointer = (
+      event: PointerEvent,
+      cancelled: boolean,
+    ) => {
+      finishPaint(event.pointerId, cancelled);
+
+      const repeat = padRepeatRef.current;
+      if (repeat?.pointerId === event.pointerId) {
+        clearPadRepeat();
+        if (cancelled) {
+          suppressPadClickRef.current = null;
+        }
+      }
+
+      const longPress = padLongPressRef.current;
+      if (longPress?.pointerId === event.pointerId) {
+        clearPadLongPress();
+      }
+
+      const monitoring = momentaryMonitorRef.current;
+      if (
+        monitoring?.pointerId === event.pointerId
+      ) {
+        if (monitoring.mode === "mute") {
+          sequencerStore.setTransientMute(
+            monitoring.laneId,
+            false,
+          );
+        } else {
+          sequencerStore.setTransientSolo(
+            monitoring.laneId,
+            false,
+          );
+        }
+        momentaryMonitorRef.current = null;
+        setMomentaryMonitor(null);
+        audioTransport.invalidateScheduledEvents();
+      }
+    };
+
     const finishPointer = (event: PointerEvent) => {
-      finishPaint(event.pointerId);
+      releaseTransientPointer(event, false);
     };
     const cancelPointer = (event: PointerEvent) => {
-      finishPaint(event.pointerId, true);
+      releaseTransientPointer(event, true);
     };
 
     window.addEventListener("pointerup", finishPointer);
@@ -1193,6 +1233,12 @@ export function PlaygroundSurface({
       repeating.pointerId === event.pointerId
     ) {
       clearPadRepeat();
+      const voice = repeating.voice;
+      window.setTimeout(() => {
+        if (suppressPadClickRef.current === voice) {
+          suppressPadClickRef.current = null;
+        }
+      }, 450);
       return;
     }
 
@@ -3296,7 +3342,7 @@ export function PlaygroundSurface({
 
       <footer className="playground-footer">
         <p className="playground-hint">
-          Tap a pad · long-press = sounds · Hold Repeat makes pads repeat · R = restart · swipe step grid = pages · active step up/down = velocity
+          Tap pad · long-press = sounds when Repeat is off · Hold Repeat = tempo-synced pad rolls · Space = play · Shift+Space/R = restart
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
