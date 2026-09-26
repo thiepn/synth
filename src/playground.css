@@ -1406,6 +1406,32 @@
   text-align: right;
 }
 
+@media (pointer: coarse) {
+  .playground-beat-pad__trigger {
+    min-height: 88px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  .playground-page-control button,
+  .playground-sound-cycle > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .playground-focus__sound,
+  .playground-sound-choices button,
+  .playground-lane-toolbar > button {
+    min-height: 44px;
+  }
+
+  .playground-step {
+    min-height: 44px;
+    touch-action: none;
+  }
+}
+
 @media (max-width: 1040px) {
   .playground-experiment-bar {
     align-items: stretch;
@@ -1945,6 +1971,8 @@
   .playground-history-button,
   .playground-project-alert,
   .playground-studio-button,
+  .playground-mobile-dock,
+  .playground-mobile-dock > button,
   .playground-experiment-bar,
   .playground-pattern-banks > button,
   .playground-remix-history > button,
