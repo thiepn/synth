@@ -1007,7 +1007,7 @@
   font-weight: 800;
 }
 
-.playground-lane-toolbar > button:hover {
+.playground-lane-toolbar > button:hover:not(:disabled) {
   border-color: color-mix(
     in srgb,
     var(--lane-color) 32%,
@@ -1020,8 +1020,13 @@
   );
 }
 
-.playground-lane-toolbar > button:active {
+.playground-lane-toolbar > button:active:not(:disabled) {
   transform: translateY(1px);
+}
+
+.playground-lane-toolbar > button:disabled {
+  opacity: 0.32;
+  cursor: default;
 }
 
 .playground-lane-toolbar__lock {
@@ -1184,6 +1189,33 @@
   border-radius: 50%;
   background: rgba(12, 13, 22, 0.28);
   transform: scale(var(--step-indicator-scale, 0.92));
+}
+
+.playground-step.is-accent::after,
+.playground-step.is-ghost::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  left: 50%;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.playground-step.is-accent::after {
+  width: 10px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.24);
+}
+
+.playground-step.is-ghost::after {
+  width: 7px;
+  height: 7px;
+  border: 1px dashed rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  background: rgba(9, 10, 19, 0.28);
 }
 
 .playground-step.is-current {
@@ -1770,6 +1802,11 @@
   }
 
   .playground-playhead {
+    transition: none;
+  }
+
+  .playground-step.is-accent::after,
+  .playground-step.is-ghost::after {
     transition: none;
   }
 }
