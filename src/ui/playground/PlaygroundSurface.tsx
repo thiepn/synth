@@ -974,6 +974,14 @@ export function PlaygroundSurface({
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
+  const repeatLabel =
+    padRepeatDivision === 0
+      ? "Off"
+      : padRepeatDivision === 1
+        ? "1/4"
+        : padRepeatDivision === 2
+          ? "1/8"
+          : "1/16";
   const hapticsSupported =
     typeof globalThis.navigator?.vibrate === "function";
 
@@ -2207,15 +2215,29 @@ export function PlaygroundSurface({
                 ? "playground-play is-playing"
                 : "playground-play"
             }
-            onClick={() =>
-              void playbackCoordinator.toggleForMode("create")
-            }
+            onClick={togglePlaybackFlow}
             aria-label={
-              playing ? "Pause transport" : "Start transport"
+              countInBeat !== null
+                ? "Cancel count-in"
+                : playing
+                  ? "Pause transport"
+                  : countInEnabled
+                    ? "Start transport with count-in"
+                    : "Start transport"
             }
           >
-            <span aria-hidden="true">{playing ? "Ⅱ" : "▶"}</span>
-            {playing ? "Pause" : "Play"}
+            <span aria-hidden="true">
+              {countInBeat !== null
+                ? countInBeat
+                : playing
+                  ? "Ⅱ"
+                  : "▶"}
+            </span>
+            {countInBeat !== null
+              ? "Count " + countInBeat
+              : playing
+                ? "Pause"
+                : "Play"}
           </button>
 
           <button
@@ -2319,6 +2341,83 @@ export function PlaygroundSurface({
             </span>
           )}
         </div>
+      </section>
+
+      <section
+        className="playground-flow-bar"
+        aria-label="Playback and creative flow"
+      >
+        <button
+          type="button"
+          className={countInEnabled ? "is-active" : ""}
+          onClick={() => {
+            setCountInEnabled((current) => !current);
+            pulseHaptic(5);
+          }}
+          aria-pressed={countInEnabled}
+          aria-label="Toggle one bar count-in"
+        >
+          <span>Count-in</span>
+          <b>
+            {countInBeat !== null
+              ? countInBeat + "/" + transport.meter.numerator
+              : countInEnabled
+                ? "1 bar"
+                : "Off"}
+          </b>
+        </button>
+
+        <button
+          type="button"
+          onClick={restartPlayback}
+          aria-label="Return playback to step one"
+          title="Restart · R"
+        >
+          <span>Restart</span>
+          <b>↺ Step 1</b>
+        </button>
+
+        <button
+          type="button"
+          className={followPlayhead ? "is-active" : ""}
+          onClick={() => {
+            const next = !followPlayhead;
+            setFollowPlayhead(next);
+            if (
+              next &&
+              activeStep !== undefined &&
+              pageCount > 1
+            ) {
+              setStepPage(
+                Math.floor(activeStep / pageSize),
+              );
+            }
+            pulseHaptic(5);
+            setNotice(
+              next
+                ? "Playhead follow on"
+                : "Playhead follow locked off",
+            );
+          }}
+          aria-pressed={followPlayhead}
+        >
+          <span>Follow</span>
+          <b>{followPlayhead ? "Playhead" : "Page lock"}</b>
+        </button>
+
+        <button
+          type="button"
+          className={
+            padRepeatDivision > 0 ? "is-active" : ""
+          }
+          onClick={cyclePadRepeatDivision}
+          aria-label={
+            "Pad hold repeat " + repeatLabel
+          }
+        >
+          <span>Hold repeat</span>
+          <b>{repeatLabel}</b>
+        </button>
       </section>
 
       <div className="playground-workbench">
@@ -2533,11 +2632,12 @@ export function PlaygroundSurface({
                   >
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        setFollowPlayhead(false);
                         setStepPage((page) =>
                           Math.max(0, page - 1),
-                        )
-                      }
+                        );
+                      }}
                       disabled={stepPage === 0}
                       aria-label="Previous 16 steps"
                     >
@@ -2548,14 +2648,15 @@ export function PlaygroundSurface({
                     </span>
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        setFollowPlayhead(false);
                         setStepPage((page) =>
                           Math.min(
                             pageCount - 1,
                             page + 1,
                           ),
-                        )
-                      }
+                        );
+                      }}
                       disabled={
                         stepPage === pageCount - 1
                       }
@@ -2720,6 +2821,40 @@ export function PlaygroundSurface({
                 1/16
               </button>
               <i aria-hidden="true" />
+              <button
+                type="button"
+                className={
+                  momentaryMonitor === "mute"
+                    ? "playground-lane-toolbar__monitor is-active"
+                    : "playground-lane-toolbar__monitor"
+                }
+                onPointerDown={(event) =>
+                  beginMomentaryMonitor(event, "mute")
+                }
+                onPointerUp={endMomentaryMonitor}
+                onPointerCancel={endMomentaryMonitor}
+                aria-label="Hold to momentarily mute selected lane"
+                title="Hold to mute"
+              >
+                Hold M
+              </button>
+              <button
+                type="button"
+                className={
+                  momentaryMonitor === "solo"
+                    ? "playground-lane-toolbar__monitor is-active"
+                    : "playground-lane-toolbar__monitor"
+                }
+                onPointerDown={(event) =>
+                  beginMomentaryMonitor(event, "solo")
+                }
+                onPointerUp={endMomentaryMonitor}
+                onPointerCancel={endMomentaryMonitor}
+                aria-label="Hold to momentarily solo selected lane"
+                title="Hold to solo"
+              >
+                Hold S
+              </button>
               <button
                 type="button"
                 className={
@@ -2989,15 +3124,37 @@ export function PlaygroundSurface({
       >
         <button
           type="button"
-          className={playing ? "is-active" : ""}
+          className={
+            playing || countInBeat !== null
+              ? "is-active"
+              : ""
+          }
           onClick={() => {
             pulseHaptic(7);
-            void playbackCoordinator.toggleForMode("create");
+            togglePlaybackFlow();
           }}
-          aria-label={playing ? "Pause beat" : "Play beat"}
+          aria-label={
+            countInBeat !== null
+              ? "Cancel count-in"
+              : playing
+                ? "Pause beat"
+                : "Play beat"
+          }
         >
-          <b aria-hidden="true">{playing ? "Ⅱ" : "▶"}</b>
-          <span>{playing ? "Pause" : "Play"}</span>
+          <b aria-hidden="true">
+            {countInBeat !== null
+              ? countInBeat
+              : playing
+                ? "Ⅱ"
+                : "▶"}
+          </b>
+          <span>
+            {countInBeat !== null
+              ? "Count"
+              : playing
+                ? "Pause"
+                : "Play"}
+          </span>
         </button>
 
         <button
@@ -3071,6 +3228,24 @@ export function PlaygroundSurface({
 
         <button
           type="button"
+          className={
+            padRepeatDivision > 0 ? "is-active" : ""
+          }
+          onClick={cyclePadRepeatDivision}
+          aria-label={
+            "Pad hold repeat " + repeatLabel
+          }
+        >
+          <b aria-hidden="true">↻</b>
+          <span>
+            {padRepeatDivision > 0
+              ? repeatLabel
+              : "Repeat"}
+          </span>
+        </button>
+
+        <button
+          type="button"
           className={hapticsEnabled ? "is-active" : ""}
           onClick={toggleHaptics}
           disabled={!hapticsSupported}
@@ -3090,7 +3265,7 @@ export function PlaygroundSurface({
 
       <footer className="playground-footer">
         <p className="playground-hint">
-          Tap a pad · long-press pad = sounds · swipe step grid = pages · Shift-drag = accent · Alt-drag = ghost · active step up/down = velocity
+          Tap a pad · long-press = sounds · Hold Repeat makes pads repeat · R = restart · swipe step grid = pages · active step up/down = velocity
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
