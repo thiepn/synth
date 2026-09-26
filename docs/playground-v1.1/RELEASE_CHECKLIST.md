@@ -15,8 +15,20 @@ This checklist certifies the post-v1.0 Playground release line without rewriting
 - [x] ProjectDocument schema remains v1
 - [x] backup package remains v1
 - [x] IndexedDB remains v2
+- [x] new bundled-audio provenance fields are optional within schema v1
 - [x] Q1–Q8 metadata additions do not require a project migration
 - [x] existing v1.0 projects continue through the same restore path
+
+## Bundled audio / persistence
+
+- [x] CC0 TR-808 provenance is documented and pinned
+- [x] built-in samples are verified during the build fetch step
+- [x] Service Worker precaches the bundled sound bank
+- [x] production QA exercises bundled sample selection
+- [x] explicit user imports win bundled-sample identity collisions
+- [x] autosave garbage-collects only orphaned bundled audio
+- [x] named versions retain bundled audio referenced by snapshots
+- [x] project schema remains unchanged despite optional asset provenance metadata
 
 ## Q1–Q8 product freeze
 
