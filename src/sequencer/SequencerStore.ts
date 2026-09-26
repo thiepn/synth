@@ -266,6 +266,7 @@ export class SequencerStore {
     laneId: string,
     stepIndex: number,
     velocity: number,
+    gestureId?: string,
   ): void {
     if (!this.isValidStep(stepIndex)) return;
 
@@ -301,7 +302,9 @@ export class SequencerStore {
           draftLane.events.sort((a, b) => a.tick - b.tick);
         }
       },
-      "velocity:" + laneId + ":" + stepIndex,
+      gestureId
+        ? "gesture:" + gestureId
+        : "velocity:" + laneId + ":" + stepIndex,
     );
   }
 
@@ -568,6 +571,115 @@ export class SequencerStore {
             : 0.32;
 
     this.setStepVelocity(laneId, stepIndex, next);
+  }
+
+  clearLane(laneId: string): boolean {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+    if (source.events.length === 0) return true;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+      lane.events = [];
+    });
+
+    return true;
+  }
+
+  fillLane(
+    laneId: string,
+    intervalSteps: 1 | 2 | 4,
+  ): boolean {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+
+    const laneLength = this.getLaneLengthSteps(laneId);
+    const activeLimit = laneLength * FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const dormant = lane.events
+        .filter((event) => event.tick >= activeLimit)
+        .map(cloneStepEvent);
+      const filled: StepEvent[] = [];
+
+      for (
+        let step = 0;
+        step < laneLength;
+        step += intervalSteps
+      ) {
+        const velocity =
+          step % 4 === 0
+            ? 0.88
+            : step % 2 === 0
+              ? 0.74
+              : 0.64;
+        filled.push(
+          createStepEvent(laneId, step, velocity),
+        );
+      }
+
+      lane.events = [...filled, ...dormant].sort(
+        (a, b) => a.tick - b.tick,
+      );
+    });
+
+    return true;
+  }
+
+  shiftLane(
+    laneId: string,
+    direction: -1 | 1,
+  ): boolean {
+    const source = this.pattern.lanes.find(
+      (lane) => lane.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+
+    const laneLength = this.getLaneLengthSteps(laneId);
+    const activeLimit = laneLength * FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const active = lane.events
+        .filter((event) => event.tick < activeLimit)
+        .map((event) => {
+          const step = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          const shifted =
+            (step + direction + laneLength) % laneLength;
+          return {
+            ...cloneStepEvent(event),
+            id: eventId(laneId, shifted),
+            tick: shifted * FOUNDATION_STEP_TICKS,
+          };
+        });
+      const dormant = lane.events
+        .filter((event) => event.tick >= activeLimit)
+        .map(cloneStepEvent);
+
+      lane.events = [...active, ...dormant].sort(
+        (a, b) => a.tick - b.tick,
+      );
+    });
+
+    return true;
   }
 
   toggleMute(laneId: string): void {
