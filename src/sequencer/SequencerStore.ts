@@ -121,6 +121,8 @@ export class SequencerStore {
   private lastCoalesceKey: string | null = null;
   private lastCoalesceAt = 0;
   private activeGestureKey: string | null = null;
+  private transientMutedLaneIds = new Set<string>();
+  private transientSoloLaneIds = new Set<string>();
   private listeners = new Set<StoreListener>();
   private snapshot: SequencerSnapshot = this.buildSnapshot();
 
@@ -208,10 +210,62 @@ export class SequencerStore {
   }
 
   getHitsForStep(stepIndex: number): SequencerHit[] {
-    return getPatternHitsForAbsoluteStep(
-      this.pattern,
-      stepIndex,
+    return this.filterHitsForTransientMonitoring(
+      getPatternHitsForAbsoluteStep(
+        this.pattern,
+        stepIndex,
+      ),
     );
+  }
+
+  setTransientMute(
+    laneId: string,
+    active: boolean,
+  ): void {
+    if (!this.pattern.lanes.some((lane) => lane.id === laneId)) return;
+    if (active) {
+      this.transientMutedLaneIds.add(laneId);
+    } else {
+      this.transientMutedLaneIds.delete(laneId);
+    }
+  }
+
+  setTransientSolo(
+    laneId: string,
+    active: boolean,
+  ): void {
+    if (!this.pattern.lanes.some((lane) => lane.id === laneId)) return;
+    if (active) {
+      this.transientSoloLaneIds.add(laneId);
+    } else {
+      this.transientSoloLaneIds.delete(laneId);
+    }
+  }
+
+  clearTransientMonitoring(): void {
+    this.transientMutedLaneIds.clear();
+    this.transientSoloLaneIds.clear();
+  }
+
+  filterHitsForTransientMonitoring(
+    hits: readonly SequencerHit[],
+  ): SequencerHit[] {
+    const soloActive = this.transientSoloLaneIds.size > 0;
+
+    return hits.filter((hit) => {
+      if (this.transientMutedLaneIds.has(hit.laneId)) {
+        return false;
+      }
+
+      if (
+        soloActive &&
+        !this.transientSoloLaneIds.has(hit.laneId)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   toggleStep(laneId: string, stepIndex: number): void {
@@ -1098,6 +1152,7 @@ export class SequencerStore {
     this.lastCoalesceKey = null;
     this.lastCoalesceAt = 0;
     this.activeGestureKey = null;
+    this.clearTransientMonitoring();
     this.revision += 1;
     this.publish();
   }
