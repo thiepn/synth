@@ -137,6 +137,26 @@ export class GenerationHistoryStore {
     return node ? this.cloneNode(node) : undefined;
   }
 
+  checkpoint(
+    sourcePattern: Pattern,
+    title = "Safety snapshot",
+  ): EvolutionNode {
+    const activeBefore = this.activeNodeId;
+    const nodeId = this.ensureSourceCheckpoint(sourcePattern);
+    const node = this.requireNode(nodeId);
+
+    if (
+      nodeId !== activeBefore &&
+      node.operation === "manualEdit"
+    ) {
+      node.operationLabel = "SNAPSHOT";
+      node.title = title.trim().slice(0, 48) || "Safety snapshot";
+      this.publish();
+    }
+
+    return this.cloneNode(node);
+  }
+
   prepareCreativePattern(
     sourcePattern: Pattern,
     nextPattern: Pattern,
