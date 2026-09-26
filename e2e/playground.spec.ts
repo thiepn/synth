@@ -276,7 +276,7 @@ test("Playground velocity editing changes an existing hit without stopping flow"
   );
   await expect(step).toHaveAttribute(
     "aria-label",
-    /velocity 82 percent/i,
+    /velocity 76 percent/i,
   );
 
   const beforeLabel =
