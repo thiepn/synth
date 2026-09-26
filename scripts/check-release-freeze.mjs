@@ -18,9 +18,9 @@ const packageLock = JSON.parse(
 
 const failures = [];
 
-if (packageJson.version !== "1.0.0") {
+if (packageJson.version !== "1.1.0") {
   failures.push(
-    "package version must be exactly 1.0.0 for the production release.",
+    "package version must be exactly 1.1.0 for the Playground v1.1 production release.",
   );
 }
 
@@ -62,11 +62,13 @@ const contracts = [
   ["e2e/playground.spec.ts", "Playground desktop discovery and step context are release-safe"],
   [".github/workflows/ci.yml", "Playground release QA"],
   [".github/workflows/ci.yml", "Release-candidate soak"],
-  ["docs/phase-38/PHASE_38.md", "14 passed"],
-  ["docs/phase-39/PHASE_39.md", "28 passed"],
-  ["docs/phase-39/PHASE_39.md", "6 passed"],
   ["docs/phase-40/PHASE_40.md", "v1.0.0"],
   ["docs/phase-40/RELEASE_NOTES.md", "# Synth v1.0.0"],
+  ["docs/playground-v1.1/RELEASE_NOTES.md", "# Synth v1.1.0"],
+  ["docs/playground-v1.1/RELEASE_CHECKLIST.md", "Q1–Q8"],
+  ["README.md", "**Release:** Synth v1.1.0"],
+  ["src/App.tsx", "<span>v1.1.0</span>"],
+  [".github/workflows/release.yml", "Publish v1.1.0"],
   [".github/workflows/release.yml", "gh release create"],
   [".github/workflows/release.yml", "github.event.workflow_run.conclusion == 'success'"],
 ];
@@ -92,5 +94,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  "Release freeze contracts verified for Synth v1.0.0.",
+  "Release freeze contracts verified for Synth v1.1.0.",
 );
