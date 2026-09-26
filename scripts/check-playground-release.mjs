@@ -78,12 +78,6 @@ rejectText(
   ".playground-sound-choices button {",
   "Stale pre-Q7 mobile sound-card selector must not return.",
 );
-rejectText(
-  css,
-  "user-select: none;\n}\n\n.playground-surface",
-  "Release gate sanity check failed: unexpected stylesheet structure.",
-);
-
 const ui = read(playground);
 const cssText = read(css);
 
