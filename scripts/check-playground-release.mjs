@@ -48,6 +48,10 @@ const required = [
   [css, "@media (prefers-reduced-motion: reduce)", "Reduced-motion support must remain present."],
   [css, "@media (forced-colors: active)", "Forced-colors support must remain present."],
   [css, "env(safe-area-inset-bottom)", "Mobile safe-area handling must remain present."],
+  ["e2e/playground.spec.ts", "Playground A B banks preserve independent beat edits", "Q2 A/B behavior must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground lane transforms are deterministic and undoable", "Q3 transforms must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground velocity editing changes an existing hit without stopping flow", "Q1 velocity behavior must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground count in restart repeat and momentary monitoring stay responsive", "Q5 flow behavior must remain browser-certified."],
 ];
 
 for (const [path, text, message] of required) {
