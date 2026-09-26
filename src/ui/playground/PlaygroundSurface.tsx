@@ -1241,10 +1241,19 @@ export function PlaygroundSurface({
         return;
       }
 
-      if (
-        event.key === "?" &&
-        !eventTargetConsumesKeyboard(event.target)
-      ) {
+      if (event.key === "?") {
+        const target = event.target;
+        const typingTarget =
+          target instanceof HTMLElement &&
+          (
+            target.isContentEditable ||
+            target.matches(
+              "input, textarea, select, [role='textbox'], [role='spinbutton']",
+            )
+          );
+
+        if (typingTarget) return;
+
         event.preventDefault();
         setProjectMenuOpen(false);
         setStepContext(null);
