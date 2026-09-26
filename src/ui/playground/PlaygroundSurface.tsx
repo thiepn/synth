@@ -533,14 +533,21 @@ export function PlaygroundSurface({
     cancelPatternPreview();
     cancelCountIn();
 
+    const token = ++countInTokenRef.current;
+    setCountInBeat(0);
+
     try {
       await audioTransport.unlockAudio();
     } catch {
+      if (countInTokenRef.current === token) {
+        setCountInBeat(null);
+      }
       setNotice("Audio could not start");
       return;
     }
 
-    const token = ++countInTokenRef.current;
+    if (countInTokenRef.current !== token) return;
+
     const beats = Math.max(1, transport.meter.numerator);
     const beatMs =
       (60_000 / Math.max(30, transport.bpm)) *
@@ -878,6 +885,17 @@ export function PlaygroundSurface({
         return;
       }
 
+      if (event.code === "Space") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (event.shiftKey) {
+          restartPlayback();
+        } else {
+          togglePlaybackFlow();
+        }
+        return;
+      }
+
       if (
         event.key.toLowerCase() !== "r" ||
         event.ctrlKey ||
@@ -894,13 +912,23 @@ export function PlaygroundSurface({
     window.addEventListener(
       "keydown",
       handleFlowShortcut,
+      true,
     );
     return () =>
       window.removeEventListener(
         "keydown",
         handleFlowShortcut,
+        true,
       );
-  }, [followPlayhead]);
+  }, [
+    countInBeat,
+    countInEnabled,
+    followPlayhead,
+    playing,
+    transport.bpm,
+    transport.meter.denominator,
+    transport.meter.numerator,
+  ]);
 
   useEffect(() => {
     const styleVector = sequencer.pattern.provenance?.style;
@@ -944,8 +972,11 @@ export function PlaygroundSurface({
   useEffect(() => {
     if (playing) {
       stopVisualAudition();
+      if (countInBeat !== null) {
+        cancelCountIn();
+      }
     }
-  }, [playing]);
+  }, [playing, countInBeat]);
 
   const lanes = useMemo(
     () =>
