@@ -488,6 +488,124 @@ export function PlaygroundSurface({
     padLongPressRef.current = null;
   };
 
+  const clearPadRepeat = () => {
+    if (padRepeatTimerRef.current !== null) {
+      window.clearInterval(padRepeatTimerRef.current);
+      padRepeatTimerRef.current = null;
+    }
+    padRepeatRef.current = null;
+  };
+
+  const cancelCountIn = () => {
+    countInTokenRef.current += 1;
+    if (countInTimerRef.current !== null) {
+      window.clearTimeout(countInTimerRef.current);
+      countInTimerRef.current = null;
+    }
+    setCountInBeat(null);
+  };
+
+  const cyclePadRepeatDivision = () => {
+    setPadRepeatDivision((current) => {
+      const next: PadRepeatDivision =
+        current === 0
+          ? 1
+          : current === 1
+            ? 2
+            : current === 2
+              ? 4
+              : 0;
+      pulseHaptic(6);
+      setNotice(
+        next === 0
+          ? "Pad repeat off"
+          : next === 1
+            ? "Pad repeat · 1/4"
+            : next === 2
+              ? "Pad repeat · 1/8"
+              : "Pad repeat · 1/16",
+      );
+      return next;
+    });
+  };
+
+  const startCountIn = async () => {
+    cancelPatternPreview();
+    cancelCountIn();
+
+    try {
+      await audioTransport.unlockAudio();
+    } catch {
+      setNotice("Audio could not start");
+      return;
+    }
+
+    const token = ++countInTokenRef.current;
+    const beats = Math.max(1, transport.meter.numerator);
+    const beatMs =
+      (60_000 / Math.max(30, transport.bpm)) *
+      (4 / Math.max(1, transport.meter.denominator));
+
+    const countBeat = (index: number) => {
+      if (countInTokenRef.current !== token) return;
+
+      if (index >= beats) {
+        countInTimerRef.current = window.setTimeout(() => {
+          if (countInTokenRef.current !== token) return;
+          countInTimerRef.current = null;
+          setCountInBeat(null);
+          void audioTransport.start();
+        }, beatMs);
+        return;
+      }
+
+      const beat = index + 1;
+      setCountInBeat(beat);
+      pulseHaptic(beat === 1 ? 10 : 5);
+      void drumEngine.triggerNow(
+        "closedHat",
+        beat === 1 ? 0.82 : 0.56,
+      );
+
+      countInTimerRef.current = window.setTimeout(
+        () => countBeat(index + 1),
+        beatMs,
+      );
+    };
+
+    countBeat(0);
+  };
+
+  const togglePlaybackFlow = () => {
+    if (countInBeat !== null) {
+      cancelCountIn();
+      setNotice("Count-in cancelled");
+      return;
+    }
+
+    if (playing) {
+      audioTransport.pause();
+      return;
+    }
+
+    if (countInEnabled) {
+      void startCountIn();
+    } else {
+      void audioTransport.start();
+    }
+  };
+
+  const restartPlayback = () => {
+    cancelCountIn();
+    cancelPatternPreview();
+    audioTransport.restartFromBeginning();
+    if (followPlayhead) {
+      setStepPage(0);
+    }
+    pulseHaptic(8);
+    setNotice("Back to step 1");
+  };
+
   const stopVisualAudition = () => {
     if (auditionStartRef.current !== null) {
       window.clearTimeout(auditionStartRef.current);
@@ -576,6 +694,12 @@ export function PlaygroundSurface({
         window.clearInterval(auditionIntervalRef.current);
       }
       clearPadLongPress();
+      clearPadRepeat();
+      countInTokenRef.current += 1;
+      if (countInTimerRef.current !== null) {
+        window.clearTimeout(countInTimerRef.current);
+      }
+      sequencerStore.clearTransientMonitoring();
       drumEngine.cancelAudition();
     };
   }, []);
