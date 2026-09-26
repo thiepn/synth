@@ -785,6 +785,8 @@ export function PlaygroundSurface({
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
+  const hapticsSupported =
+    typeof globalThis.navigator?.vibrate === "function";
 
   useEffect(() => {
     setStepPage((current) =>
@@ -816,6 +818,9 @@ export function PlaygroundSurface({
   ) => {
     if (event.pointerType === "mouse") return;
 
+    event.currentTarget.setPointerCapture?.(
+      event.pointerId,
+    );
     clearPadLongPress();
     padLongPressRef.current = {
       voice,
@@ -1409,6 +1414,7 @@ export function PlaygroundSurface({
       );
     }
     setRemixPulse((value) => value + 1);
+    pulseHaptic([8, 18, 8]);
     setNotice("Remixed");
   };
 
@@ -1457,6 +1463,7 @@ export function PlaygroundSurface({
         triggerVoice(selectedVoice, 0.88);
       }
       setRemixPulse((value) => value + 1);
+      pulseHaptic([8, 18, 8]);
       setNotice(
         displayLaneName(selectedDefinition) + " remixed",
       );
@@ -1698,6 +1705,21 @@ export function PlaygroundSurface({
       presets.length;
 
     void chooseSound(voice, next);
+  };
+
+  const toggleSelectedSoundPicker = () => {
+    setSoundPickerVoice((current) =>
+      current === selectedVoice
+        ? null
+        : selectedVoice,
+    );
+    pulseHaptic(6);
+    window.requestAnimationFrame(() => {
+      focusRef.current?.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    });
   };
 
   return (
@@ -2016,7 +2038,19 @@ export function PlaygroundSurface({
                 <button
                   type="button"
                   className="playground-beat-pad__trigger"
+                  onPointerDown={(event) =>
+                    beginPadLongPress(event, voice)
+                  }
+                  onPointerMove={movePadLongPress}
+                  onPointerUp={endPadLongPress}
+                  onPointerCancel={endPadLongPress}
                   onClick={() => {
+                    if (
+                      suppressPadClickRef.current === voice
+                    ) {
+                      suppressPadClickRef.current = null;
+                      return;
+                    }
                     setSelectedVoice(voice);
                     setSoundPickerVoice(null);
                     triggerVoice(voice);
@@ -2116,6 +2150,7 @@ export function PlaygroundSurface({
 
         {selectedLane ? (
           <section
+            ref={focusRef}
             className="playground-focus"
             aria-label={
               displayLaneName(selectedDefinition) +
@@ -2204,13 +2239,7 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     className="playground-focus__sound"
-                    onClick={() =>
-                      setSoundPickerVoice((current) =>
-                        current === selectedVoice
-                          ? null
-                          : selectedVoice,
-                      )
-                    }
+                    onClick={toggleSelectedSoundPicker}
                     disabled={Boolean(soundLoading)}
                     aria-label={
                       "Change " +
@@ -2606,9 +2635,114 @@ export function PlaygroundSurface({
         ) : null}
       </div>
 
+      <nav
+        className="playground-mobile-dock"
+        aria-label="Mobile beat controls"
+      >
+        <button
+          type="button"
+          className={playing ? "is-active" : ""}
+          onClick={() => {
+            pulseHaptic(7);
+            void playbackCoordinator.toggleForMode("create");
+          }}
+          aria-label={playing ? "Pause beat" : "Play beat"}
+        >
+          <b aria-hidden="true">{playing ? "Ⅱ" : "▶"}</b>
+          <span>{playing ? "Pause" : "Play"}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={remix}
+          aria-label="Remix beat"
+        >
+          <b aria-hidden="true">✦</b>
+          <span>Remix</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            pulseHaptic(5);
+            undoPattern();
+          }}
+          disabled={!sequencer.canUndo}
+          aria-label="Undo"
+        >
+          <b aria-hidden="true">↶</b>
+          <span>Undo</span>
+        </button>
+
+        <button
+          type="button"
+          className={
+            soundPickerVoice === selectedVoice
+              ? "is-active"
+              : ""
+          }
+          onClick={toggleSelectedSoundPicker}
+          aria-label={
+            "Change " +
+            displayLaneName(selectedDefinition) +
+            " sound"
+          }
+        >
+          <b aria-hidden="true">◉</b>
+          <span>Sound</span>
+        </button>
+
+        <button
+          type="button"
+          className={
+            touchEditMode === "draw"
+              ? ""
+              : "is-active"
+          }
+          onClick={cycleTouchEditMode}
+          aria-label={
+            "Touch edit mode: " + touchEditMode
+          }
+          title="Cycle Draw, Accent, and Ghost touch modes"
+        >
+          <b aria-hidden="true">
+            {touchEditMode === "draw"
+              ? "✎"
+              : touchEditMode === "accent"
+                ? "!"
+                : "○"}
+          </b>
+          <span>
+            {touchEditMode === "draw"
+              ? "Draw"
+              : touchEditMode === "accent"
+                ? "Accent"
+                : "Ghost"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className={hapticsEnabled ? "is-active" : ""}
+          onClick={toggleHaptics}
+          disabled={!hapticsSupported}
+          aria-pressed={hapticsEnabled}
+          aria-label={
+            hapticsSupported
+              ? hapticsEnabled
+                ? "Disable haptics"
+                : "Enable haptics"
+              : "Haptics unavailable"
+          }
+        >
+          <b aria-hidden="true">≈</b>
+          <span>Haptic</span>
+        </button>
+      </nav>
+
       <footer className="playground-footer">
         <p className="playground-hint">
-          Tap a pad · drag steps to draw · Shift-drag = accent · Alt-drag = ghost · active step up/down = velocity · space = play
+          Tap a pad · long-press pad = sounds · swipe step grid = pages · Shift-drag = accent · Alt-drag = ghost · active step up/down = velocity
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
