@@ -90,4 +90,25 @@ requireText(
   "LIVE XY control must retain keyboard operation.",
 );
 
+requireText(
+  "src/ui/playground/PlaygroundSurface.tsx",
+  'aria-label="Playground help and shortcuts"',
+  "Playground must retain its discoverable help surface.",
+);
+requireText(
+  "src/ui/playground/PlaygroundSurface.tsx",
+  "beginStepContextLongPress",
+  "Playground step context actions must remain touch-discoverable.",
+);
+requireText(
+  "src/ui/playground/PlaygroundSurface.tsx",
+  "FAVORITE_SOUNDS_STORAGE_KEY",
+  "Playground favorite sound discovery must remain available.",
+);
+requireText(
+  "src/playground.css",
+  "@media (hover: hover) and (pointer: fine)",
+  "Playground custom tooltips must stay pointer-capability aware.",
+);
+
 console.log("Interaction accessibility contracts verified.");
