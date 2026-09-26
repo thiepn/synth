@@ -31,6 +31,8 @@ import {
   type BeatStyleId,
 } from "../../generation/beatGenerator";
 import { rerollBeat } from "../../generation/beatVariation";
+import { generationHistoryStore } from "../../history/GenerationHistoryStore";
+import { useGenerationHistorySnapshot } from "../../history/useGenerationHistory";
 import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import {
   DRUM_PADS,
@@ -52,6 +54,13 @@ interface SoundPreset {
   label: string;
   spec?: Partial<DrumMaterialSpec>;
   bundledSampleId?: BundledSampleId;
+}
+
+type PatternBankId = "A" | "B";
+
+interface PatternBanks {
+  A?: string;
+  B?: string;
 }
 
 const PLAY_STYLES: readonly BeatStyleId[] = [
@@ -306,6 +315,7 @@ export function PlaygroundSurface({
   const transport = useTransportSnapshot();
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
+  const history = useGenerationHistorySnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [remixPulse, setRemixPulse] = useState(0);
@@ -325,6 +335,13 @@ export function PlaygroundSurface({
     useState<DrumVoiceId | null>(null);
   const [soundLoading, setSoundLoading] =
     useState<BundledSampleId | null>(null);
+  const [activePatternBank, setActivePatternBank] =
+    useState<PatternBankId>("A");
+  const [patternBanks, setPatternBanks] =
+    useState<PatternBanks>({});
+  const [lastRemixSourceNodeId, setLastRemixSourceNodeId] =
+    useState<string | null>(null);
+  const bankInitializedRef = useRef(false);
   const paintCounterRef = useRef(0);
   const auditionStartRef = useRef<number | null>(null);
   const auditionIntervalRef = useRef<number | null>(null);
@@ -612,6 +629,25 @@ export function PlaygroundSurface({
     }
   }, [sequencer.pattern.provenance]);
 
+  useEffect(() => {
+    if (bankInitializedRef.current) return;
+    bankInitializedRef.current = true;
+    const checkpoint = generationHistoryStore.checkpoint(
+      sequencerStore.getSnapshot().pattern,
+      "Playground A",
+    );
+    setPatternBanks({ A: checkpoint.id });
+  }, []);
+
+  const recentRemixes = useMemo(
+    () =>
+      history.nodes
+        .filter((node) => node.operation === "reroll")
+        .slice(-6)
+        .reverse(),
+    [history.nodes],
+  );
+
   const activeStep =
     transport.status === "running"
       ? Math.floor(
@@ -890,6 +926,140 @@ export function PlaygroundSurface({
     setStep(laneId, stepIndex, desiredOn, desiredOn);
   };
 
+  const checkpointCurrentPattern = (
+    title: string,
+  ) => {
+    const checkpoint = generationHistoryStore.checkpoint(
+      sequencerStore.getSnapshot().pattern,
+      title,
+    );
+    setPatternBanks((current) => ({
+      ...current,
+      [activePatternBank]: checkpoint.id,
+    }));
+    return checkpoint;
+  };
+
+  const commitCreativePattern = (
+    nextPattern: typeof sequencer.pattern,
+    operation: "generateBeat" | "reroll",
+    operationLabel: string,
+    title: string,
+  ) => {
+    const sourcePattern =
+      sequencerStore.getSnapshot().pattern;
+    const prepared =
+      generationHistoryStore.prepareCreativePattern(
+        sourcePattern,
+        nextPattern,
+      );
+
+    sequencerStore.applyGeneratedPattern(prepared.pattern);
+    const appliedPattern =
+      sequencerStore.getSnapshot().pattern;
+    const node = generationHistoryStore.commitPrepared(
+      {
+        parentNodeId: prepared.parentNodeId,
+        pattern: appliedPattern,
+      },
+      operation,
+      operationLabel,
+      title,
+    );
+
+    setPatternBanks((current) => ({
+      ...current,
+      [activePatternBank]: node.id,
+    }));
+
+    return {
+      pattern: appliedPattern,
+      node,
+      parentNodeId: prepared.parentNodeId,
+    };
+  };
+
+  const restoreHistoryNode = (
+    nodeId: string,
+    noticeText: string,
+  ) => {
+    checkpointCurrentPattern(
+      "Before restore · Pattern " + activePatternBank,
+    );
+    const restored = generationHistoryStore.restore(nodeId);
+    sequencerStore.restorePatternSnapshot(restored);
+    setPatternBanks((current) => ({
+      ...current,
+      [activePatternBank]: nodeId,
+    }));
+    setLastRemixSourceNodeId(null);
+    setNotice(noticeText);
+  };
+
+  const switchPatternBank = (
+    nextBank: PatternBankId,
+  ) => {
+    if (nextBank === activePatternBank) return;
+
+    const source = checkpointCurrentPattern(
+      "Pattern " + activePatternBank,
+    );
+    const targetNodeId =
+      patternBanks[nextBank] ?? source.id;
+
+    const restored =
+      generationHistoryStore.restore(targetNodeId);
+    sequencerStore.restorePatternSnapshot(restored);
+
+    setPatternBanks((current) => ({
+      ...current,
+      [activePatternBank]: source.id,
+      [nextBank]: targetNodeId,
+    }));
+    setActivePatternBank(nextBank);
+    setLastRemixSourceNodeId(null);
+    setNotice("Pattern " + nextBank);
+  };
+
+  const duplicatePatternBank = () => {
+    const source = checkpointCurrentPattern(
+      "Pattern " + activePatternBank,
+    );
+    const targetBank: PatternBankId =
+      activePatternBank === "A" ? "B" : "A";
+    const branch =
+      generationHistoryStore.branchFrom(source.id);
+
+    setPatternBanks((current) => ({
+      ...current,
+      [activePatternBank]: source.id,
+      [targetBank]: branch.id,
+    }));
+    setActivePatternBank(targetBank);
+    setLastRemixSourceNodeId(null);
+    setNotice(
+      "Duplicated " +
+        activePatternBank +
+        " → " +
+        targetBank,
+    );
+  };
+
+  const undoLastRemix = () => {
+    if (!lastRemixSourceNodeId) return;
+    const restored =
+      generationHistoryStore.restore(
+        lastRemixSourceNodeId,
+      );
+    sequencerStore.restorePatternSnapshot(restored);
+    setPatternBanks((current) => ({
+      ...current,
+      [activePatternBank]: lastRemixSourceNodeId,
+    }));
+    setLastRemixSourceNodeId(null);
+    setNotice("Remix undone");
+  };
+
   const applyStyleBeat = (nextStyle: BeatStyleId) => {
     const generated = generateBeat({
       seed:
@@ -910,10 +1080,16 @@ export function PlaygroundSurface({
       return;
     }
 
-    sequencerStore.applyGeneratedPattern(generated.pattern);
+    const committed = commitCreativePattern(
+      generated.pattern,
+      "generateBeat",
+      "STYLE",
+      styleLabel(nextStyle) + " / Playground",
+    );
+    setLastRemixSourceNodeId(null);
     if (!playing) {
       void drumEngine.auditionPattern(
-        generated.pattern,
+        committed.pattern,
         transport.bpm,
       );
       startVisualAudition(
@@ -947,10 +1123,16 @@ export function PlaygroundSurface({
       return;
     }
 
-    sequencerStore.applyGeneratedPattern(result.pattern);
+    const committed = commitCreativePattern(
+      result.pattern,
+      "reroll",
+      "REMIX",
+      styleLabel(style) + " Remix",
+    );
+    setLastRemixSourceNodeId(committed.parentNodeId);
     if (!playing) {
       void drumEngine.auditionPattern(
-        result.pattern,
+        committed.pattern,
         transport.bpm,
       );
       startVisualAudition(
@@ -1015,8 +1197,16 @@ export function PlaygroundSurface({
     } else if (action === "shiftRight") {
       changed = sequencerStore.shiftLane(laneId, 1);
     } else if (action === "clear") {
+      checkpointCurrentPattern(
+        "Before clear · " +
+          displayLaneName(selectedDefinition),
+      );
       changed = sequencerStore.clearLane(laneId);
     } else {
+      checkpointCurrentPattern(
+        "Before fill · " +
+          displayLaneName(selectedDefinition),
+      );
       const interval =
         action === "fillQuarter"
           ? 4
@@ -1280,6 +1470,98 @@ export function PlaygroundSurface({
           </button>
         </div>
       </div>
+
+      <section
+        className="playground-experiment-bar"
+        aria-label="Pattern experimentation controls"
+      >
+        <div className="playground-pattern-banks">
+          <span>Pattern</span>
+          {(["A", "B"] as const).map((bank) => (
+            <button
+              type="button"
+              key={bank}
+              className={
+                activePatternBank === bank
+                  ? "is-active"
+                  : ""
+              }
+              onClick={() => switchPatternBank(bank)}
+              aria-pressed={activePatternBank === bank}
+              title={
+                patternBanks[bank]
+                  ? "Switch to Pattern " + bank
+                  : "Create Pattern " + bank + " from current beat"
+              }
+            >
+              {bank}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="playground-pattern-duplicate"
+            onClick={duplicatePatternBank}
+            title={
+              "Duplicate current beat into Pattern " +
+              (activePatternBank === "A" ? "B" : "A")
+            }
+          >
+            Duplicate →
+            {activePatternBank === "A" ? "B" : "A"}
+          </button>
+        </div>
+
+        <div className="playground-remix-safety">
+          {lastRemixSourceNodeId ? (
+            <button
+              type="button"
+              className="playground-undo-remix"
+              onClick={undoLastRemix}
+            >
+              ↶ Undo Remix
+            </button>
+          ) : null}
+
+          {recentRemixes.length > 0 ? (
+            <div
+              className="playground-remix-history"
+              aria-label="Recent remix history"
+            >
+              <span>Recent</span>
+              {recentRemixes.map((node) => (
+                <button
+                  type="button"
+                  key={node.id}
+                  className={
+                    history.activeNodeId === node.id
+                      ? "is-active"
+                      : ""
+                  }
+                  onClick={() =>
+                    restoreHistoryNode(
+                      node.id,
+                      "Restored remix " + node.ordinal,
+                    )
+                  }
+                  title={node.title}
+                  aria-label={
+                    "Restore recent remix " +
+                    node.ordinal +
+                    ": " +
+                    node.title
+                  }
+                >
+                  R{node.ordinal}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="playground-safety-note">
+              Remix creates a recoverable snapshot automatically
+            </span>
+          )}
+        </div>
+      </section>
 
       <div className="playground-workbench">
         {remixPulse > 0 ? (
@@ -1611,6 +1893,28 @@ export function PlaygroundSurface({
                 1/16
               </button>
               <i aria-hidden="true" />
+              <button
+                type="button"
+                className={
+                  selectedLane?.lock.sound
+                    ? "playground-lane-toolbar__lock is-active"
+                    : "playground-lane-toolbar__lock"
+                }
+                onClick={() =>
+                  sequencerStore.toggleLaneSoundLock(
+                    selectedDefinition.id,
+                  )
+                }
+                aria-pressed={Boolean(selectedLane?.lock.sound)}
+                aria-label={
+                  selectedLane?.lock.sound
+                    ? "Unlock selected sound"
+                    : "Lock selected sound"
+                }
+                title="Protect this sound from generated kit changes"
+              >
+                {selectedLane?.lock.sound ? "Sound locked" : "Lock sound"}
+              </button>
               <button
                 type="button"
                 className="playground-lane-toolbar__clear"
