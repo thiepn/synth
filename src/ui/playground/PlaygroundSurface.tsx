@@ -2044,6 +2044,9 @@ export function PlaygroundSurface({
                   onPointerMove={movePadLongPress}
                   onPointerUp={endPadLongPress}
                   onPointerCancel={endPadLongPress}
+                  onContextMenu={(event) =>
+                    event.preventDefault()
+                  }
                   onClick={() => {
                     if (
                       suppressPadClickRef.current === voice
