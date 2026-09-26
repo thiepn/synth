@@ -613,6 +613,9 @@ export function PlaygroundSurface({
     y: number;
   } | null>(null);
   const focusRef = useRef<HTMLElement | null>(null);
+  const helpButtonRef = useRef<HTMLButtonElement | null>(null);
+  const helpDialogRef = useRef<HTMLElement | null>(null);
+  const previousHelpFocusRef = useRef<HTMLElement | null>(null);
   const padLongPressTimerRef = useRef<number | null>(null);
   const padLongPressRef = useRef<{
     voice: DrumVoiceId;
@@ -1260,6 +1263,76 @@ export function PlaygroundSurface({
         handleDiscoveryKeys,
       );
   }, []);
+
+  useEffect(() => {
+    if (!helpOpen) return;
+
+    previousHelpFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    window.requestAnimationFrame(() => {
+      const dialog = helpDialogRef.current;
+      if (!dialog) return;
+      const first = dialog.querySelector<HTMLElement>(
+        "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+      );
+      first?.focus();
+    });
+
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const dialog = helpDialogRef.current;
+      if (!dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])",
+        ),
+      ).filter(
+        (element) =>
+          element.offsetParent !== null ||
+          element === document.activeElement,
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", trapFocus, true);
+    return () => {
+      document.removeEventListener(
+        "keydown",
+        trapFocus,
+        true,
+      );
+      const previous = previousHelpFocusRef.current;
+      previousHelpFocusRef.current = null;
+      window.requestAnimationFrame(() => {
+        if (previous?.isConnected) {
+          previous.focus();
+        } else {
+          helpButtonRef.current?.focus();
+        }
+      });
+    };
+  }, [helpOpen]);
 
   useEffect(() => {
     setSoundIndex((current) => {
@@ -3053,6 +3126,7 @@ export function PlaygroundSurface({
             ↷
           </button>
           <button
+            ref={helpButtonRef}
             type="button"
             className="playground-help-button"
             onClick={() => {
@@ -4429,6 +4503,38 @@ export function PlaygroundSurface({
           <div
             className="playground-step-context"
             role="menu"
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (
+                event.key !== "ArrowDown" &&
+                event.key !== "ArrowUp" &&
+                event.key !== "Home" &&
+                event.key !== "End"
+              ) {
+                return;
+              }
+
+              const items = Array.from(
+                event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                  "[role='menuitem']",
+                ),
+              );
+              if (items.length === 0) return;
+              const current = items.indexOf(
+                document.activeElement as HTMLButtonElement,
+              );
+              const next =
+                event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? items.length - 1
+                    : event.key === "ArrowDown"
+                      ? (current + 1 + items.length) % items.length
+                      : (current - 1 + items.length) % items.length;
+
+              event.preventDefault();
+              items[next]?.focus();
+            }}
             aria-label={
               "Step " +
               (stepContext.stepIndex + 1) +
@@ -4455,6 +4561,7 @@ export function PlaygroundSurface({
             <button
               type="button"
               role="menuitem"
+              autoFocus
               onClick={() =>
                 applyStepContextAction("normal")
               }
@@ -4511,8 +4618,10 @@ export function PlaygroundSurface({
           }}
         >
           <section
+            ref={helpDialogRef}
             className="playground-help"
             role="dialog"
+            tabIndex={-1}
             aria-modal="true"
             aria-label="Playground help and shortcuts"
           >
@@ -4523,7 +4632,6 @@ export function PlaygroundSurface({
               </div>
               <button
                 type="button"
-                autoFocus
                 onClick={() => setHelpOpen(false)}
                 aria-label="Close help"
               >
