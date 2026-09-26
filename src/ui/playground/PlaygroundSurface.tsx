@@ -870,6 +870,39 @@ export function PlaygroundSurface({
   }, []);
 
   useEffect(() => {
+    const handleFlowShortcut = (event: KeyboardEvent) => {
+      if (
+        event.repeat ||
+        eventTargetConsumesKeyboard(event.target)
+      ) {
+        return;
+      }
+
+      if (
+        event.key.toLowerCase() !== "r" ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      restartPlayback();
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleFlowShortcut,
+    );
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        handleFlowShortcut,
+      );
+  }, [followPlayhead]);
+
+  useEffect(() => {
     const styleVector = sequencer.pattern.provenance?.style;
     if (!styleVector) {
       setStyle("funk");
@@ -949,6 +982,31 @@ export function PlaygroundSurface({
       Math.min(current, pageCount - 1),
     );
   }, [pageCount]);
+
+  useEffect(() => {
+    if (
+      !followPlayhead ||
+      !playing ||
+      activeStep === undefined ||
+      pageCount <= 1
+    ) {
+      return;
+    }
+
+    const playheadPage = Math.floor(
+      activeStep / pageSize,
+    );
+    setStepPage((current) =>
+      current === playheadPage
+        ? current
+        : playheadPage,
+    );
+  }, [
+    activeStep,
+    followPlayhead,
+    pageCount,
+    playing,
+  ]);
 
   const triggerVoice = (
     voice: DrumVoiceId,
@@ -1444,6 +1502,7 @@ export function PlaygroundSurface({
       gesture.swipeDirection
     ) {
       const direction = gesture.swipeDirection;
+      setFollowPlayhead(false);
       setStepPage((current) => {
         const next = Math.max(
           0,
