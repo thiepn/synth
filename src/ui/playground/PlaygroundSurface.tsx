@@ -1007,6 +1007,7 @@ export function PlaygroundSurface({
   };
 
   const applyStyleBeat = (nextStyle: BeatStyleId) => {
+    checkpointCurrentPattern("Before style change");
     const generated = generateBeat({
       seed:
         "playground-style:" +
@@ -1049,6 +1050,7 @@ export function PlaygroundSurface({
   };
 
   const remix = () => {
+    checkpointCurrentPattern("Before Remix");
     const result = rerollBeat({
       source: sequencer.pattern,
       seed:
