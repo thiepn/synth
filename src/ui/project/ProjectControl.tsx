@@ -135,6 +135,18 @@ export function ProjectControl() {
     }
   };
 
+  const createNewProject = async () => {
+    setBusy("new-project");
+    try {
+      const id = await projectStore.createNewProject(
+        "New Beat",
+      );
+      if (id) setOpen(false);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const exportBackup = async (projectId?: string) => {
     setBusy("backup-export");
     try {
@@ -261,6 +273,39 @@ export function ProjectControl() {
           </label>
 
           <div className="project-primary-actions">
+            <MachineButton
+              compact
+              disabled={
+                !project.initialized ||
+                !project.supported ||
+                Boolean(busy) ||
+                project.saveStatus === "conflict"
+              }
+              onClick={() => void createNewProject()}
+            >
+              NEW BEAT
+            </MachineButton>
+            <MachineButton
+              compact
+              disabled={
+                !project.projectId ||
+                Boolean(busy)
+              }
+              onClick={() => {
+                if (project.projectId) {
+                  projectStore.toggleFavoriteProject(
+                    project.projectId,
+                  );
+                }
+              }}
+            >
+              {project.projectId &&
+              project.favoriteProjectIds.includes(
+                project.projectId,
+              )
+                ? "★ FAVORITE"
+                : "☆ FAVORITE"}
+            </MachineButton>
             <MachineButton
               compact
               disabled={
@@ -457,6 +502,33 @@ export function ProjectControl() {
                       </button>
 
                       <div className="project-library-row__actions">
+                        <button
+                          type="button"
+                          className={
+                            project.favoriteProjectIds.includes(
+                              summary.id,
+                            )
+                              ? "is-favorite"
+                              : undefined
+                          }
+                          disabled={Boolean(busy)}
+                          onClick={() =>
+                            projectStore.toggleFavoriteProject(
+                              summary.id,
+                            )
+                          }
+                          aria-pressed={
+                            project.favoriteProjectIds.includes(
+                              summary.id,
+                            )
+                          }
+                        >
+                          {project.favoriteProjectIds.includes(
+                            summary.id,
+                          )
+                            ? "★"
+                            : "☆"}
+                        </button>
                         <button
                           type="button"
                           disabled={Boolean(busy)}
