@@ -31,7 +31,10 @@ import {
   type BeatStyleId,
 } from "../../generation/beatGenerator";
 import { rerollBeat } from "../../generation/beatVariation";
-import { generationHistoryStore } from "../../history/GenerationHistoryStore";
+import {
+  generationHistoryStore,
+  type PatternBankId,
+} from "../../history/GenerationHistoryStore";
 import { useGenerationHistorySnapshot } from "../../history/useGenerationHistory";
 import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import {
@@ -54,13 +57,6 @@ interface SoundPreset {
   label: string;
   spec?: Partial<DrumMaterialSpec>;
   bundledSampleId?: BundledSampleId;
-}
-
-type PatternBankId = "A" | "B";
-
-interface PatternBanks {
-  A?: string;
-  B?: string;
 }
 
 const PLAY_STYLES: readonly BeatStyleId[] = [
@@ -335,12 +331,10 @@ export function PlaygroundSurface({
     useState<DrumVoiceId | null>(null);
   const [soundLoading, setSoundLoading] =
     useState<BundledSampleId | null>(null);
-  const [activePatternBank, setActivePatternBank] =
-    useState<PatternBankId>("A");
-  const [patternBanks, setPatternBanks] =
-    useState<PatternBanks>({});
   const [lastRemixSourceNodeId, setLastRemixSourceNodeId] =
     useState<string | null>(null);
+  const activePatternBank = history.activePatternBank;
+  const patternBanks = history.patternBanks;
   const paintCounterRef = useRef(0);
   const auditionStartRef = useRef<number | null>(null);
   const auditionIntervalRef = useRef<number | null>(null);
@@ -917,17 +911,11 @@ export function PlaygroundSurface({
 
   const checkpointCurrentPattern = (
     title: string,
-  ) => {
-    const checkpoint = generationHistoryStore.checkpoint(
+  ) =>
+    generationHistoryStore.checkpoint(
       sequencerStore.getSnapshot().pattern,
       title,
     );
-    setPatternBanks((current) => ({
-      ...current,
-      [activePatternBank]: checkpoint.id,
-    }));
-    return checkpoint;
-  };
 
   const commitCreativePattern = (
     nextPattern: typeof sequencer.pattern,
@@ -956,11 +944,6 @@ export function PlaygroundSurface({
       title,
     );
 
-    setPatternBanks((current) => ({
-      ...current,
-      [activePatternBank]: node.id,
-    }));
-
     return {
       pattern: appliedPattern,
       node,
@@ -977,10 +960,6 @@ export function PlaygroundSurface({
     );
     const restored = generationHistoryStore.restore(nodeId);
     sequencerStore.restorePatternSnapshot(restored);
-    setPatternBanks((current) => ({
-      ...current,
-      [activePatternBank]: nodeId,
-    }));
     setLastRemixSourceNodeId(null);
     setNotice(noticeText);
   };
@@ -990,47 +969,29 @@ export function PlaygroundSurface({
   ) => {
     if (nextBank === activePatternBank) return;
 
-    const source = checkpointCurrentPattern(
-      "Pattern " + activePatternBank,
-    );
-    const targetNodeId =
-      patternBanks[nextBank] ?? source.id;
-
     const restored =
-      generationHistoryStore.restore(targetNodeId);
+      generationHistoryStore.switchPatternBank(
+        nextBank,
+        sequencerStore.getSnapshot().pattern,
+      );
     sequencerStore.restorePatternSnapshot(restored);
-
-    setPatternBanks((current) => ({
-      ...current,
-      [activePatternBank]: source.id,
-      [nextBank]: targetNodeId,
-    }));
-    setActivePatternBank(nextBank);
     setLastRemixSourceNodeId(null);
     setNotice("Pattern " + nextBank);
   };
 
   const duplicatePatternBank = () => {
-    const source = checkpointCurrentPattern(
-      "Pattern " + activePatternBank,
-    );
-    const targetBank: PatternBankId =
-      activePatternBank === "A" ? "B" : "A";
-    const branch =
-      generationHistoryStore.branchFrom(source.id);
+    const sourceBank = activePatternBank;
+    const duplicated =
+      generationHistoryStore.duplicateActivePatternBank(
+        sequencerStore.getSnapshot().pattern,
+      );
 
-    setPatternBanks((current) => ({
-      ...current,
-      [activePatternBank]: source.id,
-      [targetBank]: branch.id,
-    }));
-    setActivePatternBank(targetBank);
     setLastRemixSourceNodeId(null);
     setNotice(
       "Duplicated " +
-        activePatternBank +
+        sourceBank +
         " → " +
-        targetBank,
+        duplicated.bank,
     );
   };
 
@@ -1041,10 +1002,6 @@ export function PlaygroundSurface({
     const restored =
       generationHistoryStore.restore(sourceNodeId);
     sequencerStore.restorePatternSnapshot(restored);
-    setPatternBanks((current) => ({
-      ...current,
-      [activePatternBank]: sourceNodeId,
-    }));
     setLastRemixSourceNodeId(null);
     setNotice("Remix undone");
   };
