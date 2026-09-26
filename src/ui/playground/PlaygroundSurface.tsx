@@ -252,6 +252,8 @@ function displayLaneName(lane: SequencerLaneDefinition): string {
 }
 
 type TouchEditMode = "draw" | "accent" | "ghost";
+type PadRepeatDivision = 0 | 1 | 2 | 4;
+type MomentaryMonitorMode = "mute" | "solo";
 
 const HAPTICS_STORAGE_KEY = "synth.playground.haptics";
 
@@ -387,6 +389,16 @@ export function PlaygroundSurface({
     useState<TouchEditMode>("draw");
   const [hapticsEnabled, setHapticsEnabled] =
     useState(readHapticsPreference);
+  const [countInEnabled, setCountInEnabled] =
+    useState(false);
+  const [countInBeat, setCountInBeat] =
+    useState<number | null>(null);
+  const [followPlayhead, setFollowPlayhead] =
+    useState(true);
+  const [padRepeatDivision, setPadRepeatDivision] =
+    useState<PadRepeatDivision>(0);
+  const [momentaryMonitor, setMomentaryMonitor] =
+    useState<MomentaryMonitorMode | null>(null);
   const tapTimesRef = useRef<number[]>([]);
   const focusRef = useRef<HTMLElement | null>(null);
   const padLongPressTimerRef = useRef<number | null>(null);
@@ -397,6 +409,18 @@ export function PlaygroundSurface({
     y: number;
   } | null>(null);
   const suppressPadClickRef = useRef<DrumVoiceId | null>(null);
+  const countInTimerRef = useRef<number | null>(null);
+  const countInTokenRef = useRef(0);
+  const padRepeatTimerRef = useRef<number | null>(null);
+  const padRepeatRef = useRef<{
+    voice: DrumVoiceId;
+    pointerId: number;
+  } | null>(null);
+  const momentaryMonitorRef = useRef<{
+    laneId: string;
+    pointerId: number;
+    mode: MomentaryMonitorMode;
+  } | null>(null);
 
   const pulseHaptic = (
     duration: number | number[] = 8,
