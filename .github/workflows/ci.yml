@@ -35,6 +35,9 @@ jobs:
       - name: Install Chromium for adversarial QA
         run: npm run qa:e2e:install
 
+      - name: Playground release QA
+        run: npm run qa:playground
+
       - name: Production browser QA
         run: npm run qa:e2e
 
