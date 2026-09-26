@@ -2622,6 +2622,287 @@ export function PlaygroundSurface({
         </div>
       </header>
 
+      <section
+        className="playground-session-bar"
+        aria-label="Project session"
+      >
+        <div className="playground-session-identity">
+          <button
+            type="button"
+            className={
+              currentProjectFavorite
+                ? "playground-session-favorite is-active"
+                : "playground-session-favorite"
+            }
+            onClick={() => {
+              if (project.projectId) {
+                projectStore.toggleFavoriteProject(
+                  project.projectId,
+                );
+                pulseHaptic(5);
+              }
+            }}
+            disabled={!project.projectId}
+            aria-pressed={currentProjectFavorite}
+            aria-label={
+              currentProjectFavorite
+                ? "Remove project from favorites"
+                : "Add project to favorites"
+            }
+            title={
+              currentProjectFavorite
+                ? "Favorite project"
+                : "Add to favorites"
+            }
+          >
+            ★
+          </button>
+
+          <label className="playground-project-name">
+            <span className="sr-only">Project name</span>
+            <input
+              value={projectNameDraft}
+              maxLength={80}
+              disabled={
+                !project.initialized ||
+                Boolean(projectBusy)
+              }
+              onChange={(event) =>
+                setProjectNameDraft(
+                  event.currentTarget.value,
+                )
+              }
+              onBlur={commitProjectName}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  commitProjectName();
+                  event.currentTarget.blur();
+                } else if (event.key === "Escape") {
+                  setProjectNameDraft(project.name);
+                  event.currentTarget.blur();
+                }
+              }}
+            />
+          </label>
+
+          <span
+            className={
+              "playground-save-state playground-save-state--" +
+              project.saveStatus
+            }
+            title={
+              project.lastError ??
+              (project.lastSavedAt
+                ? "Last saved " +
+                  shortProjectTime(
+                    project.lastSavedAt,
+                  )
+                : undefined)
+            }
+          >
+            <i aria-hidden="true" />
+            {projectSaveLabel(
+              project.saveStatus,
+              project.dirty,
+            )}
+          </span>
+        </div>
+
+        <div className="playground-session-actions">
+          <button
+            type="button"
+            onClick={() => void createFreshProject()}
+            disabled={
+              Boolean(projectBusy) ||
+              !project.initialized ||
+              !project.supported
+            }
+          >
+            <span aria-hidden="true">＋</span>
+            New
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void duplicateCurrentProject()
+            }
+            disabled={
+              Boolean(projectBusy) ||
+              !project.initialized ||
+              !project.supported
+            }
+          >
+            <span aria-hidden="true">⧉</span>
+            Duplicate
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void createRecoverySnapshot()
+            }
+            disabled={
+              Boolean(projectBusy) ||
+              !project.initialized ||
+              !project.supported ||
+              project.saveStatus === "conflict"
+            }
+          >
+            <span aria-hidden="true">◇</span>
+            Snapshot
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void shareOrExportProject()
+            }
+            disabled={
+              Boolean(projectBusy) ||
+              !project.initialized ||
+              !project.supported
+            }
+          >
+            <span aria-hidden="true">↗</span>
+            Share
+          </button>
+          <button
+            type="button"
+            className={
+              projectMenuOpen ? "is-active" : ""
+            }
+            onClick={() =>
+              setProjectMenuOpen((current) => !current)
+            }
+            aria-expanded={projectMenuOpen}
+            aria-haspopup="dialog"
+          >
+            <span aria-hidden="true">▤</span>
+            Projects
+          </button>
+        </div>
+
+        {projectMenuOpen ? (
+          <div
+            className="playground-project-menu"
+            role="dialog"
+            aria-label="Recent projects"
+          >
+            <header>
+              <div>
+                <small>PROJECTS</small>
+                <strong>Recent beats</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setProjectMenuOpen(false)
+                }
+                aria-label="Close project menu"
+              >
+                ×
+              </button>
+            </header>
+
+            {recentProjects.length > 0 ? (
+              <div className="playground-project-menu__list">
+                {recentProjects.map((summary) => {
+                  const active =
+                    summary.id === project.projectId;
+                  const favorite =
+                    favoriteProjectIds.includes(
+                      summary.id,
+                    );
+
+                  return (
+                    <div
+                      key={summary.id}
+                      className={
+                        active
+                          ? "playground-project-menu__row is-active"
+                          : "playground-project-menu__row"
+                      }
+                    >
+                      <button
+                        type="button"
+                        className={
+                          favorite
+                            ? "playground-project-menu__star is-active"
+                            : "playground-project-menu__star"
+                        }
+                        onClick={() =>
+                          projectStore.toggleFavoriteProject(
+                            summary.id,
+                          )
+                        }
+                        aria-pressed={favorite}
+                        aria-label={
+                          favorite
+                            ? "Unfavorite " +
+                              summary.name
+                            : "Favorite " +
+                              summary.name
+                        }
+                      >
+                        ★
+                      </button>
+
+                      <button
+                        type="button"
+                        className="playground-project-menu__open"
+                        disabled={
+                          Boolean(projectBusy) ||
+                          active
+                        }
+                        onClick={() =>
+                          void openRecentProject(
+                            summary.id,
+                          )
+                        }
+                      >
+                        <span>
+                          <strong>
+                            {summary.name}
+                          </strong>
+                          <small>
+                            {shortProjectTime(
+                              summary.updatedAt,
+                            )}
+                            {" · "}
+                            REV {summary.revision}
+                          </small>
+                        </span>
+                        <b>
+                          {active
+                            ? "Current"
+                            : "Open"}
+                        </b>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="playground-project-menu__empty">
+                No saved projects yet.
+              </p>
+            )}
+
+            <footer>
+              <span>
+                Full project library, versions and
+                imports are available in Studio.
+              </span>
+              <button
+                type="button"
+                onClick={openStudio}
+              >
+                Open Studio ↗
+              </button>
+            </footer>
+          </div>
+        ) : null}
+      </section>
+
       <div className="playground-hero">
         <div>
           <p>MAKE A BEAT</p>
