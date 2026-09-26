@@ -8,7 +8,7 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 
 ## Current status
 
-**Release:** Synth v1.0.0
+**Release:** Synth v1.1.0
 
 - **Phase 0 — Product Constitution & Architecture Freeze:** complete
 - **Phase 1 — Pulse Architecture UI Foundation:** complete
@@ -51,6 +51,11 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 38 — Comprehensive Product Audit & Adversarial QA:** complete
 - **Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze:** complete
 - **Phase 40 — v1.0.0 Production Release & Maintenance Baseline:** complete
+- **Playground v1.1 — Fast Creation, Safety, Mobile & Session Polish:** complete
+
+### Playground v1.1
+
+The default experience is now a focused musical Playground rather than the full Studio dashboard. The v1.1 pass adds fast lane editing, A/B experimentation safety, reversible Remix history, musical lane transforms, touch/mobile ergonomics, count-in/restart/follow/repeat flow controls, project/session shortcuts, sound favorites/recents, contextual help, and dedicated Q1–Q8 release certification. The full seven-mode Studio remains available for advanced work.
 
 Synth now has a real Web Audio transport, an eight-voice layered V2 drum synthesizer, local sample/hybrid voice playback, an editable 64-step polymetric sequencer, a versioned 25-profile Style DNA system, deterministic genre-aware beat generation, lock-aware iterative rerolling, continuous five-dimension Beat Morphing, deterministic cross-style Remix derivation, Pattern-derived visual rhythm identity, deterministic groove/humanization, semantic musical mutation, branching creative lineage, a serializable material sound model, Style-DNA-aware coherent Kit generation, lock-aware sound evolution/morphing, deterministic probability/ratchet/flam playback, fast gesture-based Pattern shaping, genre-aware Beat Family generation, Style-DNA-driven Scene/Section foundations, a fully active editable ARRANGE mode with Energy Sculpture and arrangement playback, deterministic controlled CHAOS, and a real LIVE performance engine with quantized section launching, transient performance macros, momentary actions, and jam capture. React remains outside musical timing, canonical pattern state, generator logic, glyph derivation, groove transformation, mutation logic, history ownership, sound-spec ownership, sample-asset ownership, Kit generation, sound-evolution logic, advanced sequencer playback evaluation, Pattern Painting logic, Beat Family ownership, arrangement-foundation ownership, and arrangement playback ownership.
 
