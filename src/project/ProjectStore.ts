@@ -75,12 +75,47 @@ export interface ProjectSnapshot {
   lastError?: string;
   summaries: ProjectSummary[];
   versions: ProjectVersionSummary[];
+  favoriteProjectIds: string[];
   conflict?: ProjectConflictState;
   storage: ProjectStorageEstimate;
   revision: number;
 }
 
 const AUTOSAVE_DELAY_MS = 750;
+const FAVORITE_PROJECTS_KEY =
+  "synth.project.favorite-project-ids";
+
+function readFavoriteProjectIds(): Set<string> {
+  try {
+    const raw = globalThis.localStorage?.getItem(
+      FAVORITE_PROJECTS_KEY,
+    );
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed.filter(
+        (value): value is string =>
+          typeof value === "string" && value.length > 0,
+      ),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function persistFavoriteProjectIds(
+  ids: ReadonlySet<string>,
+): void {
+  try {
+    globalThis.localStorage?.setItem(
+      FAVORITE_PROJECTS_KEY,
+      JSON.stringify([...ids]),
+    );
+  } catch {
+    // Favorites remain session-only when localStorage is blocked.
+  }
+}
 
 function newProjectId(): string {
   if (globalThis.crypto?.randomUUID) {
@@ -185,6 +220,9 @@ export class ProjectStore {
   private lastError: string | undefined;
   private summaries: ProjectSummary[] = [];
   private versions: ProjectVersionSummary[] = [];
+  private favoriteProjectIds =
+    readFavoriteProjectIds();
+  private blankTemplate: LoadedProjectBundle | undefined;
   private conflict: ProjectConflictState | undefined;
   private storage: ProjectStorageEstimate = {};
   private broadcast: BroadcastChannel | undefined;
@@ -230,6 +268,99 @@ export class ProjectStore {
     if (next === this.name) return;
     this.name = next;
     this.markDirty();
+  }
+
+  toggleFavoriteProject(projectId: string): void {
+    if (!projectId) return;
+
+    if (this.favoriteProjectIds.has(projectId)) {
+      this.favoriteProjectIds.delete(projectId);
+    } else {
+      this.favoriteProjectIds.add(projectId);
+    }
+
+    persistFavoriteProjectIds(
+      this.favoriteProjectIds,
+    );
+    this.publish();
+  }
+
+  async createNewProject(
+    name = "New Beat",
+  ): Promise<string | undefined> {
+    if (
+      !this.initialized ||
+      this.applying ||
+      !localProjectDatabase.supported
+    ) {
+      return undefined;
+    }
+
+    if (this.dirty) {
+      if (this.saveStatus === "conflict") {
+        this.lastError =
+          "Resolve the current project conflict before creating a new project.";
+        this.publish();
+        return undefined;
+      }
+
+      try {
+        await this.saveNow();
+      } catch {
+        return undefined;
+      }
+    }
+
+    const template = this.blankTemplate
+      ? structuredClone(this.blankTemplate)
+      : undefined;
+    if (!template) {
+      this.lastError =
+        "A fresh project template is unavailable.";
+      this.publish();
+      return undefined;
+    }
+
+    const rollback = this.captureCurrentBundle();
+    const now = new Date().toISOString();
+    const nextId = newProjectId();
+    template.document = {
+      ...template.document,
+      id: nextId,
+      name: cleanProjectName(name),
+      createdAt: now,
+      updatedAt: now,
+      revision: 0,
+    };
+
+    this.saveStatus = "loading";
+    this.lastError = undefined;
+    this.publish();
+
+    try {
+      await this.applyBundle(template);
+      this.dirty = true;
+      this.saveStatus = "dirty";
+      this.changeSerial += 1;
+      await this.saveNow();
+      await localProjectDatabase.setActiveProjectId(
+        nextId,
+      );
+      await this.refreshSummaries();
+      await this.refreshVersions();
+      this.publish();
+      return nextId;
+    } catch (error) {
+      try {
+        await this.applyBundle(rollback);
+      } catch {
+        // Preserve the creation failure as the user-visible error.
+      }
+      this.saveStatus = "error";
+      this.lastError = errorMessage(error);
+      this.publish();
+      return undefined;
+    }
   }
 
   async saveNow(): Promise<void> {
@@ -529,6 +660,11 @@ export class ProjectStore {
 
     try {
       await localProjectDatabase.deleteProject(projectId);
+      if (this.favoriteProjectIds.delete(projectId)) {
+        persistFavoriteProjectIds(
+          this.favoriteProjectIds,
+        );
+      }
       await this.refreshSummaries();
       await this.refreshStorageEstimate();
       this.publish();
@@ -680,6 +816,9 @@ export class ProjectStore {
     this.publish();
 
     const initialBundle = this.captureCurrentBundle();
+    this.blankTemplate = structuredClone(
+      initialBundle,
+    );
 
     try {
       const activeId =
@@ -1434,6 +1573,9 @@ export class ProjectStore {
       lastError: this.lastError,
       summaries: this.summaries.map((summary) => ({ ...summary })),
       versions: this.versions.map((version) => ({ ...version })),
+      favoriteProjectIds: [
+        ...this.favoriteProjectIds,
+      ],
       conflict: this.conflict
         ? { ...this.conflict }
         : undefined,
