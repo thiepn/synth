@@ -20,10 +20,14 @@ export interface EvolutionNode {
   glyphSignature: string;
 }
 
+export type PatternBankId = "A" | "B";
+
 export interface GenerationHistorySnapshot {
   rootNodeId: string;
   activeNodeId: string;
   selectedNodeId: string;
+  patternBanks: Record<PatternBankId, string | undefined>;
+  activePatternBank: PatternBankId;
   nodes: EvolutionNode[];
   revision: number;
 }
@@ -69,6 +73,14 @@ export class GenerationHistoryStore {
   private rootNodeId = "hist-0000";
   private activeNodeId = this.rootNodeId;
   private selectedNodeId = this.rootNodeId;
+  private patternBanks: Record<
+    PatternBankId,
+    string | undefined
+  > = {
+    A: this.rootNodeId,
+    B: undefined,
+  };
+  private activePatternBank: PatternBankId = "A";
   private nextOrdinal = 1;
   private revision = 0;
   private snapshot: GenerationHistorySnapshot;
@@ -124,6 +136,33 @@ export class GenerationHistoryStore {
     this.rootNodeId = state.rootNodeId;
     this.activeNodeId = state.activeNodeId;
     this.selectedNodeId = state.selectedNodeId;
+
+    const restoredState =
+      state as Omit<GenerationHistorySnapshot, "revision"> &
+        Partial<
+          Pick<
+            GenerationHistorySnapshot,
+            "patternBanks" | "activePatternBank"
+          >
+        >;
+    const restoredBanks = restoredState.patternBanks;
+    this.activePatternBank =
+      restoredState.activePatternBank === "B" ? "B" : "A";
+    this.patternBanks = {
+      A:
+        restoredBanks?.A && nodes.has(restoredBanks.A)
+          ? restoredBanks.A
+          : state.activeNodeId,
+      B:
+        restoredBanks?.B && nodes.has(restoredBanks.B)
+          ? restoredBanks.B
+          : undefined,
+    };
+    if (!this.patternBanks[this.activePatternBank]) {
+      this.patternBanks[this.activePatternBank] =
+        state.activeNodeId;
+    }
+
     const highestOrdinal = Math.max(
       0,
       ...state.nodes.map((node) => node.ordinal),
@@ -142,8 +181,11 @@ export class GenerationHistoryStore {
     title = "Safety snapshot",
   ): EvolutionNode {
     const activeBefore = this.activeNodeId;
+    const bankBefore =
+      this.patternBanks[this.activePatternBank];
     const nodeId = this.ensureSourceCheckpoint(sourcePattern);
     const node = this.requireNode(nodeId);
+    let needsPublish = false;
 
     if (
       nodeId !== activeBefore &&
@@ -151,10 +193,89 @@ export class GenerationHistoryStore {
     ) {
       node.operationLabel = "SNAPSHOT";
       node.title = title.trim().slice(0, 48) || "Safety snapshot";
+      needsPublish = true;
+    }
+
+    this.patternBanks[this.activePatternBank] = nodeId;
+    if (bankBefore !== nodeId) {
+      needsPublish = true;
+    }
+
+    if (needsPublish) {
       this.publish();
     }
 
     return this.cloneNode(node);
+  }
+
+  switchPatternBank(
+    nextBank: PatternBankId,
+    sourcePattern: Pattern,
+  ): Pattern {
+    if (nextBank === this.activePatternBank) {
+      return clonePattern(sourcePattern);
+    }
+
+    const source = this.checkpoint(
+      sourcePattern,
+      "Pattern " + this.activePatternBank,
+    );
+    const currentBank = this.activePatternBank;
+    let targetNodeId = this.patternBanks[nextBank];
+
+    if (!targetNodeId) {
+      const branch = this.createNode({
+        parentId: source.id,
+        pattern: source.pattern,
+        operation: "branch",
+        operationLabel: "BANK " + nextBank,
+        title: "Pattern " + nextBank,
+      });
+      targetNodeId = branch.id;
+    }
+
+    this.patternBanks[currentBank] = source.id;
+    this.patternBanks[nextBank] = targetNodeId;
+    this.activePatternBank = nextBank;
+    this.activeNodeId = targetNodeId;
+    this.selectedNodeId = targetNodeId;
+    this.publish();
+
+    return clonePattern(this.requireNode(targetNodeId).pattern);
+  }
+
+  duplicateActivePatternBank(
+    sourcePattern: Pattern,
+  ): {
+    bank: PatternBankId;
+    node: EvolutionNode;
+  } {
+    const source = this.checkpoint(
+      sourcePattern,
+      "Pattern " + this.activePatternBank,
+    );
+    const sourceBank = this.activePatternBank;
+    const targetBank: PatternBankId =
+      sourceBank === "A" ? "B" : "A";
+    const branch = this.createNode({
+      parentId: source.id,
+      pattern: source.pattern,
+      operation: "branch",
+      operationLabel: "BANK " + targetBank,
+      title: "Pattern " + targetBank,
+    });
+
+    this.patternBanks[sourceBank] = source.id;
+    this.patternBanks[targetBank] = branch.id;
+    this.activePatternBank = targetBank;
+    this.activeNodeId = branch.id;
+    this.selectedNodeId = branch.id;
+    this.publish();
+
+    return {
+      bank: targetBank,
+      node: this.cloneNode(branch),
+    };
   }
 
   prepareCreativePattern(
@@ -193,6 +314,7 @@ export class GenerationHistoryStore {
 
     this.activeNodeId = node.id;
     this.selectedNodeId = node.id;
+    this.patternBanks[this.activePatternBank] = node.id;
     this.publish();
 
     return this.cloneNode(node);
@@ -208,6 +330,7 @@ export class GenerationHistoryStore {
     const node = this.requireNode(nodeId);
     this.activeNodeId = node.id;
     this.selectedNodeId = node.id;
+    this.patternBanks[this.activePatternBank] = node.id;
     this.publish();
     return clonePattern(node.pattern);
   }
@@ -279,6 +402,16 @@ export class GenerationHistoryStore {
       this.selectedNodeId = this.activeNodeId;
     }
 
+    for (const bank of ["A", "B"] as const) {
+      const bankNodeId = this.patternBanks[bank];
+      if (bankNodeId && deletedIds.has(bankNodeId)) {
+        this.patternBanks[bank] =
+          bank === this.activePatternBank
+            ? this.activeNodeId
+            : undefined;
+      }
+    }
+
     this.publish();
     return fallbackPattern;
   }
@@ -345,6 +478,9 @@ export class GenerationHistoryStore {
       this.rootNodeId,
       this.activeNodeId,
       this.selectedNodeId,
+      ...Object.values(this.patternBanks).filter(
+        (id): id is string => Boolean(id),
+      ),
       ...extraProtected,
     ]);
 
@@ -361,6 +497,11 @@ export class GenerationHistoryStore {
 
     protectLineage(this.activeNodeId);
     protectLineage(this.selectedNodeId);
+    for (const bankNodeId of Object.values(this.patternBanks)) {
+      if (bankNodeId) {
+        protectLineage(bankNodeId);
+      }
+    }
     for (const node of this.nodes.values()) {
       if (node.favorite) {
         protectLineage(node.id);
@@ -453,6 +594,8 @@ export class GenerationHistoryStore {
       rootNodeId: this.rootNodeId,
       activeNodeId: this.activeNodeId,
       selectedNodeId: this.selectedNodeId,
+      patternBanks: { ...this.patternBanks },
+      activePatternBank: this.activePatternBank,
       revision: this.revision,
       nodes: [...this.nodes.values()]
         .sort((a, b) => a.ordinal - b.ordinal)
