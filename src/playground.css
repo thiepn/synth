@@ -1374,6 +1374,10 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--lane-color) 50%, transparent);
 }
 
+.playground-mobile-dock {
+  display: none;
+}
+
 .playground-footer {
   width: min(1440px, calc(100% - clamp(36px, 7vw, 108px)));
   margin: 0 auto;
@@ -1447,6 +1451,79 @@
 }
 
 @media (max-width: 760px) {
+  .playground-surface {
+    padding-bottom:
+      calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .playground-mobile-dock {
+    position: fixed;
+    z-index: 40;
+    left: 10px;
+    right: 10px;
+    bottom:
+      calc(8px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    min-height: 62px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 20px;
+    background: rgba(14, 15, 26, 0.91);
+    box-shadow:
+      0 18px 48px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(22px);
+  }
+
+  .playground-mobile-dock > button {
+    min-width: 0;
+    min-height: 62px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
+    padding: 5px 2px;
+    border: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: transparent;
+    color: var(--pg-muted);
+    touch-action: manipulation;
+  }
+
+  .playground-mobile-dock > button:last-child {
+    border-right: 0;
+  }
+
+  .playground-mobile-dock > button:disabled {
+    opacity: 0.24;
+  }
+
+  .playground-mobile-dock > button.is-active {
+    color: var(--pg-text);
+    background: rgba(120, 103, 255, 0.14);
+  }
+
+  .playground-mobile-dock > button b {
+    min-height: 18px;
+    display: grid;
+    place-items: center;
+    color: currentColor;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .playground-mobile-dock > button span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: currentColor;
+    font-size: 0.49rem;
+    font-weight: 850;
+    letter-spacing: 0.015em;
+    white-space: nowrap;
+  }
+
   .playground-topbar {
     min-height: 64px;
     padding: 12px 14px;
@@ -1520,14 +1597,7 @@
   }
 
   .playground-actions {
-    width: 100%;
-  }
-
-  .playground-play,
-  .playground-remix {
-    flex: 1;
-    min-width: 0;
-    min-height: 54px;
+    display: none;
   }
 
   .playground-experiment-bar,
@@ -1581,7 +1651,10 @@
   }
 
   .playground-beat-pad__trigger {
-    min-height: 82px;
+    min-height: 86px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
     justify-items: center;
@@ -1654,9 +1727,11 @@
   }
 
   .playground-lane-toolbar > button {
-    min-width: 38px;
-    height: 36px;
-    padding-inline: 8px;
+    min-width: 42px;
+    min-height: 44px;
+    height: 44px;
+    padding-inline: 9px;
+    touch-action: manipulation;
   }
 
   .playground-steps {
@@ -1674,13 +1749,14 @@
   }
 
   .playground-steps--focus .playground-step {
-    min-height: 42px;
-    aspect-ratio: 1.15;
-    border-radius: 11px;
+    min-height: 48px;
+    aspect-ratio: 1.04;
+    border-radius: 12px;
+    touch-action: none;
   }
 
   .playground-step {
-    min-height: 34px;
+    min-height: 42px;
     aspect-ratio: 1.18;
     border-radius: 9px;
   }
@@ -1713,7 +1789,7 @@
   .playground-footer {
     min-height: 54px;
     justify-content: flex-end;
-    padding: 10px 4px 18px;
+    padding: 10px 4px 8px;
   }
 
   .playground-hint {
@@ -1727,6 +1803,21 @@
 }
 
 @media (max-width: 420px) {
+  .playground-mobile-dock {
+    left: 6px;
+    right: 6px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    border-radius: 17px;
+  }
+
+  .playground-mobile-dock > button {
+    min-height: 58px;
+  }
+
+  .playground-mobile-dock > button span {
+    font-size: 0.45rem;
+  }
+
   .playground-project-alert {
     width: 40px;
     min-width: 40px;
@@ -1801,7 +1892,8 @@
     animation: none;
   }
 
-  .playground-playhead {
+  .playground-playhead,
+  .playground-mobile-dock {
     transition: none;
   }
 
@@ -1821,6 +1913,8 @@
   .playground-history-button,
   .playground-project-alert,
   .playground-studio-button,
+  .playground-mobile-dock,
+  .playground-mobile-dock > button,
   .playground-experiment-bar,
   .playground-pattern-banks > button,
   .playground-remix-history > button,
