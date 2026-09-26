@@ -23,6 +23,7 @@ async function enterStudio(page: Page) {
 
   const openStudio = page.getByRole("button", {
     name: "Open Studio",
+    exact: true,
   });
   await expect(openStudio).toBeVisible();
   await openStudio.click();
@@ -771,9 +772,11 @@ test("explicit user import survives bundled-sample identity collision", async ({
     }),
   ).toBeVisible();
 
-  await page.getByRole("button", {
-    name: "Change KICK sound. Current sound 808 Short",
-  }).click();
+  await expect(
+    page.getByRole("region", {
+      name: "KICK sounds",
+    }),
+  ).toBeVisible();
   await page.getByRole("button", {
     name: "Core KICK sound",
   }).click();
@@ -1359,6 +1362,59 @@ test.describe("mobile interaction shell", () => {
     expect(overflow.scrollWidth).toBeLessThanOrEqual(
       overflow.innerWidth + 1,
     );
+  });
+
+  test("mobile dock exposes fast beat controls and touch edit modes", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(
+      page.locator(".playground-surface"),
+    ).toBeVisible();
+
+    const dock = page.getByRole("navigation", {
+      name: "Mobile beat controls",
+    });
+    await expect(dock).toBeVisible();
+
+    await expect(
+      dock.getByRole("button", {
+        name: "Play beat",
+      }),
+    ).toBeVisible();
+    await expect(
+      dock.getByRole("button", {
+        name: "Remix beat",
+      }),
+    ).toBeVisible();
+
+    const editMode = dock.getByRole("button", {
+      name: "Touch edit mode: draw",
+    });
+    await editMode.click();
+    await expect(
+      dock.getByRole("button", {
+        name: "Touch edit mode: accent",
+      }),
+    ).toBeVisible();
+
+    await dock.getByRole("button", {
+      name: "Touch edit mode: accent",
+    }).click();
+    await expect(
+      dock.getByRole("button", {
+        name: "Touch edit mode: ghost",
+      }),
+    ).toBeVisible();
+
+    await dock.getByRole("button", {
+      name: "Change KICK sound",
+    }).click();
+    await expect(
+      page.getByRole("region", {
+        name: "KICK sounds",
+      }),
+    ).toBeVisible();
   });
 
   test("all seven modes, project and transport remain reachable without body overflow", async ({

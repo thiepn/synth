@@ -644,25 +644,24 @@ export function PlaygroundSurface({
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
-      const targetConsumesKeyboard =
-        eventTargetConsumesKeyboard(event.target);
-      const styleSelectFocused =
-        event.target instanceof HTMLSelectElement &&
-        event.target.getAttribute("aria-label") ===
-          "Beat style";
-      if (
-        targetConsumesKeyboard &&
-        !styleSelectFocused
-      ) {
-        return;
-      }
-
       const modifier = event.ctrlKey || event.metaKey;
       if (!modifier) return;
+
+      const target = event.target;
+      const textEditingTarget =
+        target instanceof HTMLElement &&
+        (
+          target.isContentEditable ||
+          target.matches(
+            "input, textarea, [role='textbox'], [role='spinbutton']",
+          )
+        );
+      if (textEditingTarget) return;
 
       const key = event.key.toLowerCase();
       if (key === "z") {
         event.preventDefault();
+        event.stopPropagation();
         if (event.shiftKey) {
           redoPattern();
         } else {
@@ -670,15 +669,21 @@ export function PlaygroundSurface({
         }
       } else if (key === "y") {
         event.preventDefault();
+        event.stopPropagation();
         redoPattern();
       }
     };
 
-    window.addEventListener("keydown", handleHistoryShortcut);
+    window.addEventListener(
+      "keydown",
+      handleHistoryShortcut,
+      true,
+    );
     return () =>
       window.removeEventListener(
         "keydown",
         handleHistoryShortcut,
+        true,
       );
   }, []);
 
@@ -1055,14 +1060,23 @@ export function PlaygroundSurface({
       const dy = event.clientY - gesture.startY;
       const distance = Math.hypot(dx, dy);
 
-      if (
+      const swipeDirection: -1 | 1 =
+        dx < 0 ? 1 : -1;
+      const canSwipe =
         gesture.pointerType !== "mouse" &&
         pageCount > 1 &&
-        Math.abs(dx) >= 34 &&
-        Math.abs(dx) > Math.abs(dy) * 1.25
-      ) {
-        gesture.mode = "pageSwipe";
-        gesture.swipeDirection = dx < 0 ? 1 : -1;
+        stepPage + swipeDirection >= 0 &&
+        stepPage + swipeDirection < pageCount;
+      const horizontalSwipeIntent =
+        canSwipe &&
+        Math.abs(dx) >= 7 &&
+        Math.abs(dx) > Math.abs(dy) * 1.25;
+
+      if (horizontalSwipeIntent) {
+        if (Math.abs(dx) >= 34) {
+          gesture.mode = "pageSwipe";
+          gesture.swipeDirection = swipeDirection;
+        }
         return;
       }
 
