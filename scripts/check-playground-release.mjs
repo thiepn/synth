@@ -41,6 +41,8 @@ const required = [
   [playground, "FAVORITE_SOUNDS_STORAGE_KEY", "Q7 favorite sounds must remain available."],
   [playground, "helpDialogRef", "Q8 modal focus handling must remain available."],
   [playground, "previousHelpFocusRef", "Q8 focus restoration must remain available."],
+  [playground, 'document.documentElement.style.overflow = "hidden"', "Q8 modal scroll lock must remain available."],
+  [playground, "nativeShareAvailable", "Q8 project share must retain safe download fallback."],
   [css, "@media (pointer: coarse)", "Coarse-pointer hardening must remain present."],
   [css, "@media (hover: hover) and (pointer: fine)", "Tooltips must remain capability-aware."],
   [css, "@media (prefers-reduced-motion: reduce)", "Reduced-motion support must remain present."],
@@ -56,6 +58,11 @@ rejectText(
   playground,
   'playbackCoordinator.toggleForMode("create")',
   "Playground must keep Q5 count-in aware transport flow instead of bypassing it.",
+);
+rejectText(
+  playground,
+  'event.key === "?" &&\n        !eventTargetConsumesKeyboard',
+  "Help shortcut must not be disabled merely because an ordinary button has focus.",
 );
 rejectText(
   css,
