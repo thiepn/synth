@@ -550,12 +550,9 @@ export function PlaygroundSurface({
       if (countInTokenRef.current !== token) return;
 
       if (index >= beats) {
-        countInTimerRef.current = window.setTimeout(() => {
-          if (countInTokenRef.current !== token) return;
-          countInTimerRef.current = null;
-          setCountInBeat(null);
-          void audioTransport.start();
-        }, beatMs);
+        countInTimerRef.current = null;
+        setCountInBeat(null);
+        void audioTransport.start();
         return;
       }
 
@@ -975,12 +972,51 @@ export function PlaygroundSurface({
     event: ReactPointerEvent<HTMLButtonElement>,
     voice: DrumVoiceId,
   ) => {
-    if (event.pointerType === "mouse") return;
+    if (
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    ) {
+      return;
+    }
 
     event.currentTarget.setPointerCapture?.(
       event.pointerId,
     );
     clearPadLongPress();
+    clearPadRepeat();
+
+    if (padRepeatDivision > 0) {
+      suppressPadClickRef.current = voice;
+      setSelectedVoice(voice);
+      setSoundPickerVoice(null);
+      padRepeatRef.current = {
+        voice,
+        pointerId: event.pointerId,
+      };
+      triggerVoice(voice, 0.88);
+
+      const intervalMs =
+        (60_000 / Math.max(30, transport.bpm)) /
+        padRepeatDivision;
+
+      padRepeatTimerRef.current = window.setInterval(
+        () => {
+          const active = padRepeatRef.current;
+          if (!active || active.voice !== voice) return;
+          setPadPulse((current) => ({
+            voice,
+            serial: current.serial + 1,
+          }));
+          void drumEngine.triggerNow(voice, 0.82);
+        },
+        Math.max(55, intervalMs),
+      );
+
+      return;
+    }
+
+    if (event.pointerType === "mouse") return;
+
     padLongPressRef.current = {
       voice,
       pointerId: event.pointerId,
@@ -997,11 +1033,15 @@ export function PlaygroundSurface({
       setSelectedVoice(voice);
       setSoundPickerVoice(voice);
       pulseHaptic([12, 22, 12]);
-      setNotice("Choose a " + displayLaneName(
-        SEQUENCER_LANES.find(
-          (lane) => lane.voice === voice,
-        ) ?? SEQUENCER_LANES[0],
-      ) + " sound");
+      setNotice(
+        "Choose a " +
+          displayLaneName(
+            SEQUENCER_LANES.find(
+              (lane) => lane.voice === voice,
+            ) ?? SEQUENCER_LANES[0],
+          ) +
+          " sound",
+      );
 
       window.setTimeout(() => {
         if (suppressPadClickRef.current === voice) {
@@ -1021,6 +1061,14 @@ export function PlaygroundSurface({
   const movePadLongPress = (
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => {
+    const repeating = padRepeatRef.current;
+    if (
+      repeating &&
+      repeating.pointerId === event.pointerId
+    ) {
+      return;
+    }
+
     const pending = padLongPressRef.current;
     if (
       !pending ||
@@ -1042,6 +1090,15 @@ export function PlaygroundSurface({
   const endPadLongPress = (
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => {
+    const repeating = padRepeatRef.current;
+    if (
+      repeating &&
+      repeating.pointerId === event.pointerId
+    ) {
+      clearPadRepeat();
+      return;
+    }
+
     const pending = padLongPressRef.current;
     if (
       pending &&
@@ -1049,6 +1106,67 @@ export function PlaygroundSurface({
     ) {
       clearPadLongPress();
     }
+  };
+
+  const beginMomentaryMonitor = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    mode: MomentaryMonitorMode,
+  ) => {
+    if (
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    const laneId = selectedDefinition.id;
+    event.currentTarget.setPointerCapture?.(
+      event.pointerId,
+    );
+
+    if (mode === "mute") {
+      sequencerStore.setTransientMute(laneId, true);
+    } else {
+      sequencerStore.setTransientSolo(laneId, true);
+    }
+
+    momentaryMonitorRef.current = {
+      laneId,
+      pointerId: event.pointerId,
+      mode,
+    };
+    setMomentaryMonitor(mode);
+    audioTransport.invalidateScheduledEvents();
+    pulseHaptic(6);
+    event.preventDefault();
+  };
+
+  const endMomentaryMonitor = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const active = momentaryMonitorRef.current;
+    if (
+      !active ||
+      active.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    if (active.mode === "mute") {
+      sequencerStore.setTransientMute(
+        active.laneId,
+        false,
+      );
+    } else {
+      sequencerStore.setTransientSolo(
+        active.laneId,
+        false,
+      );
+    }
+
+    momentaryMonitorRef.current = null;
+    setMomentaryMonitor(null);
+    audioTransport.invalidateScheduledEvents();
   };
 
   const setStep = (
