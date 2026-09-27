@@ -2027,6 +2027,7 @@ export function PlaygroundSurface({
     setStepContext(null);
     const key = laneId + ":" + stepIndex;
     const additive =
+      touchEditMode === "select" ||
       event.ctrlKey ||
       event.metaKey ||
       event.shiftKey;
