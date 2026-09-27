@@ -2844,8 +2844,13 @@ export function PlaygroundSurface({
             : action === "fillEighth"
               ? 2
               : 1;
-      changed = sequencerStore.fillLane(
+      changed = sequencerStore.fillLaneRange(
         laneId,
+        pageStart,
+        Math.min(
+          pageSize,
+          sequencer.lengthSteps - pageStart,
+        ),
         interval as 1 | 2 | 4 | 8,
       );
     }
@@ -2872,12 +2877,12 @@ export function PlaygroundSurface({
                   : action === "clear"
                     ? "Lane cleared"
                     : action === "fillHalf"
-                      ? "Half-note fill"
+                      ? "Half-note fill · bar " + (stepPage + 1)
                       : action === "fillQuarter"
-                        ? "Quarter-note fill"
+                        ? "Quarter-note fill · bar " + (stepPage + 1)
                         : action === "fillEighth"
-                          ? "Eighth-note fill"
-                          : "Sixteenth-note fill";
+                          ? "Eighth-note fill · bar " + (stepPage + 1)
+                          : "Sixteenth-note fill · bar " + (stepPage + 1);
     setNotice(label);
   };
 
