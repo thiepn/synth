@@ -1039,7 +1039,7 @@ export function SequenceSurface() {
       <p className="sequence-hint">
         Empty step: click to add. Active step: first click selects, click the
         selected step again to remove. Shift-click cycles velocity. DUP ×2
-        doubles the current phrase up to 64 steps. Probability is deterministic
+        doubles the current phrase up to 128 steps. Probability is deterministic
         per lane cycle; ratchets and flams stay inside the transport grid. Lane
         −/+ controls establish independent loop lengths for polymetric playback.
         In PAINT mode a complete drag stroke is one Undo action. Lane GEN /
