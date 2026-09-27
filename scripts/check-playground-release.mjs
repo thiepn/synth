@@ -29,6 +29,7 @@ const required = [
   [playground, "addPatternBar", "Q1 bar growth must remain available."],
   [playground, "toggleGridRecording", "P2 grid recording controls must remain available."],
   [playground, 'aria-label="Grid recording"', "P2 recording surface must remain visible."],
+  [playground, "enablePlaygroundMidi", "P2 MIDI enablement must remain directly available from Playground."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
   ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
   ["src/audio/AudioTransport.ts", "seekToAbsoluteTick(", "P2 selected-bar recording requires transport seek support."],
