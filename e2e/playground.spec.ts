@@ -309,6 +309,92 @@ test("Playground records pad performance live into the selected bar and can eras
   await expect(barTwoKickHits).toHaveCount(0);
 });
 
+test("Playground selection batch edits move duplicate delete and undo notes", async ({
+  page,
+}) => {
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Clear selected lane",
+  }).click();
+
+  const step1 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="0"]',
+  );
+  const step2 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="1"]',
+  );
+  const step3 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="2"]',
+  );
+  const step4 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="3"]',
+  );
+  const step5 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="4"]',
+  );
+  const step7 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="6"]',
+  );
+
+  await step1.click();
+  await step3.click();
+
+  await step1.click({ modifiers: ["Shift"] });
+  await step3.click({ modifiers: ["Shift"] });
+  await expect(step1).toHaveClass(/is-selected/);
+  await expect(step3).toHaveClass(/is-selected/);
+
+  await page.getByRole("button", {
+    name: "Accent selected notes",
+  }).click();
+  await expect(step1).toHaveAttribute(
+    "aria-label",
+    /velocity 96 percent/i,
+  );
+  await expect(step3).toHaveAttribute(
+    "aria-label",
+    /velocity 96 percent/i,
+  );
+
+  await page.getByRole("button", {
+    name: "Move selected notes right one step",
+  }).click();
+  await expect(step1).toHaveAttribute("aria-pressed", "false");
+  await expect(step2).toHaveAttribute("aria-pressed", "true");
+  await expect(step3).toHaveAttribute("aria-pressed", "false");
+  await expect(step4).toHaveAttribute("aria-pressed", "true");
+
+  await page.keyboard.press("Control+d");
+  await expect(step5).toHaveAttribute("aria-pressed", "true");
+  await expect(step7).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).click();
+  await expect(step5).toHaveAttribute("aria-pressed", "false");
+  await expect(step7).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByRole("button", {
+    name: "Select current bar notes",
+  }).click();
+  await expect(
+    page.locator(".playground-step.is-selected"),
+  ).toHaveCount(2);
+
+  await page.keyboard.press("Delete");
+  await expect(step2).toHaveAttribute("aria-pressed", "false");
+  await expect(step4).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).click();
+  await expect(step2).toHaveAttribute("aria-pressed", "true");
+  await expect(step4).toHaveAttribute("aria-pressed", "true");
+});
+
 test("Playground lane transforms are deterministic and undoable", async ({
   page,
 }) => {
