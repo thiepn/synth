@@ -37,6 +37,7 @@ import {
 } from "../../history/GenerationHistoryStore";
 import { useGenerationHistorySnapshot } from "../../history/useGenerationHistory";
 import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
+import { inputActionRouter } from "../../input/InputActionRouter";
 import {
   DRUM_PADS,
   SEQUENCER_LANES,
@@ -53,6 +54,12 @@ import {
   type LaneClipboardData,
 } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
+import {
+  gridRecorder,
+  type GridRecordMode,
+  type GridRecordQuantize,
+} from "../../sequencer/GridRecorder";
+import { useGridRecorderSnapshot } from "../../sequencer/useGridRecorder";
 import { getStyleDNA } from "../../style/styleDNA";
 
 interface PlaygroundSurfaceProps {
@@ -512,6 +519,7 @@ export function PlaygroundSurface({
 }: PlaygroundSurfaceProps) {
   const sequencer = useSequencerSnapshot();
   const transport = useTransportSnapshot();
+  const gridRecord = useGridRecorderSnapshot();
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
   const history = useGenerationHistorySnapshot();
@@ -1006,7 +1014,9 @@ export function PlaygroundSurface({
     });
   };
 
-  const startCountIn = async () => {
+  const startCountIn = async (
+    onComplete?: () => void,
+  ) => {
     cancelPatternPreview();
     cancelCountIn();
 
@@ -1036,7 +1046,13 @@ export function PlaygroundSurface({
       if (index >= beats) {
         countInTimerRef.current = null;
         setCountInBeat(null);
-        void audioTransport.start();
+        void audioTransport.start().then(() => {
+          if (
+            audioTransport.getSnapshot().status === "running"
+          ) {
+            onComplete?.();
+          }
+        });
         return;
       }
 
@@ -1057,14 +1073,104 @@ export function PlaygroundSurface({
     countBeat(0);
   };
 
+  const stopGridRecording = () => {
+    const count = gridRecorder.stop();
+    pulseHaptic(8);
+    setNotice(
+      count > 0
+        ? "Recorded " +
+            count +
+            (count === 1 ? " hit" : " hits") +
+            " · Undo restores the take"
+        : "Empty recording",
+    );
+  };
+
+  const toggleGridRecording = async () => {
+    if (gridRecord.status === "recording") {
+      stopGridRecording();
+      return;
+    }
+
+    if (gridRecord.status === "armed") {
+      cancelCountIn();
+      gridRecorder.cancel();
+      setNotice("Recording cancelled");
+      return;
+    }
+
+    cancelPatternPreview();
+    setSoundPickerVoice(null);
+
+    if (playing) {
+      gridRecorder.start();
+      pulseHaptic([8, 22, 8]);
+      setNotice("Recording · play the pads");
+      return;
+    }
+
+    audioTransport.seekToAbsoluteTick(
+      pageStart *
+        TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+    );
+    gridRecorder.arm();
+
+    if (countInEnabled) {
+      setNotice("Record armed · one bar count-in");
+      await startCountIn(() => {
+        gridRecorder.start();
+        setNotice("Recording · play the pads");
+      });
+      return;
+    }
+
+    await audioTransport.start();
+    if (
+      audioTransport.getSnapshot().status === "running"
+    ) {
+      gridRecorder.start();
+      pulseHaptic([8, 22, 8]);
+      setNotice("Recording · play the pads");
+    } else {
+      gridRecorder.cancel();
+      setNotice("Audio could not start");
+    }
+  };
+
+  const setGridRecordMode = (mode: GridRecordMode) => {
+    gridRecorder.setMode(mode);
+    setNotice(
+      mode === "erase"
+        ? "Record mode · erase hits"
+        : "Record mode · overdub",
+    );
+  };
+
+  const setGridRecordQuantize = (
+    quantize: GridRecordQuantize,
+  ) => {
+    gridRecorder.setQuantize(quantize);
+    setNotice(
+      quantize === "off"
+        ? "Quantize off · timing preserved"
+        : "Quantize " + quantize,
+    );
+  };
+
   const togglePlaybackFlow = () => {
     if (countInBeat !== null) {
       cancelCountIn();
+      if (gridRecord.status === "armed") {
+        gridRecorder.cancel();
+      }
       setNotice("Count-in cancelled");
       return;
     }
 
     if (playing) {
+      if (gridRecord.status === "recording") {
+        stopGridRecording();
+      }
       audioTransport.pause();
       return;
     }
@@ -1490,9 +1596,11 @@ export function PlaygroundSurface({
         voice,
         serial: current.serial + 1,
       }));
-      void drumEngine.triggerNow(
-        voice,
-        event.shiftKey ? 1 : 0.88,
+      const velocity = event.shiftKey ? 1 : 0.88;
+      pulseHaptic(velocity >= 0.9 ? 11 : 7);
+      void inputActionRouter.trigger(
+        { kind: "pad", voice },
+        velocity,
       );
     };
 
@@ -1539,6 +1647,16 @@ export function PlaygroundSurface({
     "create",
     transport,
   );
+
+  useEffect(() => {
+    return () => {
+      if (
+        gridRecorder.getSnapshot().status !== "idle"
+      ) {
+        gridRecorder.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (playing) {
@@ -1782,6 +1900,7 @@ export function PlaygroundSurface({
   const triggerVoice = (
     voice: DrumVoiceId,
     velocity = 0.88,
+    capture = true,
   ) => {
     completeFirstUseAction("pad");
     setPadPulse((current) => ({
@@ -1795,7 +1914,14 @@ export function PlaygroundSurface({
           ? 4
           : 7,
     );
-    void drumEngine.triggerNow(voice, velocity);
+    if (capture) {
+      void inputActionRouter.trigger(
+        { kind: "pad", voice },
+        velocity,
+      );
+    } else {
+      void drumEngine.triggerNow(voice, velocity);
+    }
   };
 
   const beginPadLongPress = (
@@ -1833,11 +1959,7 @@ export function PlaygroundSurface({
         () => {
           const active = padRepeatRef.current;
           if (!active || active.voice !== voice) return;
-          setPadPulse((current) => ({
-            voice,
-            serial: current.serial + 1,
-          }));
-          void drumEngine.triggerNow(voice, 0.82);
+          triggerVoice(voice, 0.82);
         },
         Math.max(55, intervalMs),
       );
@@ -2032,7 +2154,7 @@ export function PlaygroundSurface({
       const voice = SEQUENCER_LANES.find(
         (lane) => lane.id === laneId,
       )?.voice;
-      if (voice) triggerVoice(voice, 0.8);
+      if (voice) triggerVoice(voice, 0.8, false);
     }
   };
 
@@ -2112,6 +2234,7 @@ export function PlaygroundSurface({
           triggerVoice(
             voice,
             dynamic === "accent" ? 0.96 : 0.22,
+            false,
           );
         }
       }
@@ -2928,7 +3051,7 @@ export function PlaygroundSurface({
       }));
       recordSoundUse(voice, nextIndex);
       completeFirstUseAction("sound");
-      triggerVoice(voice, 0.9);
+      triggerVoice(voice, 0.9, false);
       setNotice(
         (DRUM_PADS.find((pad) => pad.voice === voice)?.label ?? voice) +
           " · " +
@@ -3828,6 +3951,133 @@ export function PlaygroundSurface({
           <span>Hold repeat</span>
           <b>{repeatLabel}</b>
         </button>
+      </section>
+
+      <section
+        className={[
+          "playground-record-bar",
+          gridRecord.status === "recording"
+            ? "is-recording"
+            : "",
+          gridRecord.status === "armed"
+            ? "is-armed"
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        aria-label="Grid recording"
+      >
+        <button
+          type="button"
+          className="playground-record-button"
+          onClick={() => void toggleGridRecording()}
+          aria-label={
+            gridRecord.status === "recording"
+              ? "Stop grid recording"
+              : gridRecord.status === "armed"
+                ? "Cancel armed recording"
+                : "Start grid recording"
+          }
+          aria-pressed={
+            gridRecord.status !== "idle"
+          }
+        >
+          <span aria-hidden="true">
+            {gridRecord.status === "recording"
+              ? "■"
+              : "●"}
+          </span>
+          <b>
+            {gridRecord.status === "recording"
+              ? "Stop"
+              : gridRecord.status === "armed"
+                ? "Armed"
+                : "Record"}
+          </b>
+        </button>
+
+        <div
+          className="playground-record-modes"
+          aria-label="Recording mode"
+        >
+          {(["overdub", "erase"] as const).map(
+            (mode) => (
+              <button
+                type="button"
+                key={mode}
+                className={
+                  gridRecord.mode === mode
+                    ? "is-active"
+                    : ""
+                }
+                onClick={() =>
+                  setGridRecordMode(mode)
+                }
+                aria-pressed={
+                  gridRecord.mode === mode
+                }
+              >
+                {mode === "overdub"
+                  ? "Overdub"
+                  : "Erase"}
+              </button>
+            ),
+          )}
+        </div>
+
+        <div
+          className="playground-record-quantize"
+          aria-label="Recording quantize"
+        >
+          <span>Quantize</span>
+          {(
+            ["off", "1/16", "1/8", "1/4"] as const
+          ).map((quantize) => (
+            <button
+              type="button"
+              key={quantize}
+              className={
+                gridRecord.quantize === quantize
+                  ? "is-active"
+                  : ""
+              }
+              disabled={
+                gridRecord.status === "recording"
+              }
+              onClick={() =>
+                setGridRecordQuantize(quantize)
+              }
+              aria-pressed={
+                gridRecord.quantize === quantize
+              }
+            >
+              {quantize === "off"
+                ? "Off"
+                : quantize}
+            </button>
+          ))}
+        </div>
+
+        <output
+          className="playground-record-status"
+          aria-live="polite"
+        >
+          <strong>
+            {gridRecord.status === "recording"
+              ? "REC"
+              : gridRecord.status === "armed"
+                ? "ARMED"
+                : "READY"}
+          </strong>
+          <span>
+            {gridRecord.status === "recording"
+              ? gridRecord.hitCount +
+                (gridRecord.hitCount === 1
+                  ? " hit"
+                  : " hits")
+              : "Pads · keys · MIDI"}
+          </span>
+        </output>
       </section>
 
       <div className="playground-workbench">
