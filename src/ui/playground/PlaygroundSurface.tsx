@@ -1634,15 +1634,6 @@ export function PlaygroundSurface({
   const selectedLane = sequencer.pattern.lanes.find(
     (lane) => lane.id === selectedDefinition.id,
   );
-  const selectedLaneHasHits =
-    selectedLane?.events.some(
-      (event) =>
-        event.tick <
-        sequencerStore.getLaneLengthSteps(
-          selectedDefinition.id,
-        ) *
-          TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
-    ) ?? false;
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
@@ -2649,6 +2640,28 @@ export function PlaygroundSurface({
     setNotice(Math.round(audioTransport.getSnapshot().bpm) + " BPM");
   };
 
+  const setPlaygroundPatternLength = (
+    steps: 16 | 32 | 64,
+  ) => {
+    if (sequencer.lengthSteps === steps) return;
+
+    cancelPatternPreview();
+    sequencerStore.setLengthSteps(steps);
+    setStepPage((current) =>
+      Math.min(
+        current,
+        Math.max(0, Math.ceil(steps / pageSize) - 1),
+      ),
+    );
+    setNotice(
+      (steps / 16) +
+        (steps === 16 ? " bar" : " bars") +
+        " · " +
+        steps +
+        " steps",
+    );
+  };
+
   const editSelectedLane = (
     action:
       | "shiftLeft"
@@ -2659,6 +2672,7 @@ export function PlaygroundSurface({
       | "copy"
       | "paste"
       | "clear"
+      | "fillHalf"
       | "fillQuarter"
       | "fillEighth"
       | "fillSixteenth",
@@ -2734,14 +2748,16 @@ export function PlaygroundSurface({
           displayLaneName(selectedDefinition),
       );
       const interval =
-        action === "fillQuarter"
-          ? 4
-          : action === "fillEighth"
-            ? 2
-            : 1;
+        action === "fillHalf"
+          ? 8
+          : action === "fillQuarter"
+            ? 4
+            : action === "fillEighth"
+              ? 2
+              : 1;
       changed = sequencerStore.fillLane(
         laneId,
-        interval as 1 | 2 | 4,
+        interval as 1 | 2 | 4 | 8,
       );
     }
 
@@ -2766,11 +2782,13 @@ export function PlaygroundSurface({
                     (laneClipboardLabel ?? "lane")
                   : action === "clear"
                     ? "Lane cleared"
-                    : action === "fillQuarter"
-                      ? "Quarter-note fill"
-                      : action === "fillEighth"
-                        ? "Eighth-note fill"
-                        : "Sixteenth-note fill";
+                    : action === "fillHalf"
+                      ? "Half-note fill"
+                      : action === "fillQuarter"
+                        ? "Quarter-note fill"
+                        : action === "fillEighth"
+                          ? "Eighth-note fill"
+                          : "Sixteenth-note fill";
     setNotice(label);
   };
 
@@ -3912,14 +3930,48 @@ export function PlaygroundSurface({
                   aria-hidden="true"
                 />
                 <div>
-                  <small>DRAW THE RHYTHM</small>
-                  <strong>
+                  <small>
+                    EDIT THE WHOLE BEAT · SELECTED TOOLS:{" "}
                     {displayLaneName(selectedDefinition)}
-                  </strong>
+                  </small>
+                  <strong>ALL TRACKS</strong>
                 </div>
               </div>
 
               <div className="playground-focus__tools">
+                <div
+                  className="playground-length-control"
+                  aria-label="Pattern length"
+                >
+                  {([16, 32, 64] as const).map((steps) => (
+                    <button
+                      type="button"
+                      key={steps}
+                      className={
+                        sequencer.lengthSteps === steps
+                          ? "is-active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setPlaygroundPatternLength(steps)
+                      }
+                      aria-pressed={
+                        sequencer.lengthSteps === steps
+                      }
+                      title={
+                        String(steps / 16) +
+                        (steps === 16 ? " bar" : " bars") +
+                        " · " +
+                        steps +
+                        " steps"
+                      }
+                    >
+                      <span>{steps / 16} BAR{steps === 16 ? "" : "S"}</span>
+                      <b>{steps}</b>
+                    </button>
+                  ))}
+                </div>
+
                 {pageCount > 1 ? (
                   <div
                     className="playground-page-control"
@@ -4009,15 +4061,264 @@ export function PlaygroundSurface({
               </div>
             </header>
 
-            {!selectedLaneHasHits ? (
-              <div className="playground-lane-empty">
-                <span aria-hidden="true">＋</span>
-                <p>
-                  <strong>This lane is empty.</strong>
-                  Tap a step, use a Fill button, or press ✦ to make a rhythm.
-                </p>
+            <div
+              className="playground-multitrack"
+              aria-label="All track pattern editor"
+              onPointerMove={continuePaint}
+              onPointerUp={(event) =>
+                finishPaint(event.pointerId)
+              }
+              onPointerCancel={(event) =>
+                finishPaint(event.pointerId, true)
+              }
+            >
+              <div className="playground-multitrack__ruler">
+                <div className="playground-multitrack__corner">
+                  <span>TRACK</span>
+                  <b>
+                    BAR {stepPage + 1}/{pageCount}
+                  </b>
+                </div>
+                <div
+                  className="playground-multitrack__numbers"
+                  style={{
+                    gridTemplateColumns:
+                      "repeat(" +
+                      Math.min(
+                        pageSize,
+                        sequencer.lengthSteps - pageStart,
+                      ) +
+                      ", minmax(0, 1fr))",
+                  }}
+                >
+                  {Array.from(
+                    {
+                      length: Math.min(
+                        pageSize,
+                        sequencer.lengthSteps - pageStart,
+                      ),
+                    },
+                    (_, offset) => {
+                      const stepIndex = pageStart + offset;
+                      return (
+                        <span
+                          key={stepIndex}
+                          className={
+                            offset % 4 === 0
+                              ? "is-beat"
+                              : ""
+                          }
+                        >
+                          {stepIndex + 1}
+                        </span>
+                      );
+                    },
+                  )}
+                </div>
               </div>
-            ) : null}
+
+              {lanes.map(({ definition, lane }) => {
+                if (!lane) return null;
+
+                const voice = definition.voice;
+                const selected = voice === selectedVoice;
+                const currentSound =
+                  SOUND_PRESETS[voice][soundIndex[voice]]
+                    ?.label ?? "Custom";
+                const visibleSteps = Math.min(
+                  pageSize,
+                  sequencer.lengthSteps - pageStart,
+                );
+
+                return (
+                  <div
+                    key={definition.id}
+                    className={[
+                      "playground-track-row",
+                      selected ? "is-selected" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={
+                      {
+                        "--lane-color": LANE_COLORS[voice],
+                      } as CSSProperties
+                    }
+                  >
+                    <div className="playground-track-head">
+                      <button
+                        type="button"
+                        className="playground-track-select"
+                        onClick={() => {
+                          setSelectedVoice(voice);
+                          setSoundPickerVoice(null);
+                        }}
+                        aria-pressed={selected}
+                        aria-label={
+                          "Select " +
+                          displayLaneName(definition) +
+                          " tools"
+                        }
+                      >
+                        <span
+                          className="playground-track-swatch"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          <strong>
+                            {displayLaneName(definition)}
+                          </strong>
+                          <small>{currentSound}</small>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="playground-track-sound"
+                        onClick={() => {
+                          setSelectedVoice(voice);
+                          setSoundPickerVoice((current) =>
+                            current === voice ? null : voice,
+                          );
+                        }}
+                        aria-label={
+                          "Change " +
+                          displayLaneName(definition) +
+                          " sound"
+                        }
+                        title={"Sound · " + currentSound}
+                      >
+                        ♪
+                      </button>
+                    </div>
+
+                    <div
+                      className="playground-steps playground-steps--lane"
+                      style={{
+                        gridTemplateColumns:
+                          "repeat(" +
+                          visibleSteps +
+                          ", minmax(0, 1fr))",
+                      }}
+                    >
+                      {Array.from(
+                        { length: visibleSteps },
+                        (_, offset) => {
+                          const stepIndex = pageStart + offset;
+                          const velocity =
+                            sequencerStore.getStepVelocity(
+                              definition.id,
+                              stepIndex,
+                            );
+                          const on = velocity !== undefined;
+                          const current =
+                            visualStep === stepIndex;
+
+                          return (
+                            <button
+                              type="button"
+                              key={stepIndex}
+                              className={[
+                                "playground-step",
+                                on ? "is-on" : "",
+                                velocity !== undefined &&
+                                velocity >= 0.85
+                                  ? "is-accent"
+                                  : "",
+                                velocity !== undefined &&
+                                velocity <= 0.3
+                                  ? "is-ghost"
+                                  : "",
+                                current
+                                  ? "is-current"
+                                  : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              style={
+                                {
+                                  "--step-strength":
+                                    velocity === undefined
+                                      ? 0
+                                      : Math.max(
+                                          0.3,
+                                          velocity,
+                                        ),
+                                  "--step-opacity":
+                                    velocity === undefined
+                                      ? 1
+                                      : 0.56 +
+                                        velocity * 0.44,
+                                  "--step-indicator-scale":
+                                    velocity === undefined
+                                      ? 0.72
+                                      : 0.62 +
+                                        velocity * 0.38,
+                                } as CSSProperties
+                              }
+                              data-play-step="true"
+                              data-lane-id={definition.id}
+                              data-step-index={stepIndex}
+                              aria-pressed={on}
+                              aria-label={
+                                displayLaneName(definition) +
+                                " step " +
+                                (stepIndex + 1) +
+                                (on
+                                  ? ", on, velocity " +
+                                    Math.round(
+                                      (velocity ?? 0) * 100,
+                                    ) +
+                                    " percent. Click to remove; drag vertically for velocity"
+                                  : ", off. Click to add")
+                              }
+                              onPointerDown={(event) => {
+                                setSelectedVoice(voice);
+                                if (
+                                  soundPickerVoice !== null &&
+                                  soundPickerVoice !== voice
+                                ) {
+                                  setSoundPickerVoice(null);
+                                }
+                                beginPaint(
+                                  event,
+                                  definition.id,
+                                  stepIndex,
+                                );
+                              }}
+                              onContextMenu={(event) => {
+                                event.preventDefault();
+                                clearStepContextLongPress();
+                                openStepContext(
+                                  definition.id,
+                                  stepIndex,
+                                  event.clientX,
+                                  event.clientY,
+                                );
+                              }}
+                              onClick={(event) => {
+                                if (event.detail !== 0) return;
+                                setSelectedVoice(voice);
+                                activateFromKeyboard(
+                                  definition.id,
+                                  stepIndex,
+                                  event.altKey
+                                    ? "ghost"
+                                    : event.shiftKey
+                                      ? "accent"
+                                      : undefined,
+                                );
+                              }}
+                            >
+                              <span aria-hidden="true" />
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
             <div
               className="playground-lane-toolbar"
@@ -4101,6 +4402,14 @@ export function PlaygroundSurface({
               </button>
               <i aria-hidden="true" />
               <span>Fill</span>
+              <button
+                type="button"
+                onClick={() => editSelectedLane("fillHalf")}
+                aria-label="Fill lane with half notes"
+                title="Fill half notes"
+              >
+                ½
+              </button>
               <button
                 type="button"
                 onClick={() => editSelectedLane("fillQuarter")}
@@ -4192,158 +4501,7 @@ export function PlaygroundSurface({
               </button>
             </div>
 
-            <div
-              className="playground-steps playground-steps--focus"
-              style={
-                sequencer.lengthSteps < pageSize
-                  ? {
-                      gridTemplateColumns:
-                        "repeat(" +
-                        sequencer.lengthSteps +
-                        ", minmax(24px, 1fr))",
-                    }
-                  : undefined
-              }
-              onPointerMove={continuePaint}
-              onPointerUp={(event) =>
-                finishPaint(event.pointerId)
-              }
-              onPointerCancel={(event) =>
-                finishPaint(event.pointerId, true)
-              }
-            >
-              {visualStep !== undefined &&
-              visualStep >= pageStart &&
-              visualStep <
-                pageStart +
-                  Math.min(
-                    pageSize,
-                    sequencer.lengthSteps - pageStart,
-                  ) ? (
-                <span
-                  className="playground-playhead"
-                  aria-hidden="true"
-                  style={{
-                    left:
-                      ((visualStep - pageStart + 0.5) /
-                        Math.min(
-                          pageSize,
-                          sequencer.lengthSteps - pageStart,
-                        )) *
-                        100 +
-                      "%",
-                  }}
-                />
-              ) : null}
 
-              {Array.from(
-                {
-                  length: Math.min(
-                    pageSize,
-                    sequencer.lengthSteps - pageStart,
-                  ),
-                },
-                (_, offset) => {
-                  const stepIndex = pageStart + offset;
-                  const velocity =
-                    sequencerStore.getStepVelocity(
-                      selectedDefinition.id,
-                      stepIndex,
-                    );
-                  const on = velocity !== undefined;
-                  const current =
-                    visualStep === stepIndex;
-
-                  return (
-                    <button
-                      type="button"
-                      key={stepIndex}
-                      className={[
-                        "playground-step",
-                        on ? "is-on" : "",
-                        velocity !== undefined && velocity >= 0.85
-                          ? "is-accent"
-                          : "",
-                        velocity !== undefined && velocity <= 0.3
-                          ? "is-ghost"
-                          : "",
-                        current ? "is-current" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      style={
-                        {
-                          "--step-strength":
-                            velocity === undefined
-                              ? 0
-                              : Math.max(
-                                  0.3,
-                                  velocity,
-                                ),
-                          "--step-opacity":
-                            velocity === undefined
-                              ? 1
-                              : 0.56 + velocity * 0.44,
-                          "--step-indicator-scale":
-                            velocity === undefined
-                              ? 0.72
-                              : 0.62 + velocity * 0.38,
-                        } as CSSProperties
-                      }
-                      data-play-step="true"
-                      data-lane-id={
-                        selectedDefinition.id
-                      }
-                      data-step-index={stepIndex}
-                      aria-pressed={on}
-                      aria-label={
-                        displayLaneName(
-                          selectedDefinition,
-                        ) +
-                        " step " +
-                        (stepIndex + 1) +
-                        (on
-                          ? ", on, velocity " +
-                            Math.round((velocity ?? 0) * 100) +
-                            " percent. Drag vertically to change velocity"
-                          : ", off")
-                      }
-                      onPointerDown={(event) =>
-                        beginPaint(
-                          event,
-                          selectedDefinition.id,
-                          stepIndex,
-                        )
-                      }
-                      onContextMenu={(event) => {
-                        event.preventDefault();
-                        clearStepContextLongPress();
-                        openStepContext(
-                          selectedDefinition.id,
-                          stepIndex,
-                          event.clientX,
-                          event.clientY,
-                        );
-                      }}
-                      onClick={(event) => {
-                        if (event.detail !== 0) return;
-                        activateFromKeyboard(
-                          selectedDefinition.id,
-                          stepIndex,
-                          event.altKey
-                            ? "ghost"
-                            : event.shiftKey
-                              ? "accent"
-                              : undefined,
-                        );
-                      }}
-                    >
-                      <span aria-hidden="true" />
-                    </button>
-                  );
-                },
-              )}
-            </div>
 
             {soundPickerVoice === selectedVoice ? (
               <section
