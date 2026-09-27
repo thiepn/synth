@@ -1242,7 +1242,10 @@ export function PlaygroundSurface({
         return;
       }
 
-      if (event.key === "?") {
+      if (
+        event.key === "?" ||
+        (event.code === "Slash" && event.shiftKey)
+      ) {
         const target = event.target;
         const typingTarget =
           target instanceof HTMLElement &&
