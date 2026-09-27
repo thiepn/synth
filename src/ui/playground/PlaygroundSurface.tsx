@@ -3913,8 +3913,8 @@ export function PlaygroundSurface({
             ref={focusRef}
             className="playground-focus"
             aria-label={
-              displayLaneName(selectedDefinition) +
-              " pattern editor"
+              "Whole pattern editor. Selected track tools: " +
+              displayLaneName(selectedDefinition)
             }
             style={
               {
