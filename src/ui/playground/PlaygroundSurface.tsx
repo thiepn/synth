@@ -2105,6 +2105,29 @@ export function PlaygroundSurface({
     );
   };
 
+  const selectAllNotes = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before selecting notes");
+      return;
+    }
+    const next = selectionInRectangle(
+      SEQUENCER_LANES[0]?.id ?? "",
+      SEQUENCER_LANES[
+        SEQUENCER_LANES.length - 1
+      ]?.id ?? "",
+      0,
+      Math.max(0, sequencer.lengthSteps - 1),
+    );
+    setSelectedSteps(next);
+    setNotice(
+      next.length +
+        (next.length === 1
+          ? " note selected"
+          : " notes selected") +
+        " · whole pattern",
+    );
+  };
+
   const clearSelection = () => {
     selectionDragRef.current = null;
     setSelectedSteps([]);
@@ -2250,6 +2273,156 @@ export function PlaygroundSurface({
       ),
     );
   }, [sequencer.revision]);
+
+  useEffect(() => {
+    const handleSelectionKeys = (
+      event: KeyboardEvent,
+    ) => {
+      const target = event.target;
+      const typingTarget =
+        target instanceof HTMLElement &&
+        (
+          target.isContentEditable ||
+          target.matches(
+            "input, textarea, select, [role='textbox'], [role='spinbutton'], [role='slider']",
+          )
+        );
+      if (typingTarget) return;
+
+      const modifier =
+        event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+
+      if (
+        modifier &&
+        key === "a" &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        selectCurrentBar();
+        return;
+      }
+
+      if (
+        !modifier &&
+        !event.altKey &&
+        key === "v"
+      ) {
+        event.preventDefault();
+        setTouchEditMode((current) =>
+          current === "select"
+            ? "draw"
+            : "select",
+        );
+        setNotice(
+          touchEditMode === "select"
+            ? "Edit mode · Draw"
+            : "Edit mode · Select",
+        );
+        return;
+      }
+
+      if (selectedSteps.length === 0) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        clearSelection();
+        setNotice("Selection cleared");
+        return;
+      }
+
+      if (
+        event.key === "Delete" ||
+        event.key === "Backspace"
+      ) {
+        event.preventDefault();
+        batchDeleteSelection();
+        return;
+      }
+
+      if (modifier && key === "d") {
+        event.preventDefault();
+        batchDuplicateSelection();
+        return;
+      }
+
+      if (
+        !modifier &&
+        !event.altKey &&
+        event.key === "ArrowLeft"
+      ) {
+        event.preventDefault();
+        batchMoveSelection(-1);
+        return;
+      }
+
+      if (
+        !modifier &&
+        !event.altKey &&
+        event.key === "ArrowRight"
+      ) {
+        event.preventDefault();
+        batchMoveSelection(1);
+        return;
+      }
+
+      if (!modifier && key === "[") {
+        event.preventDefault();
+        batchAdjustVelocity(-0.08);
+        return;
+      }
+
+      if (!modifier && key === "]") {
+        event.preventDefault();
+        batchAdjustVelocity(0.08);
+        return;
+      }
+
+      if (!modifier && key === ",") {
+        event.preventDefault();
+        batchNudgeTiming(-5_000);
+        return;
+      }
+
+      if (!modifier && key === ".") {
+        event.preventDefault();
+        batchNudgeTiming(5_000);
+        return;
+      }
+
+      if (!modifier && key === "1") {
+        event.preventDefault();
+        batchSetDynamic("ghost");
+      } else if (!modifier && key === "2") {
+        event.preventDefault();
+        batchSetDynamic("normal");
+      } else if (!modifier && key === "3") {
+        event.preventDefault();
+        batchSetDynamic("accent");
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleSelectionKeys,
+      true,
+    );
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        handleSelectionKeys,
+        true,
+      );
+  }, [
+    selectedSteps,
+    stepPage,
+    touchEditMode,
+    sequencer.lengthSteps,
+    sequencer.revision,
+    selectedVoice,
+  ]);
 
   useEffect(() => {
     setStepPage((current) =>
