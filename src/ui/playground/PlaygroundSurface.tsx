@@ -57,6 +57,7 @@ import {
   type LaneClipboardData,
   type SequencerStepDynamic,
   type SequencerStepSelection,
+  type StepSelectionClipboardData,
 } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import {
@@ -603,6 +604,8 @@ export function PlaygroundSurface({
   const [selectedSteps, setSelectedSteps] = useState<
     SequencerStepSelection[]
   >([]);
+  const [selectionClipboard, setSelectionClipboard] =
+    useState<StepSelectionClipboardData | null>(null);
   const selectionDragRef =
     useRef<SelectionDragState | null>(null);
   const [laneClipboardLabel, setLaneClipboardLabel] =
@@ -2214,6 +2217,54 @@ export function PlaygroundSurface({
     );
   };
 
+  const batchCopySelection = () => {
+    if (selectedSteps.length === 0) return;
+    const clipboard =
+      sequencerStore.copySelectedSteps(
+        selectedSteps,
+      );
+    if (!clipboard) {
+      setNotice("Nothing selected to copy");
+      return;
+    }
+
+    setSelectionClipboard(clipboard);
+    setNotice(
+      "Copied " +
+        clipboard.entries.length +
+        (clipboard.entries.length === 1
+          ? " note"
+          : " notes"),
+    );
+  };
+
+  const batchPasteSelection = () => {
+    if (!selectionClipboard) return;
+    const pasted =
+      sequencerStore.pasteSelectedSteps(
+        selectionClipboard,
+        pageStart,
+      );
+
+    if (!pasted) {
+      setNotice(
+        "Paste blocked by a track lock or pattern edge",
+      );
+      return;
+    }
+
+    setSelectedSteps(pasted);
+    setNotice(
+      "Pasted " +
+        pasted.length +
+        (pasted.length === 1
+          ? " note"
+          : " notes") +
+        " · bar " +
+        (stepPage + 1),
+    );
+  };
+
   const batchDuplicateSelection = () => {
     if (selectedSteps.length === 0) return;
     const steps = selectedSteps.map(
@@ -2342,6 +2393,19 @@ export function PlaygroundSurface({
         return;
       }
 
+      if (modifier && key === "c") {
+        event.preventDefault();
+        batchCopySelection();
+        return;
+      }
+
+      if (modifier && key === "v") {
+        if (!selectionClipboard) return;
+        event.preventDefault();
+        batchPasteSelection();
+        return;
+      }
+
       if (modifier && key === "d") {
         event.preventDefault();
         batchDuplicateSelection();
@@ -2417,6 +2481,7 @@ export function PlaygroundSurface({
       );
   }, [
     selectedSteps,
+    selectionClipboard,
     stepPage,
     touchEditMode,
     sequencer.lengthSteps,
@@ -5382,6 +5447,24 @@ export function PlaygroundSurface({
                     title="Delete · Delete/Backspace"
                   >
                     Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={batchCopySelection}
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Copy selected notes"
+                    title="Copy · Ctrl/Cmd-C"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={batchPasteSelection}
+                    disabled={!selectionClipboard}
+                    aria-label="Paste copied notes to current bar"
+                    title="Paste at current bar · Ctrl/Cmd-V"
+                  >
+                    Paste
                   </button>
                   <button
                     type="button"
