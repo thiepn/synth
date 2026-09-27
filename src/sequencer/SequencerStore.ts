@@ -677,13 +677,41 @@ export class SequencerStore {
     laneId: string,
     intervalSteps: 1 | 2 | 4 | 8,
   ): boolean {
+    return this.fillLaneRange(
+      laneId,
+      0,
+      this.getLaneLengthSteps(laneId),
+      intervalSteps,
+    );
+  }
+
+  fillLaneRange(
+    laneId: string,
+    startStep: number,
+    lengthSteps: number,
+    intervalSteps: 1 | 2 | 4 | 8,
+  ): boolean {
     const source = this.pattern.lanes.find(
       (lane) => lane.id === laneId,
     );
     if (!source || source.lock.rhythm) return false;
 
     const laneLength = this.getLaneLengthSteps(laneId);
-    const activeLimit = laneLength * FOUNDATION_STEP_TICKS;
+    const safeStart = Math.max(
+      0,
+      Math.min(laneLength, Math.floor(startStep)),
+    );
+    const safeLength = Math.max(0, Math.floor(lengthSteps));
+    const safeEnd = Math.min(
+      laneLength,
+      safeStart + safeLength,
+    );
+    if (safeStart >= safeEnd) return false;
+
+    const startTick =
+      safeStart * FOUNDATION_STEP_TICKS;
+    const endTick =
+      safeEnd * FOUNDATION_STEP_TICKS;
 
     this.commit((draft) => {
       const lane = draft.lanes.find(
@@ -691,14 +719,18 @@ export class SequencerStore {
       );
       if (!lane) return;
 
-      const dormant = lane.events
-        .filter((event) => event.tick >= activeLimit)
+      const preserved = lane.events
+        .filter(
+          (event) =>
+            event.tick < startTick ||
+            event.tick >= endTick,
+        )
         .map(cloneStepEvent);
       const filled: StepEvent[] = [];
 
       for (
-        let step = 0;
-        step < laneLength;
+        let step = safeStart;
+        step < safeEnd;
         step += intervalSteps
       ) {
         const velocity =
@@ -712,7 +744,7 @@ export class SequencerStore {
         );
       }
 
-      lane.events = [...filled, ...dormant].sort(
+      lane.events = [...preserved, ...filled].sort(
         (a, b) => a.tick - b.tick,
       );
     });
