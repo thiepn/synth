@@ -35,6 +35,8 @@ const required = [
   [playground, 'aria-label="Note selection tools"', "P3 selection toolbar must remain visible."],
   ["src/sequencer/SequencerStore.ts", "moveSelectedSteps(", "P3 canonical batch movement must remain in SequencerStore."],
   ["src/sequencer/SequencerStore.ts", "duplicateSelectedSteps(", "P3 canonical batch duplication must remain in SequencerStore."],
+  ["src/sequencer/SequencerStore.ts", "pasteSelectedSteps(", "P3 metadata-preserving selection paste must remain in SequencerStore."],
+  [playground, "batchPasteSelection", "P3 cross-bar copy paste must remain available."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
   ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
   ["src/audio/AudioTransport.ts", "seekToAbsoluteTick(", "P2 selected-bar recording requires transport seek support."],
