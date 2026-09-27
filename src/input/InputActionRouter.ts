@@ -6,6 +6,7 @@ import {
   playbackCoordinator,
 } from "../playback/PlaybackCoordinator";
 import type { DrumVoiceId } from "../music/foundationPattern";
+import { gridRecorder } from "../sequencer/GridRecorder";
 import {
   performanceStore,
   type PerformanceMacroId,
@@ -31,12 +32,21 @@ export class InputActionRouter {
     const normalized = Math.max(0, Math.min(1, value));
 
     switch (target.kind) {
-      case "pad":
+      case "pad": {
+        const velocity = Math.max(0.05, normalized);
+        const absoluteTick =
+          audioTransport.getCurrentAbsoluteTick();
+        gridRecorder.recordHit(
+          target.voice,
+          velocity,
+          absoluteTick,
+        );
         await drumEngine.triggerNow(
           target.voice,
-          Math.max(0.05, normalized),
+          velocity,
         );
         return;
+      }
       case "macro":
         performanceStore.setMacro(target.macro, normalized);
         return;
