@@ -1606,9 +1606,25 @@ export function PlaygroundSurface({
     );
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      const typingTarget =
+        target instanceof HTMLElement &&
+        (
+          target.isContentEditable ||
+          target.matches(
+            "input, textarea, select, [role='textbox'], [role='spinbutton'], [role='slider']",
+          )
+        );
+      const recording =
+        gridRecorder.getSnapshot().status === "recording";
+
       if (
         event.repeat ||
-        eventTargetConsumesKeyboard(event.target)
+        typingTarget ||
+        (
+          eventTargetConsumesKeyboard(event.target) &&
+          !recording
+        )
       ) {
         return;
       }
@@ -2210,6 +2226,10 @@ export function PlaygroundSurface({
     laneId: string,
     stepIndex: number,
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording to draw on the grid");
+      return;
+    }
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
     completeFirstUseAction("step");
@@ -2514,6 +2534,10 @@ export function PlaygroundSurface({
     stepIndex: number,
     dynamic?: "accent" | "ghost",
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording to edit grid steps");
+      return;
+    }
     if (dynamic) {
       const painted = sequencerStore.paintStepDynamic(
         laneId,
@@ -2640,6 +2664,10 @@ export function PlaygroundSurface({
   };
 
   const applyStyleBeat = (nextStyle: BeatStyleId) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before changing style");
+      return;
+    }
     checkpointCurrentPattern("Before style change");
     const generated = generateBeat({
       seed:
@@ -2683,6 +2711,10 @@ export function PlaygroundSurface({
   };
 
   const remix = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before Remix");
+      return;
+    }
     completeFirstUseAction("remix");
     checkpointCurrentPattern("Before Remix");
     const result = rerollBeat({
@@ -2728,6 +2760,10 @@ export function PlaygroundSurface({
   };
 
   const remixSelectedLane = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before lane Remix");
+      return;
+    }
     const laneId = selectedDefinition.id;
     if (sequencerStore.isLaneRhythmLocked(laneId)) {
       setNotice("Unlock rhythm to remix this lane");
@@ -2940,6 +2976,10 @@ export function PlaygroundSurface({
       | "fillEighth"
       | "fillSixteenth",
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before editing the lane");
+      return;
+    }
     const laneId = selectedDefinition.id;
     let changed = false;
 
@@ -3350,6 +3390,7 @@ export function PlaygroundSurface({
             <span>Style</span>
             <select
               value={style}
+              disabled={gridRecord.status !== "idle"}
               aria-label="Beat style"
               onChange={(event) => {
                 const nextStyle = event.currentTarget.value as BeatStyleId;
@@ -4780,7 +4821,11 @@ export function PlaygroundSurface({
             </div>
 
             <div
-              className="playground-lane-toolbar"
+              className={
+                gridRecord.status === "idle"
+                  ? "playground-lane-toolbar"
+                  : "playground-lane-toolbar is-recording-locked"
+              }
               aria-label="Selected lane quick actions"
             >
               <span>Transform</span>
