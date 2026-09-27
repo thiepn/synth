@@ -393,6 +393,29 @@ test("Playground selection batch edits move duplicate delete and undo notes", as
   }).click();
   await expect(step2).toHaveAttribute("aria-pressed", "true");
   await expect(step4).toHaveAttribute("aria-pressed", "true");
+
+  const step2Box = await step2.boundingBox();
+  const step4Box = await step4.boundingBox();
+  expect(step2Box).not.toBeNull();
+  expect(step4Box).not.toBeNull();
+
+  await page.keyboard.down("Control");
+  await page.mouse.move(
+    step2Box!.x + step2Box!.width / 2,
+    step2Box!.y + step2Box!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    step4Box!.x + step4Box!.width / 2,
+    step4Box!.y + step4Box!.height / 2,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await page.keyboard.up("Control");
+
+  await expect(
+    page.locator(".playground-step.is-selected"),
+  ).toHaveCount(2);
 });
 
 test("Playground lane transforms are deterministic and undoable", async ({
@@ -687,6 +710,22 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   const box = await step.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.height).toBeGreaterThanOrEqual(44);
+
+  const touchMode = page.getByRole("button", {
+    name: "Touch edit mode: draw",
+  });
+  await touchMode.click();
+  await expect(
+    page.getByRole("button", {
+      name: "Touch edit mode: select",
+    }),
+  ).toBeVisible();
+
+  const activeStep = page
+    .locator(".playground-step.is-on")
+    .first();
+  await activeStep.click();
+  await expect(activeStep).toHaveClass(/is-selected/);
 
   await page.getByRole("button", {
     name: "Open Playground help",
