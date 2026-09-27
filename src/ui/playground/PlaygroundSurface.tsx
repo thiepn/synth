@@ -4606,7 +4606,7 @@ export function PlaygroundSurface({
             </span>
           </div>
           <span className="playground-coach__desktop">
-            Shift-drag accents · Alt-drag ghosts · ? for all shortcuts
+            Shift-click selects · Shift-drag accents · V toggles Select mode
           </span>
           <button
             type="button"
@@ -6296,12 +6296,14 @@ export function PlaygroundSurface({
               <div>
                 <h3>Draw</h3>
                 <p>Click / drag empty steps to add hits.</p>
-                <p>Drag an active hit vertically for velocity.</p>
+                <p><kbd>Shift</kbd>-click selects notes · <kbd>Ctrl/Cmd</kbd>-drag selects regions.</p>
+                <p><kbd>V</kbd> toggles Select mode · drag an active hit vertically for velocity.</p>
                 <p><kbd>Shift</kbd>-drag Accent · <kbd>Alt</kbd>-drag Ghost</p>
               </div>
               <div>
                 <h3>Touch</h3>
                 <p>Swipe the step grid to change pages.</p>
+                <p>Select mode lets you drag-select notes across tracks.</p>
                 <p>Long-press a pad for its sound picker.</p>
                 <p>Long-press a step for quick step actions.</p>
               </div>
