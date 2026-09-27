@@ -2136,7 +2136,16 @@ export function PlaygroundSurface({
     setSelectedSteps([]);
   };
 
+  const batchEditingAllowed = () => {
+    if (gridRecorder.getSnapshot().status === "idle") {
+      return true;
+    }
+    setNotice("Stop recording before batch editing");
+    return false;
+  };
+
   const batchDeleteSelection = () => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     if (
       sequencerStore.deleteSelectedSteps(
@@ -2157,6 +2166,7 @@ export function PlaygroundSurface({
   };
 
   const batchAdjustVelocity = (delta: number) => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     if (
       sequencerStore.adjustSelectedVelocity(
@@ -2177,6 +2187,7 @@ export function PlaygroundSurface({
   const batchSetDynamic = (
     dynamic: SequencerStepDynamic,
   ) => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     if (
       sequencerStore.setSelectedDynamic(
@@ -2197,6 +2208,7 @@ export function PlaygroundSurface({
   };
 
   const batchMoveSelection = (deltaSteps: number) => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     const moved = sequencerStore.moveSelectedSteps(
       selectedSteps,
@@ -2218,6 +2230,7 @@ export function PlaygroundSurface({
   };
 
   const batchCopySelection = () => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     const clipboard =
       sequencerStore.copySelectedSteps(
@@ -2239,6 +2252,7 @@ export function PlaygroundSurface({
   };
 
   const batchPasteSelection = () => {
+    if (!batchEditingAllowed()) return;
     if (!selectionClipboard) return;
     const pasted =
       sequencerStore.pasteSelectedSteps(
@@ -2266,6 +2280,7 @@ export function PlaygroundSurface({
   };
 
   const batchDuplicateSelection = () => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     const steps = selectedSteps.map(
       (entry) => entry.stepIndex,
@@ -2296,6 +2311,7 @@ export function PlaygroundSurface({
   };
 
   const batchNudgeTiming = (deltaUs: number) => {
+    if (!batchEditingAllowed()) return;
     if (selectedSteps.length === 0) return;
     if (
       sequencerStore.nudgeSelectedTiming(
@@ -2339,6 +2355,11 @@ export function PlaygroundSurface({
           )
         );
       if (typingTarget) return;
+      if (
+        gridRecorder.getSnapshot().status !== "idle"
+      ) {
+        return;
+      }
 
       const modifier =
         event.ctrlKey || event.metaKey;
@@ -2373,6 +2394,13 @@ export function PlaygroundSurface({
         return;
       }
 
+      if (modifier && key === "v") {
+        if (!selectionClipboard) return;
+        event.preventDefault();
+        batchPasteSelection();
+        return;
+      }
+
       if (selectedSteps.length === 0) {
         return;
       }
@@ -2396,13 +2424,6 @@ export function PlaygroundSurface({
       if (modifier && key === "c") {
         event.preventDefault();
         batchCopySelection();
-        return;
-      }
-
-      if (modifier && key === "v") {
-        if (!selectionClipboard) return;
-        event.preventDefault();
-        batchPasteSelection();
         return;
       }
 
@@ -5427,7 +5448,10 @@ export function PlaygroundSurface({
                     clearSelection();
                     setNotice("Selection cleared");
                   }}
-                  disabled={selectedSteps.length === 0}
+                  disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                   aria-label="Clear note selection"
                 >
                   Clear
@@ -5442,7 +5466,10 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     onClick={batchDeleteSelection}
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Delete selected notes"
                     title="Delete · Delete/Backspace"
                   >
@@ -5451,7 +5478,10 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     onClick={batchCopySelection}
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Copy selected notes"
                     title="Copy · Ctrl/Cmd-C"
                   >
@@ -5460,7 +5490,10 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     onClick={batchPasteSelection}
-                    disabled={!selectionClipboard}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      !selectionClipboard
+                    }
                     aria-label="Paste copied notes to current bar"
                     title="Paste at current bar · Ctrl/Cmd-V"
                   >
@@ -5469,7 +5502,10 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     onClick={batchDuplicateSelection}
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Duplicate selected notes"
                     title="Duplicate · Ctrl/Cmd-D"
                   >
@@ -5480,7 +5516,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchMoveSelection(-1)
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Move selected notes left one step"
                     title="Move left · ←"
                   >
@@ -5491,7 +5530,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchMoveSelection(1)
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Move selected notes right one step"
                     title="Move right · →"
                   >
@@ -5502,7 +5544,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchAdjustVelocity(-0.08)
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Make selected notes softer"
                     title="Velocity down · ["
                   >
@@ -5513,7 +5558,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchAdjustVelocity(0.08)
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Make selected notes louder"
                     title="Velocity up · ]"
                   >
@@ -5524,7 +5572,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchSetDynamic("ghost")
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Make selected notes ghost notes"
                     title="Ghost · 1"
                   >
@@ -5535,7 +5586,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchSetDynamic("normal")
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Make selected notes normal"
                     title="Normal · 2"
                   >
@@ -5546,7 +5600,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchSetDynamic("accent")
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Accent selected notes"
                     title="Accent · 3"
                   >
@@ -5557,7 +5614,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchNudgeTiming(-5_000)
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Move selected notes earlier"
                     title="Timing earlier · ,"
                   >
@@ -5568,7 +5628,10 @@ export function PlaygroundSurface({
                     onClick={() =>
                       batchNudgeTiming(5_000)
                     }
-                    disabled={selectedSteps.length === 0}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      selectedSteps.length === 0
+                    }
                     aria-label="Move selected notes later"
                     title="Timing later · ."
                   >
