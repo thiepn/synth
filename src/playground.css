@@ -3689,13 +3689,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .playground-record-bar.is-recording .playground-record-button > span {
-    animation: none;
-  
+  .playground-record-bar.is-recording .playground-record-button > span,
   .playground-steps--lane .playground-step.is-recorded-now {
     animation: none;
   }
-}
 }
 
 @media (forced-colors: active) {
