@@ -1400,6 +1400,15 @@ test.describe("mobile interaction shell", () => {
     await editMode.click();
     await expect(
       dock.getByRole("button", {
+        name: "Touch edit mode: select",
+      }),
+    ).toBeVisible();
+
+    await dock.getByRole("button", {
+      name: "Touch edit mode: select",
+    }).click();
+    await expect(
+      dock.getByRole("button", {
         name: "Touch edit mode: accent",
       }),
     ).toBeVisible();
