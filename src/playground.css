@@ -3576,6 +3576,39 @@
   text-transform: uppercase;
 }
 
+.playground-record-midi {
+  min-width: 78px;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  padding: 0 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  color: var(--pg-muted);
+  cursor: pointer;
+}
+
+.playground-record-midi span {
+  font-size: 0.48rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.playground-record-midi b {
+  color: var(--pg-text);
+  font-size: 0.58rem;
+}
+
+.playground-record-midi.is-active {
+  border-color: rgba(99,222,244,0.35);
+  background: rgba(99,222,244,0.08);
+}
+
+.playground-record-midi:disabled {
+  cursor: default;
+}
+
 .playground-record-status {
   min-width: 124px;
   margin-left: auto;
@@ -3614,6 +3647,7 @@
   .playground-record-button,
   .playground-record-modes,
   .playground-record-quantize,
+  .playground-record-midi,
   .playground-record-status {
     flex: 0 0 auto;
   }
@@ -3628,7 +3662,8 @@
 
   .playground-record-button,
   .playground-record-modes > button,
-  .playground-record-quantize > button {
+  .playground-record-quantize > button,
+  .playground-record-midi {
     min-height: 44px;
     touch-action: manipulation;
   }
@@ -3648,6 +3683,7 @@
   .playground-record-button,
   .playground-record-modes,
   .playground-record-quantize,
+  .playground-record-midi,
   .playground-record-status,
   .playground-record-modes > button,
   .playground-record-quantize > button {
