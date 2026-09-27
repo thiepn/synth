@@ -58,7 +58,7 @@ export interface BeatGenerationRequest {
   seed: string;
   style: BeatStyleId;
   intent: BeatGenerationIntent;
-  stepCount: 4 | 8 | 16 | 32 | 64;
+  stepCount: number;
   bpm: number;
   meter?: Meter;
 }
@@ -1368,12 +1368,14 @@ export function generateBeat(
     ...requestInput,
     intent: normalizeIntent(requestInput.intent),
     stepCount:
-      requestInput.stepCount === 4 ||
-      requestInput.stepCount === 8 ||
-      requestInput.stepCount === 16 ||
-      requestInput.stepCount === 32 ||
-      requestInput.stepCount === 64
-        ? requestInput.stepCount
+      Number.isFinite(requestInput.stepCount)
+        ? Math.max(
+            4,
+            Math.min(
+              128,
+              Math.round(requestInput.stepCount / 4) * 4,
+            ),
+          )
         : 16,
   };
 
