@@ -2484,6 +2484,7 @@ export function PlaygroundSurface({
         triggerVoice(
           voice,
           dynamic === "accent" ? 0.96 : 0.22,
+          false,
         );
       }
       return;
