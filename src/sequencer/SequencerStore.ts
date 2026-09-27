@@ -27,9 +27,19 @@ import {
   type PatternBrushId,
 } from "./patternPainting";
 
-export const SEQUENCER_LENGTH_OPTIONS = [4, 8, 16, 32, 64] as const;
-export type SequencerLengthSteps =
-  (typeof SEQUENCER_LENGTH_OPTIONS)[number];
+export const SEQUENCER_MIN_STEPS = 4;
+export const SEQUENCER_MAX_STEPS = 128;
+export const SEQUENCER_LENGTH_QUANTUM = 4;
+export const SEQUENCER_BAR_STEPS = 16;
+export const SEQUENCER_LENGTH_OPTIONS: readonly number[] = [
+  4,
+  8,
+  16,
+  32,
+  64,
+  128,
+];
+export type SequencerLengthSteps = number;
 
 export type SequencerHit = PatternPlaybackHit;
 
@@ -58,13 +68,25 @@ function normalizeVelocity(value: number): number {
   return Math.min(1, Math.max(0.05, value));
 }
 
+function isSupportedSequencerLengthSteps(
+  steps: number,
+): boolean {
+  return (
+    Number.isInteger(steps) &&
+    steps >= SEQUENCER_MIN_STEPS &&
+    steps <= SEQUENCER_MAX_STEPS &&
+    steps % SEQUENCER_LENGTH_QUANTUM === 0
+  );
+}
+
 function lengthStepsFromPattern(pattern: Pattern): SequencerLengthSteps {
-  const steps = Math.round(pattern.lengthTicks / FOUNDATION_STEP_TICKS);
-  if (steps <= 4) return 4;
-  if (steps <= 8) return 8;
-  if (steps <= 16) return 16;
-  if (steps <= 32) return 32;
-  return 64;
+  const steps = Math.round(
+    pattern.lengthTicks / FOUNDATION_STEP_TICKS,
+  );
+  return Math.max(
+    SEQUENCER_MIN_STEPS,
+    Math.min(SEQUENCER_MAX_STEPS, steps),
+  );
 }
 
 function eventAtStep(
@@ -1087,18 +1109,17 @@ export class SequencerStore {
   }
 
   applyGeneratedPattern(nextPattern: Pattern): void {
-    const allowedLengths = new Set(
-      SEQUENCER_LENGTH_OPTIONS.map(
-        (steps) => steps * FOUNDATION_STEP_TICKS,
-      ),
-    );
-
     if (nextPattern.ppq !== this.pattern.ppq) {
       throw new Error("Generated pattern PPQ does not match the sequencer.");
     }
 
-    if (!allowedLengths.has(nextPattern.lengthTicks)) {
-      throw new Error("Generated pattern length is not supported by Sequencer V2.");
+    const nextLengthSteps = Math.round(
+      nextPattern.lengthTicks / FOUNDATION_STEP_TICKS,
+    );
+    if (!isSupportedSequencerLengthSteps(nextLengthSteps)) {
+      throw new Error(
+        "Generated pattern length is not supported by Sequencer V2.",
+      );
     }
 
     const nextLaneIds = new Set(nextPattern.lanes.map((lane) => lane.id));
@@ -1189,11 +1210,13 @@ export class SequencerStore {
     this.publish();
   }
 
-  setLengthSteps(nextLength: SequencerLengthSteps): void {
-    if (!SEQUENCER_LENGTH_OPTIONS.includes(nextLength)) return;
+  setLengthSteps(nextLength: SequencerLengthSteps): boolean {
+    if (!isSupportedSequencerLengthSteps(nextLength)) {
+      return false;
+    }
 
     const currentLength = lengthStepsFromPattern(this.pattern);
-    if (currentLength === nextLength) return;
+    if (currentLength === nextLength) return false;
 
     this.commit((draft) => {
       const previousLengthTicks = draft.lengthTicks;
@@ -1206,7 +1229,7 @@ export class SequencerStore {
 
         // A lane explicitly matching the old Pattern length is musically
         // equivalent to inheriting it. Let it grow with the Pattern so
-        // extending 16 → 32/64 steps does not keep looping at 16.
+        // extending a phrase does not keep looping at the old boundary.
         if (
           nextLength * FOUNDATION_STEP_TICKS > previousLengthTicks &&
           lane.loopLengthTicks === previousLengthTicks
@@ -1220,27 +1243,280 @@ export class SequencerStore {
         }
       }
     });
+
+    return true;
+  }
+
+  addBar(): boolean {
+    const length = lengthStepsFromPattern(this.pattern);
+    const nextLength =
+      length < SEQUENCER_BAR_STEPS
+        ? SEQUENCER_BAR_STEPS
+        : length + SEQUENCER_BAR_STEPS;
+
+    if (nextLength > SEQUENCER_MAX_STEPS) return false;
+    return this.setLengthSteps(nextLength);
+  }
+
+  clearBar(barIndex: number): boolean {
+    const length = lengthStepsFromPattern(this.pattern);
+    if (
+      length < SEQUENCER_BAR_STEPS ||
+      length % SEQUENCER_BAR_STEPS !== 0
+    ) {
+      return false;
+    }
+
+    const barCount = length / SEQUENCER_BAR_STEPS;
+    if (
+      !Number.isInteger(barIndex) ||
+      barIndex < 0 ||
+      barIndex >= barCount
+    ) {
+      return false;
+    }
+
+    const startTick =
+      barIndex *
+      SEQUENCER_BAR_STEPS *
+      FOUNDATION_STEP_TICKS;
+    const endTick =
+      startTick +
+      SEQUENCER_BAR_STEPS * FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      for (const lane of draft.lanes) {
+        lane.events = lane.events.filter(
+          (event) =>
+            event.tick < startTick ||
+            event.tick >= endTick,
+        );
+      }
+    });
+
+    return true;
+  }
+
+  duplicateBar(barIndex: number): boolean {
+    const length = lengthStepsFromPattern(this.pattern);
+    if (
+      length < SEQUENCER_BAR_STEPS ||
+      length % SEQUENCER_BAR_STEPS !== 0 ||
+      length + SEQUENCER_BAR_STEPS > SEQUENCER_MAX_STEPS
+    ) {
+      return false;
+    }
+
+    const barCount = length / SEQUENCER_BAR_STEPS;
+    if (
+      !Number.isInteger(barIndex) ||
+      barIndex < 0 ||
+      barIndex >= barCount
+    ) {
+      return false;
+    }
+
+    const barTicks =
+      SEQUENCER_BAR_STEPS * FOUNDATION_STEP_TICKS;
+    const oldLengthTicks = length * FOUNDATION_STEP_TICKS;
+    const newLength =
+      length + SEQUENCER_BAR_STEPS;
+    const newLengthTicks =
+      newLength * FOUNDATION_STEP_TICKS;
+    const sourceStartTick = barIndex * barTicks;
+    const sourceEndTick = sourceStartTick + barTicks;
+    const insertStartStep =
+      (barIndex + 1) * SEQUENCER_BAR_STEPS;
+    const insertStartTick =
+      insertStartStep * FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      draft.lengthTicks = newLengthTicks;
+
+      for (const lane of draft.lanes) {
+        const inheritedFullLength =
+          lane.loopLengthTicks === undefined ||
+          lane.loopLengthTicks === oldLengthTicks;
+        const sourceEvents = lane.events
+          .filter(
+            (event) =>
+              event.tick >= sourceStartTick &&
+              event.tick < sourceEndTick,
+          )
+          .map(cloneStepEvent);
+
+        const shifted = lane.events.map((event) => {
+          if (event.tick < insertStartTick) {
+            return cloneStepEvent(event);
+          }
+
+          const shiftedStep =
+            Math.round(
+              event.tick / FOUNDATION_STEP_TICKS,
+            ) + SEQUENCER_BAR_STEPS;
+
+          return {
+            ...cloneStepEvent(event),
+            id: eventId(lane.id, shiftedStep),
+            tick: shiftedStep * FOUNDATION_STEP_TICKS,
+          };
+        });
+
+        const copied = sourceEvents.map((event) => {
+          const sourceStep = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          const targetStep =
+            insertStartStep +
+            (sourceStep -
+              barIndex * SEQUENCER_BAR_STEPS);
+
+          return {
+            ...cloneStepEvent(event),
+            id: eventId(lane.id, targetStep),
+            tick: targetStep * FOUNDATION_STEP_TICKS,
+            generatorTags: [
+              ...(event.generatorTags ?? []),
+              "bar-duplicate",
+            ],
+          };
+        });
+
+        lane.events = [...shifted, ...copied].sort(
+          (a, b) => a.tick - b.tick,
+        );
+
+        if (inheritedFullLength) {
+          lane.loopLengthTicks = undefined;
+        } else if (
+          lane.loopLengthTicks &&
+          lane.loopLengthTicks > insertStartTick
+        ) {
+          lane.loopLengthTicks = Math.min(
+            newLengthTicks,
+            lane.loopLengthTicks + barTicks,
+          );
+        }
+      }
+    });
+
+    return true;
+  }
+
+  deleteBar(barIndex: number): boolean {
+    const length = lengthStepsFromPattern(this.pattern);
+    if (
+      length <= SEQUENCER_BAR_STEPS ||
+      length % SEQUENCER_BAR_STEPS !== 0
+    ) {
+      return false;
+    }
+
+    const barCount = length / SEQUENCER_BAR_STEPS;
+    if (
+      !Number.isInteger(barIndex) ||
+      barIndex < 0 ||
+      barIndex >= barCount
+    ) {
+      return false;
+    }
+
+    const barTicks =
+      SEQUENCER_BAR_STEPS * FOUNDATION_STEP_TICKS;
+    const startStep =
+      barIndex * SEQUENCER_BAR_STEPS;
+    const startTick = startStep * FOUNDATION_STEP_TICKS;
+    const endTick = startTick + barTicks;
+    const oldLengthTicks = length * FOUNDATION_STEP_TICKS;
+    const newLength =
+      length - SEQUENCER_BAR_STEPS;
+    const newLengthTicks =
+      newLength * FOUNDATION_STEP_TICKS;
+
+    this.commit((draft) => {
+      draft.lengthTicks = newLengthTicks;
+
+      for (const lane of draft.lanes) {
+        const inheritedFullLength =
+          lane.loopLengthTicks === undefined ||
+          lane.loopLengthTicks === oldLengthTicks;
+        const nextEvents: StepEvent[] = [];
+
+        for (const event of lane.events) {
+          if (
+            event.tick >= startTick &&
+            event.tick < endTick
+          ) {
+            continue;
+          }
+
+          if (event.tick >= endTick) {
+            const shiftedStep =
+              Math.round(
+                event.tick / FOUNDATION_STEP_TICKS,
+              ) - SEQUENCER_BAR_STEPS;
+            nextEvents.push({
+              ...cloneStepEvent(event),
+              id: eventId(lane.id, shiftedStep),
+              tick: shiftedStep * FOUNDATION_STEP_TICKS,
+            });
+          } else {
+            nextEvents.push(cloneStepEvent(event));
+          }
+        }
+
+        lane.events = nextEvents.sort(
+          (a, b) => a.tick - b.tick,
+        );
+
+        if (inheritedFullLength) {
+          lane.loopLengthTicks = undefined;
+        } else if (lane.loopLengthTicks) {
+          const loopSteps = Math.round(
+            lane.loopLengthTicks / FOUNDATION_STEP_TICKS,
+          );
+
+          if (loopSteps > startStep) {
+            const shortened = Math.max(
+              SEQUENCER_MIN_STEPS,
+              loopSteps - SEQUENCER_BAR_STEPS,
+            );
+            lane.loopLengthTicks =
+              shortened >= newLength
+                ? undefined
+                : shortened * FOUNDATION_STEP_TICKS;
+          }
+        }
+      }
+    });
+
+    return true;
   }
 
   duplicate(): void {
     const length = lengthStepsFromPattern(this.pattern);
-    const sourceLength = length < 64 ? length : 32;
-    const targetStart = length < 64 ? length : 32;
-    const nextLength = Math.min(64, length < 64 ? length * 2 : 64);
+    if (length >= SEQUENCER_MAX_STEPS) return;
+
+    const sourceLength = Math.min(
+      length,
+      SEQUENCER_MAX_STEPS - length,
+    );
+    const targetStart = length;
+    const nextLength = length + sourceLength;
 
     this.commit((draft) => {
-      draft.lengthTicks = nextLength * FOUNDATION_STEP_TICKS;
+      const oldLengthTicks = draft.lengthTicks;
+      draft.lengthTicks =
+        nextLength * FOUNDATION_STEP_TICKS;
 
       for (const lane of draft.lanes) {
+        const inheritedFullLength =
+          lane.loopLengthTicks === undefined ||
+          lane.loopLengthTicks === oldLengthTicks;
         const sourceEvents = lane.events.filter(
-          (event) => event.tick < sourceLength * FOUNDATION_STEP_TICKS,
-        );
-
-        lane.events = lane.events.filter(
           (event) =>
-            event.tick < targetStart * FOUNDATION_STEP_TICKS ||
-            event.tick >=
-              (targetStart + sourceLength) * FOUNDATION_STEP_TICKS,
+            event.tick <
+            sourceLength * FOUNDATION_STEP_TICKS,
         );
 
         for (const source of sourceEvents) {
@@ -1255,6 +1531,10 @@ export class SequencerStore {
             id: eventId(lane.id, targetStep),
             tick: targetStep * FOUNDATION_STEP_TICKS,
           });
+        }
+
+        if (inheritedFullLength) {
+          lane.loopLengthTicks = undefined;
         }
 
         lane.events.sort((a, b) => a.tick - b.tick);
@@ -1373,19 +1653,18 @@ export class SequencerStore {
     pattern: Pattern,
     sourceLabel: string,
   ): void {
-    const allowedLengths = new Set(
-      SEQUENCER_LENGTH_OPTIONS.map(
-        (steps) => steps * FOUNDATION_STEP_TICKS,
-      ),
-    );
-
     if (pattern.ppq !== this.pattern.ppq) {
       throw new Error(
         sourceLabel + " Pattern PPQ does not match the sequencer.",
       );
     }
 
-    if (!allowedLengths.has(pattern.lengthTicks)) {
+    const patternLengthSteps = Math.round(
+      pattern.lengthTicks / FOUNDATION_STEP_TICKS,
+    );
+    if (
+      !isSupportedSequencerLengthSteps(patternLengthSteps)
+    ) {
       throw new Error(
         sourceLabel +
           " Pattern length is not supported by Sequencer V2.",
