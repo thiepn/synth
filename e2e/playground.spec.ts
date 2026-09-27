@@ -271,6 +271,16 @@ test("Playground records pad performance live into the selected bar and can eras
   await expect(barTwoKickHits).toHaveCount(1);
 
   await page.getByRole("button", {
+    name: "Undo",
+  }).click();
+  await expect(barTwoKickHits).toHaveCount(0);
+
+  await page.getByRole("button", {
+    name: "Redo",
+  }).click();
+  await expect(barTwoKickHits).toHaveCount(1);
+
+  await page.getByRole("button", {
     name: "Pause transport",
   }).click();
 
