@@ -1051,6 +1051,13 @@ export function PlaygroundSurface({
             audioTransport.getSnapshot().status === "running"
           ) {
             onComplete?.();
+          } else {
+            if (
+              gridRecorder.getSnapshot().status === "armed"
+            ) {
+              gridRecorder.cancel();
+            }
+            setNotice("Audio could not start");
           }
         });
         return;
@@ -1657,6 +1664,20 @@ export function PlaygroundSurface({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      gridRecord.status === "recording" &&
+      transport.status !== "running" &&
+      countInBeat === null
+    ) {
+      gridRecorder.stop();
+    }
+  }, [
+    countInBeat,
+    gridRecord.status,
+    transport.status,
+  ]);
 
   useEffect(() => {
     if (playing) {
