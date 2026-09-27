@@ -653,7 +653,7 @@ export class SequencerStore {
 
   fillLane(
     laneId: string,
-    intervalSteps: 1 | 2 | 4,
+    intervalSteps: 1 | 2 | 4 | 8,
   ): boolean {
     const source = this.pattern.lanes.find(
       (lane) => lane.id === laneId,
@@ -1196,13 +1196,23 @@ export class SequencerStore {
     if (currentLength === nextLength) return;
 
     this.commit((draft) => {
+      const previousLengthTicks = draft.lengthTicks;
       draft.lengthTicks = nextLength * FOUNDATION_STEP_TICKS;
 
       for (const lane of draft.lanes) {
         lane.events = lane.events.filter(
           (event) => event.tick < draft.lengthTicks,
         );
+
+        // A lane explicitly matching the old Pattern length is musically
+        // equivalent to inheriting it. Let it grow with the Pattern so
+        // extending 16 → 32/64 steps does not keep looping at 16.
         if (
+          nextLength * FOUNDATION_STEP_TICKS > previousLengthTicks &&
+          lane.loopLengthTicks === previousLengthTicks
+        ) {
+          lane.loopLengthTicks = undefined;
+        } else if (
           lane.loopLengthTicks &&
           lane.loopLengthTicks > draft.lengthTicks
         ) {
