@@ -3425,7 +3425,10 @@ export function PlaygroundSurface({
             type="button"
             className="playground-history-button"
             onClick={undoPattern}
-            disabled={!sequencer.canUndo}
+            disabled={
+              !sequencer.canUndo ||
+              gridRecord.status !== "idle"
+            }
             aria-label="Undo"
             title="Undo · Ctrl/Cmd-Z"
             data-tip="Undo · Ctrl/Cmd-Z"
@@ -3436,7 +3439,10 @@ export function PlaygroundSurface({
             type="button"
             className="playground-history-button"
             onClick={redoPattern}
-            disabled={!sequencer.canRedo}
+            disabled={
+              !sequencer.canRedo ||
+              gridRecord.status !== "idle"
+            }
             aria-label="Redo"
             title="Redo · Ctrl/Cmd-Shift-Z"
             data-tip="Redo · Ctrl/Cmd-Shift-Z"
@@ -3795,6 +3801,7 @@ export function PlaygroundSurface({
             type="button"
             className="playground-remix"
             onClick={remix}
+            disabled={gridRecord.status !== "idle"}
           >
             <span aria-hidden="true">✦</span>
             Remix
@@ -3842,6 +3849,7 @@ export function PlaygroundSurface({
                   : ""
               }
               onClick={() => switchPatternBank(bank)}
+              disabled={gridRecord.status !== "idle"}
               aria-pressed={activePatternBank === bank}
               title={
                 patternBanks[bank]
@@ -3856,6 +3864,7 @@ export function PlaygroundSurface({
             type="button"
             className="playground-pattern-duplicate"
             onClick={duplicatePatternBank}
+            disabled={gridRecord.status !== "idle"}
             title={
               "Duplicate current beat into Pattern " +
               (activePatternBank === "A" ? "B" : "A")
@@ -4374,7 +4383,9 @@ export function PlaygroundSurface({
                     className="playground-bar-control__remove"
                     onClick={deletePatternBar}
                     disabled={
-                      !wholeBarPattern || pageCount <= 1
+                      gridRecord.status !== "idle" ||
+                      !wholeBarPattern ||
+                      pageCount <= 1
                     }
                     aria-label="Delete current bar"
                     title="Delete current bar"
@@ -4411,7 +4422,10 @@ export function PlaygroundSurface({
                     type="button"
                     className="playground-bar-control__add"
                     onClick={addPatternBar}
-                    disabled={atBarLimit}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      atBarLimit
+                    }
                     aria-label="Add bar"
                     title="Add a blank bar"
                   >
@@ -4426,7 +4440,11 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     onClick={duplicatePatternBar}
-                    disabled={!wholeBarPattern || atBarLimit}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      !wholeBarPattern ||
+                      atBarLimit
+                    }
                     aria-label="Duplicate current bar"
                     title="Insert a copy after this bar"
                   >
@@ -4435,7 +4453,10 @@ export function PlaygroundSurface({
                   <button
                     type="button"
                     onClick={clearPatternBar}
-                    disabled={!wholeBarPattern}
+                    disabled={
+                      gridRecord.status !== "idle" ||
+                      !wholeBarPattern
+                    }
                     aria-label="Clear current bar"
                     title="Remove all notes from this bar"
                   >
@@ -5363,7 +5384,10 @@ export function PlaygroundSurface({
             pulseHaptic(5);
             undoPattern();
           }}
-          disabled={!sequencer.canUndo}
+          disabled={
+            !sequencer.canUndo ||
+            gridRecord.status !== "idle"
+          }
           aria-label="Undo"
         >
           <b aria-hidden="true">↶</b>
