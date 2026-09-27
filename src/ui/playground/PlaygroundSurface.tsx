@@ -1243,6 +1243,10 @@ export function PlaygroundSurface({
   };
 
   const undoPattern = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before Undo");
+      return;
+    }
     if (!sequencerStore.getSnapshot().canUndo) return;
     cancelPatternPreview();
     sequencerStore.undo();
@@ -1250,6 +1254,10 @@ export function PlaygroundSurface({
   };
 
   const redoPattern = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before Redo");
+      return;
+    }
     if (!sequencerStore.getSnapshot().canRedo) return;
     cancelPatternPreview();
     sequencerStore.redo();
@@ -2612,6 +2620,10 @@ export function PlaygroundSurface({
     nodeId: string,
     noticeText: string,
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before restoring history");
+      return;
+    }
     checkpointCurrentPattern(
       "Before restore · Pattern " + activePatternBank,
     );
@@ -2624,6 +2636,10 @@ export function PlaygroundSurface({
   const switchPatternBank = (
     nextBank: PatternBankId,
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before switching patterns");
+      return;
+    }
     if (nextBank === activePatternBank) return;
 
     const restored =
@@ -2637,6 +2653,10 @@ export function PlaygroundSurface({
   };
 
   const duplicatePatternBank = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before duplicating patterns");
+      return;
+    }
     const sourceBank = activePatternBank;
     const duplicated =
       generationHistoryStore.duplicateActivePatternBank(
@@ -2653,6 +2673,10 @@ export function PlaygroundSurface({
   };
 
   const undoLastRemix = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before restoring Remix");
+      return;
+    }
     const sourceNodeId = lastRemixSourceNodeId;
     if (!sourceNodeId) return;
 
@@ -3204,6 +3228,10 @@ export function PlaygroundSurface({
   };
 
   const createFreshProject = async () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before creating a project");
+      return;
+    }
     if (projectBusy) return;
     setProjectBusy("new");
 
@@ -3231,6 +3259,10 @@ export function PlaygroundSurface({
   };
 
   const duplicateCurrentProject = async () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before duplicating the project");
+      return;
+    }
     if (projectBusy) return;
     setProjectBusy("duplicate");
 
@@ -3349,6 +3381,10 @@ export function PlaygroundSurface({
   const openRecentProject = async (
     projectId: string,
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before opening another project");
+      return;
+    }
     if (projectBusy || projectId === project.projectId) {
       setProjectMenuOpen(false);
       return;
