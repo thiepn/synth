@@ -40,6 +40,7 @@ import { eventTargetConsumesKeyboard } from "../../input/domInputGuards";
 import { inputActionRouter } from "../../input/InputActionRouter";
 import {
   DRUM_PADS,
+  FOUNDATION_STEP_TICKS,
   SEQUENCER_LANES,
   type DrumVoiceId,
   type SequencerLaneDefinition,
@@ -54,6 +55,8 @@ import {
   SEQUENCER_MAX_STEPS,
   sequencerStore,
   type LaneClipboardData,
+  type SequencerStepDynamic,
+  type SequencerStepSelection,
 } from "../../sequencer/SequencerStore";
 import { useSequencerSnapshot } from "../../sequencer/useSequencer";
 import {
@@ -263,7 +266,11 @@ function displayLaneName(lane: SequencerLaneDefinition): string {
   return LANE_NAMES[lane.voice] ?? lane.name;
 }
 
-type TouchEditMode = "draw" | "accent" | "ghost";
+type TouchEditMode =
+  | "draw"
+  | "select"
+  | "accent"
+  | "ghost";
 type PadRepeatDivision = 0 | 1 | 2 | 4;
 type MomentaryMonitorMode = "mute" | "solo";
 
@@ -272,6 +279,25 @@ interface StepContextState {
   stepIndex: number;
   x: number;
   y: number;
+}
+
+type SelectionDragMode =
+  | "replace"
+  | "add"
+  | "remove";
+
+interface SelectionDragState {
+  pointerId: number;
+  startLaneId: string;
+  startStepIndex: number;
+  mode: SelectionDragMode;
+  base: SequencerStepSelection[];
+}
+
+function selectionKey(
+  entry: SequencerStepSelection,
+): string {
+  return entry.laneId + ":" + entry.stepIndex;
 }
 
 type SoundIndexCollection = Record<DrumVoiceId, number[]>;
@@ -558,7 +584,12 @@ export function PlaygroundSurface({
     desiredOn: boolean;
     lastKey: string;
     gestureId: string;
-    mode: "paint" | "pending" | "velocity" | "pageSwipe";
+    mode:
+      | "paint"
+      | "pending"
+      | "shiftSelect"
+      | "velocity"
+      | "pageSwipe";
     dynamic?: "accent" | "ghost";
     pointerType: string;
     swipeDirection?: -1 | 1;
@@ -569,6 +600,11 @@ export function PlaygroundSurface({
     startVelocity?: number;
   } | null>(null);
   const laneClipboardRef = useRef<LaneClipboardData | null>(null);
+  const [selectedSteps, setSelectedSteps] = useState<
+    SequencerStepSelection[]
+  >([]);
+  const selectionDragRef =
+    useRef<SelectionDragState | null>(null);
   const [laneClipboardLabel, setLaneClipboardLabel] =
     useState<string | null>(null);
   const [touchEditMode, setTouchEditMode] =
