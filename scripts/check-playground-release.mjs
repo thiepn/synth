@@ -25,6 +25,9 @@ const css = "src/playground.css";
 const required = [
   [playground, "setStepVelocity(", "Q1 velocity editing must remain available."],
   [playground, "fillSixteenth", "Q1 lane fills must remain available."],
+  [playground, "duplicatePatternBar", "Q1 bar duplication must remain available."],
+  [playground, "addPatternBar", "Q1 bar growth must remain available."],
+  [playground, 'aria-label="Pattern bars"', "Q1 direct bar navigation must remain available."],
   [playground, "patternBanks", "Q2 A/B pattern banks must remain available."],
   [playground, "Undo Remix", "Q2 Remix recovery must remain visible."],
   [playground, "remixSelectedLane", "Q3 selected-lane Remix must remain available."],
@@ -51,6 +54,7 @@ const required = [
   ["e2e/playground.spec.ts", "Playground A B banks preserve independent beat edits", "Q2 A/B behavior must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground lane transforms are deterministic and undoable", "Q3 transforms must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground velocity editing changes an existing hit without stopping flow", "Q1 velocity behavior must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground bar editing grows duplicates clears and deletes musical bars", "Q1 bar editing must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground count in restart repeat and momentary monitoring stay responsive", "Q5 flow behavior must remain browser-certified."],
 ];
 
