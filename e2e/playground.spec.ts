@@ -377,7 +377,7 @@ test("Playground selection batch edits move duplicate delete and undo notes", as
   await expect(step7).toHaveAttribute("aria-pressed", "false");
 
   await page.getByRole("button", {
-    name: "Select current bar notes",
+    name: "Select current track notes",
   }).click();
   await expect(
     page.locator(".playground-step.is-selected"),
