@@ -242,9 +242,10 @@ test("Playground records pad performance live into the selected bar and can eras
     name: "Bar 2",
   }).click();
 
-  const follow = page.getByRole("button", {
-    name: /Follow Playhead/i,
-  });
+  const follow = page
+    .locator(".playground-flow-bar > button")
+    .filter({ hasText: "Follow" })
+    .first();
   if (
     (await follow.getAttribute("aria-pressed")) === "true"
   ) {
