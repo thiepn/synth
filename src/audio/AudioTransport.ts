@@ -244,8 +244,17 @@ export class AudioTransport {
   }
 
   restartFromBeginning(): void {
-    this.pausedAbsoluteTick = 0;
-    this.anchorAbsoluteTick = 0;
+    this.seekToAbsoluteTick(0);
+  }
+
+  seekToAbsoluteTick(absoluteTick: number): void {
+    const safeTick = Math.max(
+      0,
+      Number.isFinite(absoluteTick) ? absoluteTick : 0,
+    );
+
+    this.pausedAbsoluteTick = safeTick;
+    this.anchorAbsoluteTick = safeTick;
     this.anchorAudioTime = this.context?.currentTime ?? 0;
     this.bumpSchedulerEpoch();
     this.resetSchedulerCursor();
