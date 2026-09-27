@@ -2519,6 +2519,8 @@ export function PlaygroundSurface({
   useEffect(() => {
     setProjectNameDraft(project.name);
     setProjectMenuOpen(false);
+    selectionDragRef.current = null;
+    setSelectedSteps([]);
 
     const projectId = project.projectId;
     if (!projectId) {
@@ -3384,6 +3386,7 @@ export function PlaygroundSurface({
         nextPattern,
       );
 
+    clearSelection();
     sequencerStore.applyGeneratedPattern(prepared.pattern);
     const appliedPattern =
       sequencerStore.getSnapshot().pattern;
@@ -3412,6 +3415,7 @@ export function PlaygroundSurface({
       setNotice("Stop recording before restoring history");
       return;
     }
+    clearSelection();
     checkpointCurrentPattern(
       "Before restore · Pattern " + activePatternBank,
     );
@@ -3430,6 +3434,7 @@ export function PlaygroundSurface({
     }
     if (nextBank === activePatternBank) return;
 
+    clearSelection();
     const restored =
       generationHistoryStore.switchPatternBank(
         nextBank,
@@ -3445,6 +3450,7 @@ export function PlaygroundSurface({
       setNotice("Stop recording before duplicating patterns");
       return;
     }
+    clearSelection();
     const sourceBank = activePatternBank;
     const duplicated =
       generationHistoryStore.duplicateActivePatternBank(
@@ -3468,6 +3474,7 @@ export function PlaygroundSurface({
     const sourceNodeId = lastRemixSourceNodeId;
     if (!sourceNodeId) return;
 
+    clearSelection();
     const restored =
       generationHistoryStore.restore(sourceNodeId);
     sequencerStore.restorePatternSnapshot(restored);
@@ -3712,6 +3719,7 @@ export function PlaygroundSurface({
     }
 
     cancelPatternPreview();
+    clearSelection();
     checkpointCurrentPattern(
       "Before duplicate bar " + (stepPage + 1),
     );
@@ -3739,6 +3747,7 @@ export function PlaygroundSurface({
     }
 
     cancelPatternPreview();
+    clearSelection();
     checkpointCurrentPattern(
       "Before clear bar " + (stepPage + 1),
     );
@@ -3756,6 +3765,7 @@ export function PlaygroundSurface({
     }
 
     cancelPatternPreview();
+    clearSelection();
     checkpointCurrentPattern(
       "Before delete bar " + (stepPage + 1),
     );
@@ -3792,6 +3802,7 @@ export function PlaygroundSurface({
       setNotice("Stop recording before editing the lane");
       return;
     }
+    clearSelection();
     const laneId = selectedDefinition.id;
     let changed = false;
 
