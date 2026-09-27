@@ -1749,7 +1749,11 @@ export function PlaygroundSurface({
       if (typingTarget) return;
 
       event.preventDefault();
-      restartPlayback();
+      if (event.shiftKey) {
+        void toggleGridRecording();
+      } else {
+        restartPlayback();
+      }
     };
 
     window.addEventListener(
@@ -5289,7 +5293,8 @@ export function PlaygroundSurface({
               <div>
                 <h3>Play</h3>
                 <p><kbd>Space</kbd> Play / pause</p>
-                <p><kbd>R</kbd> or <kbd>Shift</kbd>+<kbd>Space</kbd> Restart</p>
+                <p><kbd>R</kbd> Restart · <kbd>Shift</kbd>+<kbd>R</kbd> Record</p>
+                <p><kbd>Shift</kbd>+<kbd>Space</kbd> Restart</p>
                 <p><kbd>A S D F J K L ;</kbd> Play pads</p>
               </div>
               <div>
@@ -5480,7 +5485,7 @@ export function PlaygroundSurface({
 
       <footer className="playground-footer">
         <p className="playground-hint">
-          Tap pad · long-press = sounds when Repeat is off · Hold Repeat = tempo-synced pad rolls · Space = play · Shift+Space/R = restart
+          Tap pad · long-press = sounds when Repeat is off · Hold Repeat = tempo-synced pad rolls · Space = play · R = restart · Shift+R = record
         </p>
         <output className="playground-notice" aria-live="polite">
           {notice}
