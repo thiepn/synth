@@ -414,6 +414,22 @@ export class SequencerStore {
   deleteSelectedSteps(
     selection: readonly SequencerStepSelection[],
   ): boolean {
+    if (selection.length === 0) return false;
+
+    for (const entry of selection) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      if (
+        lane &&
+        eventAtStep(lane, entry.stepIndex) &&
+        lane.lock.rhythm
+      ) {
+        return false;
+      }
+    }
+
     const keys = new Set(
       selection.map(
         (entry) => entry.laneId + ":" + entry.stepIndex,
@@ -445,6 +461,20 @@ export class SequencerStore {
   ): boolean {
     if (!Number.isFinite(delta) || selection.length === 0) {
       return false;
+    }
+
+    for (const entry of selection) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      if (
+        lane &&
+        eventAtStep(lane, entry.stepIndex) &&
+        lane.lock.dynamics
+      ) {
+        return false;
+      }
     }
 
     const keys = new Set(
@@ -491,6 +521,20 @@ export class SequencerStore {
     dynamic: SequencerStepDynamic,
   ): boolean {
     if (selection.length === 0) return false;
+
+    for (const entry of selection) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      if (
+        lane &&
+        eventAtStep(lane, entry.stepIndex) &&
+        lane.lock.dynamics
+      ) {
+        return false;
+      }
+    }
 
     const velocity =
       dynamic === "accent"
@@ -542,6 +586,20 @@ export class SequencerStore {
       selection.length === 0
     ) {
       return false;
+    }
+
+    for (const entry of selection) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      if (
+        lane &&
+        eventAtStep(lane, entry.stepIndex) &&
+        lane.lock.timing
+      ) {
+        return false;
+      }
     }
 
     const keys = new Set(
