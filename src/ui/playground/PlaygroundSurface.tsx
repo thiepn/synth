@@ -2520,10 +2520,15 @@ export function PlaygroundSurface({
   useEffect(() => {
     setProjectNameDraft(project.name);
     setProjectMenuOpen(false);
-    selectionDragRef.current = null;
-    setSelectedSteps([]);
 
     const projectId = project.projectId;
+    if (
+      projectId !== sessionHydratedProjectId
+    ) {
+      selectionDragRef.current = null;
+      setSelectedSteps([]);
+    }
+
     if (!projectId) {
       setSessionHydratedProjectId(null);
       return;
