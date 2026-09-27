@@ -230,6 +230,65 @@ test("Playground bar editing grows duplicates clears and deletes musical bars", 
   ).toBeVisible();
 });
 
+test("Playground records pad performance live into the selected bar and can erase it", async ({
+  page,
+}) => {
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Add bar",
+  }).click();
+  await page.getByRole("button", {
+    name: "Bar 2",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "1/4",
+    exact: true,
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Start grid recording",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Stop grid recording",
+    }),
+  ).toBeVisible();
+
+  await page.keyboard.press("a");
+  await expect(
+    page.locator(".playground-record-status"),
+  ).toContainText("1 hit");
+
+  await page.getByRole("button", {
+    name: "Stop grid recording",
+  }).click();
+
+  const barTwoKickHits = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][aria-pressed="true"]',
+  );
+  await expect(barTwoKickHits).toHaveCount(1);
+
+  await page.getByRole("button", {
+    name: "Pause transport",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Erase",
+    exact: true,
+  }).click();
+  await page.getByRole("button", {
+    name: "Start grid recording",
+  }).click();
+  await page.keyboard.press("a");
+  await page.getByRole("button", {
+    name: "Stop grid recording",
+  }).click();
+
+  await expect(barTwoKickHits).toHaveCount(0);
+});
+
 test("Playground lane transforms are deterministic and undoable", async ({
   page,
 }) => {
