@@ -3474,3 +3474,191 @@
     color: HighlightText;
   }
 }
+
+
+/* Playground P2 — fast performance to grid recording */
+.playground-record-bar {
+  width: min(1440px, calc(100% - clamp(36px, 7vw, 108px)));
+  min-height: 54px;
+  margin: -6px auto 14px;
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+}
+
+.playground-record-button,
+.playground-record-modes,
+.playground-record-quantize,
+.playground-record-status {
+  min-height: 48px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.playground-record-button {
+  min-width: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 14px;
+  color: var(--pg-text);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.playground-record-button > span {
+  color: var(--heat);
+  font-size: 0.82rem;
+}
+
+.playground-record-bar.is-recording .playground-record-button,
+.playground-record-bar.is-armed .playground-record-button {
+  border-color: color-mix(in srgb, var(--heat) 55%, rgba(255,255,255,0.08));
+  background: color-mix(in srgb, var(--heat) 13%, rgba(255,255,255,0.04));
+}
+
+.playground-record-bar.is-recording .playground-record-button > span {
+  animation: playground-record-pulse 900ms ease-in-out infinite alternate;
+}
+
+@keyframes playground-record-pulse {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
+.playground-record-modes,
+.playground-record-quantize {
+  display: flex;
+  align-items: stretch;
+}
+
+.playground-record-modes > button,
+.playground-record-quantize > button {
+  min-width: 66px;
+  padding: 0 10px;
+  border: 0;
+  border-left: 1px solid rgba(255,255,255,0.065);
+  background: transparent;
+  color: var(--pg-muted);
+  cursor: pointer;
+  font-size: 0.59rem;
+  font-weight: 850;
+}
+
+.playground-record-modes > button:first-child {
+  border-left: 0;
+}
+
+.playground-record-modes > button.is-active,
+.playground-record-quantize > button.is-active {
+  background: rgba(99, 222, 244, 0.09);
+  color: var(--pg-text);
+  box-shadow: inset 0 -2px 0 rgba(99, 222, 244, 0.72);
+}
+
+.playground-record-modes > button:disabled,
+.playground-record-quantize > button:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.playground-record-quantize > span {
+  display: grid;
+  place-items: center;
+  padding: 0 11px;
+  color: var(--pg-muted);
+  font-size: 0.5rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playground-record-status {
+  min-width: 124px;
+  margin-left: auto;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 6px 12px;
+}
+
+.playground-record-status strong {
+  color: var(--pg-text);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.playground-record-bar.is-recording .playground-record-status strong {
+  color: var(--heat);
+}
+
+.playground-record-status span {
+  color: var(--pg-muted);
+  font-size: 0.52rem;
+  font-weight: 750;
+}
+
+@media (max-width: 900px) {
+  .playground-record-bar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .playground-record-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .playground-record-button,
+  .playground-record-modes,
+  .playground-record-quantize,
+  .playground-record-status {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .playground-record-bar {
+    width: calc(100% - 20px);
+    margin-top: -4px;
+    gap: 6px;
+  }
+
+  .playground-record-button,
+  .playground-record-modes > button,
+  .playground-record-quantize > button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .playground-record-status {
+    min-width: 112px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playground-record-bar.is-recording .playground-record-button > span {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .playground-record-button,
+  .playground-record-modes,
+  .playground-record-quantize,
+  .playground-record-status,
+  .playground-record-modes > button,
+  .playground-record-quantize > button {
+    border-color: ButtonText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .playground-record-modes > button.is-active,
+  .playground-record-quantize > button.is-active {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
