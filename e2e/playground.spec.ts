@@ -180,6 +180,56 @@ test("Playground A B banks preserve independent beat edits", async ({
   expect(errors).toEqual([]);
 });
 
+test("Playground bar editing grows duplicates clears and deletes musical bars", async ({
+  page,
+}) => {
+  await waitForPlayground(page);
+
+  const addBar = page.getByRole("button", {
+    name: "Add bar",
+  });
+  await addBar.click();
+
+  await expect(
+    page.getByRole("button", { name: "Bar 2" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Bar 2" }).click();
+  const kick17 = page.getByRole("button", {
+    name: /KICK step 17,/i,
+  });
+  await kick17.click();
+  await expect(kick17).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", {
+    name: "Clear current bar",
+  }).click();
+  await expect(kick17).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByRole("button", { name: "Bar 1" }).click();
+  await page.getByRole("button", {
+    name: "Duplicate current bar",
+  }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Bar 3" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Bar 2" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", {
+    name: "Delete current bar",
+  }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Bar 3" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Bar 2" }),
+  ).toBeVisible();
+});
+
 test("Playground lane transforms are deterministic and undoable", async ({
   page,
 }) => {
