@@ -1112,6 +1112,10 @@ export function PlaygroundSurface({
     cancelPatternPreview();
     setSoundPickerVoice(null);
 
+    if (midiStore.getSnapshot().recording) {
+      midiStore.stopRecording();
+    }
+
     if (playing) {
       gridRecorder.start();
       pulseHaptic([8, 22, 8]);
@@ -4748,6 +4752,10 @@ export function PlaygroundSurface({
                           const on = velocity !== undefined;
                           const current =
                             visualStep === stepIndex;
+                          const recordedNow =
+                            gridRecord.status === "recording" &&
+                            gridRecord.lastVoice === voice &&
+                            gridRecord.lastStepIndex === stepIndex;
 
                           return (
                             <button
@@ -4766,6 +4774,9 @@ export function PlaygroundSurface({
                                   : "",
                                 current
                                   ? "is-current"
+                                  : "",
+                                recordedNow
+                                  ? "is-recorded-now"
                                   : "",
                               ]
                                 .filter(Boolean)
