@@ -704,6 +704,9 @@ export function PlaygroundSurface({
     x: number,
     y: number,
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      return;
+    }
     const definition = SEQUENCER_LANES.find(
       (lane) => lane.id === laneId,
     );
@@ -853,6 +856,11 @@ export function PlaygroundSurface({
   const applyStepContextAction = (
     action: "normal" | "accent" | "ghost" | "toggle",
   ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setStepContext(null);
+      setNotice("Stop recording to edit grid steps");
+      return;
+    }
     const context = stepContext;
     if (!context) return;
 
@@ -1111,6 +1119,8 @@ export function PlaygroundSurface({
 
     cancelPatternPreview();
     setSoundPickerVoice(null);
+    setStepContext(null);
+    clearStepContextLongPress();
 
     if (midiStore.getSnapshot().recording) {
       midiStore.stopRecording();
