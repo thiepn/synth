@@ -5369,128 +5369,134 @@ export function PlaygroundSurface({
                 </button>
               </div>
 
-              <div
-                className="playground-selection-actions"
-                aria-label="Selected note actions"
-              >
-                <button
-                  type="button"
-                  onClick={batchDeleteSelection}
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Delete selected notes"
-                  title="Delete · Delete/Backspace"
+              {selectedSteps.length > 0 ? (
+                <div
+                  className="playground-selection-actions"
+                  aria-label="Selected note actions"
                 >
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={batchDuplicateSelection}
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Duplicate selected notes"
-                  title="Duplicate · Ctrl/Cmd-D"
-                >
-                  Duplicate
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchMoveSelection(-1)
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Move selected notes left one step"
-                  title="Move left · ←"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchMoveSelection(1)
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Move selected notes right one step"
-                  title="Move right · →"
-                >
-                  →
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchAdjustVelocity(-0.08)
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Make selected notes softer"
-                  title="Velocity down · ["
-                >
-                  Vel−
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchAdjustVelocity(0.08)
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Make selected notes louder"
-                  title="Velocity up · ]"
-                >
-                  Vel＋
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchSetDynamic("ghost")
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Make selected notes ghost notes"
-                  title="Ghost · 1"
-                >
-                  Ghost
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchSetDynamic("normal")
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Make selected notes normal"
-                  title="Normal · 2"
-                >
-                  Normal
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchSetDynamic("accent")
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Accent selected notes"
-                  title="Accent · 3"
-                >
-                  Accent
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchNudgeTiming(-5_000)
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Move selected notes earlier"
-                  title="Timing earlier · ,"
-                >
-                  Early
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    batchNudgeTiming(5_000)
-                  }
-                  disabled={selectedSteps.length === 0}
-                  aria-label="Move selected notes later"
-                  title="Timing later · ."
-                >
-                  Late
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={batchDeleteSelection}
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Delete selected notes"
+                    title="Delete · Delete/Backspace"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={batchDuplicateSelection}
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Duplicate selected notes"
+                    title="Duplicate · Ctrl/Cmd-D"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchMoveSelection(-1)
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Move selected notes left one step"
+                    title="Move left · ←"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchMoveSelection(1)
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Move selected notes right one step"
+                    title="Move right · →"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchAdjustVelocity(-0.08)
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Make selected notes softer"
+                    title="Velocity down · ["
+                  >
+                    Vel−
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchAdjustVelocity(0.08)
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Make selected notes louder"
+                    title="Velocity up · ]"
+                  >
+                    Vel＋
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchSetDynamic("ghost")
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Make selected notes ghost notes"
+                    title="Ghost · 1"
+                  >
+                    Ghost
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchSetDynamic("normal")
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Make selected notes normal"
+                    title="Normal · 2"
+                  >
+                    Normal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchSetDynamic("accent")
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Accent selected notes"
+                    title="Accent · 3"
+                  >
+                    Accent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchNudgeTiming(-5_000)
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Move selected notes earlier"
+                    title="Timing earlier · ,"
+                  >
+                    Early
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      batchNudgeTiming(5_000)
+                    }
+                    disabled={selectedSteps.length === 0}
+                    aria-label="Move selected notes later"
+                    title="Timing later · ."
+                  >
+                    Late
+                  </button>
+                </div>
+              ) : (
+                <div className="playground-selection-hint">
+                  Shift-click notes · Ctrl/Cmd-drag a region · V = Select
+                </div>
+              )}
             </div>
 
             <div
@@ -5714,7 +5720,15 @@ export function PlaygroundSurface({
                                     Math.round(
                                       (velocity ?? 0) * 100,
                                     ) +
-                                    " percent. Click to remove; drag vertically for velocity"
+                                    " percent" +
+                                    (selectedStepKeys.has(
+                                      definition.id +
+                                        ":" +
+                                        stepIndex,
+                                    )
+                                      ? ", selected for batch editing"
+                                      : "") +
+                                    ". Click to remove; drag vertically for velocity"
                                   : ", off. Click to add")
                               }
                               onPointerDown={(event) => {
