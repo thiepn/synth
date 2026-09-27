@@ -48,6 +48,7 @@ import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
 import { triggerBlobDownload } from "../../render/wavEncoder";
 import {
+  SEQUENCER_MAX_STEPS,
   sequencerStore,
   type LaneClipboardData,
 } from "../../sequencer/SequencerStore";
@@ -1627,6 +1628,12 @@ export function PlaygroundSurface({
     Math.ceil(sequencer.lengthSteps / pageSize),
   );
   const pageStart = stepPage * pageSize;
+  const wholeBarPattern =
+    sequencer.lengthSteps >= pageSize &&
+    sequencer.lengthSteps % pageSize === 0;
+  const atBarLimit =
+    sequencer.lengthSteps + pageSize >
+    SEQUENCER_MAX_STEPS;
   const selectedDefinition =
     SEQUENCER_LANES.find(
       (definition) => definition.voice === selectedVoice,
@@ -2640,26 +2647,108 @@ export function PlaygroundSurface({
     setNotice(Math.round(audioTransport.getSnapshot().bpm) + " BPM");
   };
 
-  const setPlaygroundPatternLength = (
-    steps: 16 | 32 | 64,
-  ) => {
-    if (sequencer.lengthSteps === steps) return;
+  const addPatternBar = () => {
+    if (atBarLimit) {
+      setNotice("Pattern limit · 8 bars");
+      return;
+    }
 
     cancelPatternPreview();
-    sequencerStore.setLengthSteps(steps);
-    setStepPage((current) =>
-      Math.min(
-        current,
-        Math.max(0, Math.ceil(steps / pageSize) - 1),
-      ),
+    checkpointCurrentPattern("Before add bar");
+    const currentLength = sequencer.lengthSteps;
+    const nextLength =
+      currentLength < pageSize
+        ? pageSize
+        : currentLength + pageSize;
+    const changed = sequencerStore.addBar();
+    if (!changed) {
+      setNotice("Could not add a bar");
+      return;
+    }
+
+    setFollowPlayhead(false);
+    setStepPage(
+      Math.max(0, Math.ceil(nextLength / pageSize) - 1),
     );
     setNotice(
-      (steps / 16) +
-        (steps === 16 ? " bar" : " bars") +
+      "Added bar " +
+        Math.ceil(nextLength / pageSize) +
         " · " +
-        steps +
+        nextLength +
         " steps",
     );
+  };
+
+  const duplicatePatternBar = () => {
+    if (!wholeBarPattern || atBarLimit) {
+      setNotice(
+        atBarLimit
+          ? "Pattern limit · 8 bars"
+          : "Use a full-bar pattern to duplicate bars",
+      );
+      return;
+    }
+
+    cancelPatternPreview();
+    checkpointCurrentPattern(
+      "Before duplicate bar " + (stepPage + 1),
+    );
+    const changed =
+      sequencerStore.duplicateBar(stepPage);
+    if (!changed) {
+      setNotice("Could not duplicate this bar");
+      return;
+    }
+
+    setFollowPlayhead(false);
+    setStepPage(stepPage + 1);
+    setNotice(
+      "Duplicated bar " +
+        (stepPage + 1) +
+        " → " +
+        (stepPage + 2),
+    );
+  };
+
+  const clearPatternBar = () => {
+    if (!wholeBarPattern) {
+      setNotice("Use a full-bar pattern to clear a bar");
+      return;
+    }
+
+    cancelPatternPreview();
+    checkpointCurrentPattern(
+      "Before clear bar " + (stepPage + 1),
+    );
+    if (!sequencerStore.clearBar(stepPage)) {
+      setNotice("Could not clear this bar");
+      return;
+    }
+    setNotice("Cleared bar " + (stepPage + 1));
+  };
+
+  const deletePatternBar = () => {
+    if (!wholeBarPattern || pageCount <= 1) {
+      setNotice("A pattern needs at least one bar");
+      return;
+    }
+
+    cancelPatternPreview();
+    checkpointCurrentPattern(
+      "Before delete bar " + (stepPage + 1),
+    );
+    if (!sequencerStore.deleteBar(stepPage)) {
+      setNotice("Could not delete this bar");
+      return;
+    }
+
+    setFollowPlayhead(false);
+    const nextPage = Math.min(
+      stepPage,
+      pageCount - 2,
+    );
+    setStepPage(Math.max(0, nextPage));
+    setNotice("Deleted bar " + (stepPage + 1));
   };
 
   const editSelectedLane = (
@@ -3940,79 +4029,82 @@ export function PlaygroundSurface({
 
               <div className="playground-focus__tools">
                 <div
-                  className="playground-length-control"
-                  aria-label="Pattern length"
+                  className="playground-bar-control"
+                  aria-label="Pattern bars"
                 >
-                  {([16, 32, 64] as const).map((steps) => (
-                    <button
-                      type="button"
-                      key={steps}
-                      className={
-                        sequencer.lengthSteps === steps
-                          ? "is-active"
-                          : ""
-                      }
-                      onClick={() =>
-                        setPlaygroundPatternLength(steps)
-                      }
-                      aria-pressed={
-                        sequencer.lengthSteps === steps
-                      }
-                      title={
-                        String(steps / 16) +
-                        (steps === 16 ? " bar" : " bars") +
-                        " · " +
-                        steps +
-                        " steps"
-                      }
-                    >
-                      <span>{steps / 16} BAR{steps === 16 ? "" : "S"}</span>
-                      <b>{steps}</b>
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    className="playground-bar-control__remove"
+                    onClick={deletePatternBar}
+                    disabled={
+                      !wholeBarPattern || pageCount <= 1
+                    }
+                    aria-label="Delete current bar"
+                    title="Delete current bar"
+                  >
+                    −
+                  </button>
+                  <div className="playground-bar-tabs">
+                    {Array.from(
+                      { length: pageCount },
+                      (_, index) => (
+                        <button
+                          type="button"
+                          key={index}
+                          className={
+                            stepPage === index
+                              ? "is-active"
+                              : ""
+                          }
+                          onClick={() => {
+                            setFollowPlayhead(false);
+                            setStepPage(index);
+                          }}
+                          aria-pressed={
+                            stepPage === index
+                          }
+                          aria-label={"Bar " + (index + 1)}
+                        >
+                          {index + 1}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="playground-bar-control__add"
+                    onClick={addPatternBar}
+                    disabled={atBarLimit}
+                    aria-label="Add bar"
+                    title="Add a blank bar"
+                  >
+                    ＋
+                  </button>
                 </div>
 
-                {pageCount > 1 ? (
-                  <div
-                    className="playground-page-control"
-                    aria-label="Pattern page"
+                <div
+                  className="playground-bar-actions"
+                  aria-label="Current bar actions"
+                >
+                  <button
+                    type="button"
+                    onClick={duplicatePatternBar}
+                    disabled={!wholeBarPattern || atBarLimit}
+                    aria-label="Duplicate current bar"
+                    title="Insert a copy after this bar"
                   >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFollowPlayhead(false);
-                        setStepPage((page) =>
-                          Math.max(0, page - 1),
-                        );
-                      }}
-                      disabled={stepPage === 0}
-                      aria-label="Previous 16 steps"
-                    >
-                      ‹
-                    </button>
-                    <span>
-                      {stepPage + 1}/{pageCount}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFollowPlayhead(false);
-                        setStepPage((page) =>
-                          Math.min(
-                            pageCount - 1,
-                            page + 1,
-                          ),
-                        );
-                      }}
-                      disabled={
-                        stepPage === pageCount - 1
-                      }
-                      aria-label="Next 16 steps"
-                    >
-                      ›
-                    </button>
-                  </div>
-                ) : null}
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearPatternBar}
+                    disabled={!wholeBarPattern}
+                    aria-label="Clear current bar"
+                    title="Remove all notes from this bar"
+                  >
+                    Clear
+                  </button>
+                </div>
 
                 <div
                   className="playground-sound-cycle"
