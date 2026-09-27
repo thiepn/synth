@@ -1910,6 +1910,342 @@ export function PlaygroundSurface({
           : "1/16";
   const hapticsSupported =
     typeof globalThis.navigator?.vibrate === "function";
+  const selectedStepKeys = useMemo(
+    () => new Set(selectedSteps.map(selectionKey)),
+    [selectedSteps],
+  );
+
+  const selectionInRectangle = (
+    startLaneId: string,
+    endLaneId: string,
+    startStep: number,
+    endStep: number,
+  ): SequencerStepSelection[] => {
+    const startLane = SEQUENCER_LANES.findIndex(
+      (entry) => entry.id === startLaneId,
+    );
+    const endLane = SEQUENCER_LANES.findIndex(
+      (entry) => entry.id === endLaneId,
+    );
+    if (startLane < 0 || endLane < 0) return [];
+
+    const laneMin = Math.min(startLane, endLane);
+    const laneMax = Math.max(startLane, endLane);
+    const stepMin = Math.min(startStep, endStep);
+    const stepMax = Math.max(startStep, endStep);
+    const result: SequencerStepSelection[] = [];
+
+    for (
+      let laneIndex = laneMin;
+      laneIndex <= laneMax;
+      laneIndex += 1
+    ) {
+      const definition = SEQUENCER_LANES[laneIndex];
+      if (!definition) continue;
+      const lane = sequencer.pattern.lanes.find(
+        (entry) => entry.id === definition.id,
+      );
+      if (!lane) continue;
+
+      for (const event of lane.events) {
+        const stepIndex = Math.round(
+          event.tick / FOUNDATION_STEP_TICKS,
+        );
+        if (
+          stepIndex >= stepMin &&
+          stepIndex <= stepMax
+        ) {
+          result.push({
+            laneId: lane.id,
+            stepIndex,
+          });
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const applySelectionRectangle = (
+    drag: SelectionDragState,
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    const rectangle = selectionInRectangle(
+      drag.startLaneId,
+      laneId,
+      drag.startStepIndex,
+      stepIndex,
+    );
+    const next = new Map(
+      drag.base.map((entry) => [
+        selectionKey(entry),
+        entry,
+      ]),
+    );
+
+    if (drag.mode === "replace") {
+      next.clear();
+    }
+
+    for (const entry of rectangle) {
+      const key = selectionKey(entry);
+      if (drag.mode === "remove") {
+        next.delete(key);
+      } else {
+        next.set(key, entry);
+      }
+    }
+
+    setSelectedSteps([...next.values()]);
+  };
+
+  const beginSelection = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before selecting notes");
+      return;
+    }
+    if (
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    clearStepContextLongPress();
+    setStepContext(null);
+    const key = laneId + ":" + stepIndex;
+    const additive =
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey;
+    const mode: SelectionDragMode =
+      additive && selectedStepKeys.has(key)
+        ? "remove"
+        : additive
+          ? "add"
+          : "replace";
+    const drag: SelectionDragState = {
+      pointerId: event.pointerId,
+      startLaneId: laneId,
+      startStepIndex: stepIndex,
+      mode,
+      base:
+        mode === "replace"
+          ? []
+          : selectedSteps,
+    };
+
+    selectionDragRef.current = drag;
+    event.currentTarget.setPointerCapture?.(
+      event.pointerId,
+    );
+    applySelectionRectangle(
+      drag,
+      laneId,
+      stepIndex,
+    );
+    event.preventDefault();
+  };
+
+  const selectCurrentBar = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before selecting notes");
+      return;
+    }
+    const next = selectionInRectangle(
+      SEQUENCER_LANES[0]?.id ?? "",
+      SEQUENCER_LANES[
+        SEQUENCER_LANES.length - 1
+      ]?.id ?? "",
+      pageStart,
+      Math.min(
+        sequencer.lengthSteps - 1,
+        pageStart + pageSize - 1,
+      ),
+    );
+    setSelectedSteps(next);
+    setNotice(
+      next.length +
+        (next.length === 1 ? " note selected" : " notes selected") +
+        " · bar " +
+        (stepPage + 1),
+    );
+  };
+
+  const selectCurrentTrack = () => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before selecting notes");
+      return;
+    }
+    const lane = sequencer.pattern.lanes.find(
+      (entry) => entry.id === selectedDefinition.id,
+    );
+    const next =
+      lane?.events.map((event) => ({
+        laneId: lane.id,
+        stepIndex: Math.round(
+          event.tick / FOUNDATION_STEP_TICKS,
+        ),
+      })) ?? [];
+    setSelectedSteps(next);
+    setNotice(
+      next.length +
+        (next.length === 1 ? " note selected" : " notes selected") +
+        " · " +
+        displayLaneName(selectedDefinition),
+    );
+  };
+
+  const clearSelection = () => {
+    selectionDragRef.current = null;
+    setSelectedSteps([]);
+  };
+
+  const batchDeleteSelection = () => {
+    if (selectedSteps.length === 0) return;
+    if (
+      sequencerStore.deleteSelectedSteps(
+        selectedSteps,
+      )
+    ) {
+      const count = selectedSteps.length;
+      clearSelection();
+      pulseHaptic(6);
+      setNotice(
+        "Deleted " +
+          count +
+          (count === 1 ? " note" : " notes"),
+      );
+    } else {
+      setNotice("Selected notes are locked");
+    }
+  };
+
+  const batchAdjustVelocity = (delta: number) => {
+    if (selectedSteps.length === 0) return;
+    if (
+      sequencerStore.adjustSelectedVelocity(
+        selectedSteps,
+        delta,
+      )
+    ) {
+      setNotice(
+        delta > 0
+          ? "Selection louder"
+          : "Selection softer",
+      );
+    } else {
+      setNotice("Selected dynamics are locked");
+    }
+  };
+
+  const batchSetDynamic = (
+    dynamic: SequencerStepDynamic,
+  ) => {
+    if (selectedSteps.length === 0) return;
+    if (
+      sequencerStore.setSelectedDynamic(
+        selectedSteps,
+        dynamic,
+      )
+    ) {
+      setNotice(
+        dynamic === "accent"
+          ? "Selection accented"
+          : dynamic === "ghost"
+            ? "Selection ghosted"
+            : "Selection normalized",
+      );
+    } else {
+      setNotice("Selected dynamics are locked");
+    }
+  };
+
+  const batchMoveSelection = (deltaSteps: number) => {
+    if (selectedSteps.length === 0) return;
+    const moved = sequencerStore.moveSelectedSteps(
+      selectedSteps,
+      deltaSteps,
+    );
+    if (!moved) {
+      setNotice(
+        "Move blocked by an edge, lock, or occupied step",
+      );
+      return;
+    }
+
+    setSelectedSteps(moved);
+    setNotice(
+      deltaSteps < 0
+        ? "Selection moved left"
+        : "Selection moved right",
+    );
+  };
+
+  const batchDuplicateSelection = () => {
+    if (selectedSteps.length === 0) return;
+    const steps = selectedSteps.map(
+      (entry) => entry.stepIndex,
+    );
+    const width =
+      Math.max(...steps) - Math.min(...steps) + 1;
+    const duplicated =
+      sequencerStore.duplicateSelectedSteps(
+        selectedSteps,
+        Math.max(1, width),
+      );
+
+    if (!duplicated) {
+      setNotice(
+        "Duplicate blocked by an edge, lock, or occupied step",
+      );
+      return;
+    }
+
+    setSelectedSteps(duplicated);
+    setNotice(
+      "Duplicated " +
+        duplicated.length +
+        (duplicated.length === 1
+          ? " note"
+          : " notes"),
+    );
+  };
+
+  const batchNudgeTiming = (deltaUs: number) => {
+    if (selectedSteps.length === 0) return;
+    if (
+      sequencerStore.nudgeSelectedTiming(
+        selectedSteps,
+        deltaUs,
+      )
+    ) {
+      setNotice(
+        deltaUs < 0
+          ? "Selection moved earlier"
+          : "Selection moved later",
+      );
+    } else {
+      setNotice("Selected timing is locked");
+    }
+  };
+
+  useEffect(() => {
+    setSelectedSteps((current) =>
+      current.filter(
+        (entry) =>
+          sequencerStore.getStepVelocity(
+            entry.laneId,
+            entry.stepIndex,
+          ) !== undefined,
+      ),
+    );
+  }, [sequencer.revision]);
 
   useEffect(() => {
     setStepPage((current) =>
