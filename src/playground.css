@@ -3083,6 +3083,10 @@
 
 
 /* Playground v1.2 — whole-pattern multitrack editing */
+.playground-workbench > .playground-focus {
+  order: -1;
+}
+
 .playground-length-control {
   min-height: 42px;
   display: grid;
