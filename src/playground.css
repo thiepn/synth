@@ -3626,6 +3626,15 @@
   font-size: 0.62rem;
 }
 
+.playground-selection-hint {
+  align-self: center;
+  padding: 0 8px;
+  color: var(--pg-muted);
+  font-size: 0.52rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .playground-selection-bar.has-selection
 .playground-selection-status {
   border-color: rgba(99,222,244,0.34);
