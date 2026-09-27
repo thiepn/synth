@@ -49,6 +49,16 @@ export interface LaneClipboardData {
   events: StepEvent[];
 }
 
+export interface SequencerStepSelection {
+  laneId: string;
+  stepIndex: number;
+}
+
+export type SequencerStepDynamic =
+  | "ghost"
+  | "normal"
+  | "accent";
+
 export interface SequencerSnapshot {
   pattern: Pattern;
   lengthSteps: SequencerLengthSteps;
@@ -388,6 +398,356 @@ export class SequencerStore {
         ? "gesture:" + gestureId
         : "velocity:" + laneId + ":" + stepIndex,
     );
+  }
+
+  deleteSelectedSteps(
+    selection: readonly SequencerStepSelection[],
+  ): boolean {
+    const keys = new Set(
+      selection.map(
+        (entry) => entry.laneId + ":" + entry.stepIndex,
+      ),
+    );
+    if (keys.size === 0) return false;
+
+    const beforeRevision = this.revision;
+    this.commit((draft) => {
+      for (const lane of draft.lanes) {
+        if (lane.lock.rhythm) continue;
+        lane.events = lane.events.filter((event) => {
+          const stepIndex = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          return !keys.has(
+            lane.id + ":" + stepIndex,
+          );
+        });
+      }
+    });
+
+    return this.revision !== beforeRevision;
+  }
+
+  adjustSelectedVelocity(
+    selection: readonly SequencerStepSelection[],
+    delta: number,
+  ): boolean {
+    if (!Number.isFinite(delta) || selection.length === 0) {
+      return false;
+    }
+
+    const keys = new Set(
+      selection.map(
+        (entry) => entry.laneId + ":" + entry.stepIndex,
+      ),
+    );
+    const beforeRevision = this.revision;
+
+    this.commit((draft) => {
+      for (const lane of draft.lanes) {
+        if (lane.lock.dynamics) continue;
+        for (const event of lane.events) {
+          const stepIndex = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          if (
+            !keys.has(lane.id + ":" + stepIndex)
+          ) {
+            continue;
+          }
+
+          event.velocity = normalizeVelocity(
+            event.velocity + delta,
+          );
+          event.accent = accentFromVelocity(
+            event.velocity,
+          );
+          delete event.grooveBase;
+          event.generatorTags =
+            event.generatorTags?.filter(
+              (tag) =>
+                !tag.startsWith("groove-engine"),
+            );
+        }
+      }
+    });
+
+    return this.revision !== beforeRevision;
+  }
+
+  setSelectedDynamic(
+    selection: readonly SequencerStepSelection[],
+    dynamic: SequencerStepDynamic,
+  ): boolean {
+    if (selection.length === 0) return false;
+
+    const velocity =
+      dynamic === "accent"
+        ? 0.96
+        : dynamic === "ghost"
+          ? 0.22
+          : 0.76;
+    const keys = new Set(
+      selection.map(
+        (entry) => entry.laneId + ":" + entry.stepIndex,
+      ),
+    );
+    const beforeRevision = this.revision;
+
+    this.commit((draft) => {
+      for (const lane of draft.lanes) {
+        if (lane.lock.dynamics) continue;
+        for (const event of lane.events) {
+          const stepIndex = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          if (
+            !keys.has(lane.id + ":" + stepIndex)
+          ) {
+            continue;
+          }
+
+          event.velocity = velocity;
+          event.accent = dynamic;
+          delete event.grooveBase;
+          event.generatorTags =
+            event.generatorTags?.filter(
+              (tag) =>
+                !tag.startsWith("groove-engine"),
+            );
+        }
+      }
+    });
+
+    return this.revision !== beforeRevision;
+  }
+
+  nudgeSelectedTiming(
+    selection: readonly SequencerStepSelection[],
+    deltaUs: number,
+  ): boolean {
+    if (
+      !Number.isFinite(deltaUs) ||
+      selection.length === 0
+    ) {
+      return false;
+    }
+
+    const keys = new Set(
+      selection.map(
+        (entry) => entry.laneId + ":" + entry.stepIndex,
+      ),
+    );
+    const beforeRevision = this.revision;
+
+    this.commit((draft) => {
+      for (const lane of draft.lanes) {
+        if (lane.lock.timing) continue;
+        for (const event of lane.events) {
+          const stepIndex = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          if (
+            !keys.has(lane.id + ":" + stepIndex)
+          ) {
+            continue;
+          }
+
+          event.timingOffsetUs =
+            clampManualTimingOffsetUs(
+              event.timingOffsetUs + deltaUs,
+            );
+          delete event.grooveBase;
+          event.generatorTags =
+            event.generatorTags?.filter(
+              (tag) =>
+                !tag.startsWith("groove-engine"),
+            );
+        }
+      }
+    });
+
+    return this.revision !== beforeRevision;
+  }
+
+  moveSelectedSteps(
+    selection: readonly SequencerStepSelection[],
+    deltaSteps: number,
+  ): SequencerStepSelection[] | null {
+    const delta = Math.trunc(deltaSteps);
+    if (delta === 0 || selection.length === 0) {
+      return null;
+    }
+
+    const byLane = new Map<string, Set<number>>();
+    for (const entry of selection) {
+      if (!this.isValidStep(entry.stepIndex)) continue;
+      const steps =
+        byLane.get(entry.laneId) ?? new Set<number>();
+      steps.add(entry.stepIndex);
+      byLane.set(entry.laneId, steps);
+    }
+    if (byLane.size === 0) return null;
+
+    const moved: SequencerStepSelection[] = [];
+
+    for (const [laneId, steps] of byLane) {
+      const lane = this.pattern.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane || lane.lock.rhythm) return null;
+
+      const laneLength = this.getLaneLengthSteps(laneId);
+      const selectedSet = new Set(steps);
+      const occupied = new Set(
+        lane.events
+          .map((event) =>
+            Math.round(
+              event.tick / FOUNDATION_STEP_TICKS,
+            ),
+          )
+          .filter((step) => !selectedSet.has(step)),
+      );
+
+      for (const stepIndex of steps) {
+        const target = stepIndex + delta;
+        if (
+          target < 0 ||
+          target >= laneLength ||
+          occupied.has(target)
+        ) {
+          return null;
+        }
+        moved.push({
+          laneId,
+          stepIndex: target,
+        });
+      }
+    }
+
+    if (moved.length === 0) return null;
+
+    this.commit((draft) => {
+      for (const [laneId, steps] of byLane) {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === laneId,
+        );
+        if (!lane) continue;
+
+        for (const event of lane.events) {
+          const stepIndex = Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          );
+          if (!steps.has(stepIndex)) continue;
+
+          const target = stepIndex + delta;
+          event.tick =
+            target * FOUNDATION_STEP_TICKS;
+          event.id = eventId(laneId, target);
+          delete event.grooveBase;
+        }
+        lane.events.sort((a, b) => a.tick - b.tick);
+      }
+    });
+
+    return moved;
+  }
+
+  duplicateSelectedSteps(
+    selection: readonly SequencerStepSelection[],
+    deltaSteps: number,
+  ): SequencerStepSelection[] | null {
+    const delta = Math.trunc(deltaSteps);
+    if (delta === 0 || selection.length === 0) {
+      return null;
+    }
+
+    const byLane = new Map<string, Set<number>>();
+    for (const entry of selection) {
+      if (!this.isValidStep(entry.stepIndex)) continue;
+      const steps =
+        byLane.get(entry.laneId) ?? new Set<number>();
+      steps.add(entry.stepIndex);
+      byLane.set(entry.laneId, steps);
+    }
+    if (byLane.size === 0) return null;
+
+    const duplicated: SequencerStepSelection[] = [];
+
+    for (const [laneId, steps] of byLane) {
+      const lane = this.pattern.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane || lane.lock.rhythm) return null;
+
+      const laneLength = this.getLaneLengthSteps(laneId);
+      const occupied = new Set(
+        lane.events.map((event) =>
+          Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          ),
+        ),
+      );
+
+      for (const stepIndex of steps) {
+        if (!eventAtStep(lane, stepIndex)) continue;
+        const target = stepIndex + delta;
+        if (
+          target < 0 ||
+          target >= laneLength ||
+          occupied.has(target)
+        ) {
+          return null;
+        }
+        duplicated.push({
+          laneId,
+          stepIndex: target,
+        });
+      }
+    }
+
+    if (duplicated.length === 0) return null;
+
+    this.commit((draft) => {
+      for (const [laneId, steps] of byLane) {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === laneId,
+        );
+        if (!lane) continue;
+
+        const copies = lane.events
+          .filter((event) =>
+            steps.has(
+              Math.round(
+                event.tick / FOUNDATION_STEP_TICKS,
+              ),
+            ),
+          )
+          .map((event) => {
+            const sourceStep = Math.round(
+              event.tick / FOUNDATION_STEP_TICKS,
+            );
+            const target = sourceStep + delta;
+            const copy = cloneStepEvent(event);
+            copy.id = eventId(laneId, target);
+            copy.tick =
+              target * FOUNDATION_STEP_TICKS;
+            copy.generatorTags = [
+              ...(copy.generatorTags ?? []).filter(
+                (tag) => tag !== "selection-duplicate",
+              ),
+              "selection-duplicate",
+            ];
+            delete copy.grooveBase;
+            return copy;
+          });
+
+        lane.events.push(...copies);
+        lane.events.sort((a, b) => a.tick - b.tick);
+      }
+    });
+
+    return duplicated;
   }
 
   recordRealtimeStep(
