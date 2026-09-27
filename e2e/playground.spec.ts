@@ -416,6 +416,47 @@ test("Playground selection batch edits move duplicate delete and undo notes", as
   await expect(
     page.locator(".playground-step.is-selected"),
   ).toHaveCount(2);
+
+  await page.getByRole("button", {
+    name: "Copy selected notes",
+  }).click();
+  await page.getByRole("button", {
+    name: "Add bar",
+  }).click();
+  await page.getByRole("button", {
+    name: "Bar 2",
+  }).click();
+  await page.getByRole("button", {
+    name: "Paste copied notes to current bar",
+  }).click();
+
+  const barTwoStep1 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="16"]',
+  );
+  const barTwoStep3 = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="18"]',
+  );
+  await expect(barTwoStep1).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(barTwoStep3).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).click();
+  await expect(barTwoStep1).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(barTwoStep3).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
 });
 
 test("Playground lane transforms are deterministic and undoable", async ({
