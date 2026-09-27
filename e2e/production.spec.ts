@@ -349,7 +349,7 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
   }).click();
   await expect(
     page.getByRole("region", {
-      name: "CLAP pattern editor",
+      name: /Whole pattern editor.*CLAP/i,
     }),
   ).toBeVisible();
 
