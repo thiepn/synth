@@ -44,6 +44,8 @@ import {
   type DrumVoiceId,
   type SequencerLaneDefinition,
 } from "../../music/foundationPattern";
+import { midiStore } from "../../midi/MidiStore";
+import { useMidiSnapshot } from "../../midi/useMidi";
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
 import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
@@ -520,6 +522,7 @@ export function PlaygroundSurface({
   const sequencer = useSequencerSnapshot();
   const transport = useTransportSnapshot();
   const gridRecord = useGridRecorderSnapshot();
+  const midi = useMidiSnapshot();
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
   const history = useGenerationHistorySnapshot();
@@ -1142,6 +1145,23 @@ export function PlaygroundSurface({
       gridRecorder.cancel();
       setNotice("Audio could not start");
     }
+  };
+
+  const enablePlaygroundMidi = async () => {
+    if (!midi.supported) {
+      setNotice("Web MIDI is unavailable in this browser");
+      return;
+    }
+
+    await midiStore.enable();
+    const next = midiStore.getSnapshot();
+    setNotice(
+      next.status === "ready"
+        ? next.selectedInputName
+          ? "MIDI ready · " + next.selectedInputName
+          : "MIDI ready"
+        : next.lastError ?? "MIDI could not be enabled",
+    );
   };
 
   const setGridRecordMode = (mode: GridRecordMode) => {
@@ -4079,6 +4099,43 @@ export function PlaygroundSurface({
             </button>
           ))}
         </div>
+
+        {midi.supported ? (
+          <button
+            type="button"
+            className={[
+              "playground-record-midi",
+              midi.status === "ready"
+                ? "is-active"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => void enablePlaygroundMidi()}
+            disabled={
+              midi.status === "requesting" ||
+              midi.status === "ready"
+            }
+            aria-label={
+              midi.status === "ready"
+                ? "MIDI input ready"
+                : "Enable MIDI input"
+            }
+            title={
+              midi.selectedInputName ??
+              "Enable MIDI controller input"
+            }
+          >
+            <span>MIDI</span>
+            <b>
+              {midi.status === "requesting"
+                ? "…"
+                : midi.status === "ready"
+                  ? "Ready"
+                  : "Enable"}
+            </b>
+          </button>
+        ) : null}
 
         <output
           className="playground-record-status"
