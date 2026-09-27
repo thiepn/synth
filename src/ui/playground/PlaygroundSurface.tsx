@@ -975,17 +975,21 @@ export function PlaygroundSurface({
     setTouchEditMode((current) => {
       const next: TouchEditMode =
         current === "draw"
-          ? "accent"
-          : current === "accent"
-            ? "ghost"
-            : "draw";
+          ? "select"
+          : current === "select"
+            ? "accent"
+            : current === "accent"
+              ? "ghost"
+              : "draw";
       pulseHaptic(7);
       setNotice(
         next === "draw"
           ? "Touch mode · Draw"
-          : next === "accent"
-            ? "Touch mode · Accent"
-            : "Touch mode · Ghost",
+          : next === "select"
+            ? "Touch mode · Select"
+            : next === "accent"
+              ? "Touch mode · Accent"
+              : "Touch mode · Ghost",
       );
       return next;
     });
@@ -2294,6 +2298,7 @@ export function PlaygroundSurface({
 
     if (
       saved.touchEditMode === "draw" ||
+      saved.touchEditMode === "select" ||
       saved.touchEditMode === "accent" ||
       saved.touchEditMode === "ghost"
     ) {
@@ -2633,17 +2638,24 @@ export function PlaygroundSurface({
       stepIndex,
     );
 
+    const shiftClickSelection =
+      event.pointerType === "mouse" &&
+      event.shiftKey &&
+      !event.altKey;
     const touchDynamic =
       event.pointerType !== "mouse" &&
-      touchEditMode !== "draw"
+      touchEditMode !== "draw" &&
+      touchEditMode !== "select"
         ? touchEditMode
         : undefined;
     const dynamic =
       event.altKey
         ? "ghost"
-        : event.shiftKey
-          ? "accent"
-          : touchDynamic;
+        : shiftClickSelection
+          ? undefined
+          : event.shiftKey
+            ? "accent"
+            : touchDynamic;
     const existingVelocity =
       sequencerStore.getStepVelocity(laneId, stepIndex);
     const desiredOn =
@@ -2660,13 +2672,15 @@ export function PlaygroundSurface({
       lastKey: key,
       gestureId,
       mode:
-        dynamic
-          ? "paint"
-          : event.pointerType === "mouse"
-            ? desiredOn
-              ? "paint"
-              : "pending"
-            : "pending",
+        shiftClickSelection
+          ? "shiftSelect"
+          : dynamic
+            ? "paint"
+            : event.pointerType === "mouse"
+              ? desiredOn
+                ? "paint"
+                : "pending"
+              : "pending",
       dynamic,
       pointerType: event.pointerType,
       startLaneId: laneId,
@@ -2677,6 +2691,10 @@ export function PlaygroundSurface({
     };
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    if (!shiftClickSelection && selectedSteps.length > 0) {
+      clearSelection();
+    }
 
     if (dynamic) {
       const painted = sequencerStore.paintStepDynamic(
@@ -2718,12 +2736,74 @@ export function PlaygroundSurface({
   const continuePaint = (
     event: ReactPointerEvent<HTMLDivElement>,
   ) => {
+    const selectionDrag = selectionDragRef.current;
+    if (
+      selectionDrag &&
+      selectionDrag.pointerId === event.pointerId
+    ) {
+      const target = document
+        .elementFromPoint(
+          event.clientX,
+          event.clientY,
+        )
+        ?.closest(
+          "[data-play-step='true']",
+        ) as HTMLButtonElement | null;
+
+      if (target) {
+        const laneId = target.dataset.laneId;
+        const stepIndex = Number(
+          target.dataset.stepIndex,
+        );
+        if (
+          laneId &&
+          Number.isInteger(stepIndex)
+        ) {
+          applySelectionRectangle(
+            selectionDrag,
+            laneId,
+            stepIndex,
+          );
+        }
+      }
+      return;
+    }
+
     moveStepContextLongPress(event);
     const gesture = paintRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
 
     if (gesture.mode === "pageSwipe") {
       return;
+    }
+
+    if (gesture.mode === "shiftSelect") {
+      const dx = event.clientX - gesture.startX;
+      const dy = event.clientY - gesture.startY;
+      if (Math.hypot(dx, dy) < 7) return;
+
+      gesture.mode = "paint";
+      gesture.dynamic = "accent";
+      gesture.desiredOn = true;
+      const painted = sequencerStore.paintStepDynamic(
+        gesture.startLaneId,
+        gesture.startStepIndex,
+        "accent",
+        gesture.gestureId,
+      );
+      if (painted) {
+        const voice = SEQUENCER_LANES.find(
+          (lane) =>
+            lane.id === gesture.startLaneId,
+        )?.voice;
+        if (voice) {
+          triggerVoice(
+            voice,
+            0.96,
+            false,
+          );
+        }
+      }
     }
 
     if (gesture.mode === "velocity") {
@@ -2855,6 +2935,19 @@ export function PlaygroundSurface({
     pointerId: number,
     cancelled = false,
   ) => {
+    const selectionDrag = selectionDragRef.current;
+    if (
+      selectionDrag &&
+      selectionDrag.pointerId === pointerId
+    ) {
+      selectionDragRef.current = null;
+      if (!cancelled) {
+        pulseHaptic(5);
+        setNotice("Selection updated");
+      }
+      return;
+    }
+
     const pendingContext =
       stepContextPendingRef.current;
     if (pendingContext?.pointerId === pointerId) {
@@ -2864,7 +2957,32 @@ export function PlaygroundSurface({
     const gesture = paintRef.current;
     if (!gesture || gesture.pointerId !== pointerId) return;
 
-    if (!cancelled && gesture.mode === "pending") {
+    if (!cancelled && gesture.mode === "shiftSelect") {
+      const entry = {
+        laneId: gesture.startLaneId,
+        stepIndex: gesture.startStepIndex,
+      };
+      if (
+        sequencerStore.getStepVelocity(
+          entry.laneId,
+          entry.stepIndex,
+        ) !== undefined
+      ) {
+        const key = selectionKey(entry);
+        setSelectedSteps((current) => {
+          const exists = current.some(
+            (item) => selectionKey(item) === key,
+          );
+          return exists
+            ? current.filter(
+                (item) =>
+                  selectionKey(item) !== key,
+              )
+            : [...current, entry];
+        });
+        setNotice("Selection updated");
+      }
+    } else if (!cancelled && gesture.mode === "pending") {
       setStep(
         gesture.startLaneId,
         gesture.startStepIndex,
@@ -2921,6 +3039,31 @@ export function PlaygroundSurface({
 
     sequencerStore.endPaintGesture(gesture.gestureId);
     paintRef.current = null;
+  };
+
+  const beginGridPointer = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    if (
+      touchEditMode === "select" ||
+      event.ctrlKey ||
+      event.metaKey
+    ) {
+      beginSelection(
+        event,
+        laneId,
+        stepIndex,
+      );
+      return;
+    }
+
+    beginPaint(
+      event,
+      laneId,
+      stepIndex,
+    );
   };
 
   const activateFromKeyboard = (
@@ -5160,6 +5303,13 @@ export function PlaygroundSurface({
                                 recordedNow
                                   ? "is-recorded-now"
                                   : "",
+                                selectedStepKeys.has(
+                                  definition.id +
+                                    ":" +
+                                    stepIndex,
+                                )
+                                  ? "is-selected"
+                                  : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
@@ -5208,7 +5358,7 @@ export function PlaygroundSurface({
                                 ) {
                                   setSoundPickerVoice(null);
                                 }
-                                beginPaint(
+                                beginGridPointer(
                                   event,
                                   definition.id,
                                   stepIndex,
@@ -5907,21 +6057,25 @@ export function PlaygroundSurface({
           aria-label={
             "Touch edit mode: " + touchEditMode
           }
-          title="Cycle Draw, Accent, and Ghost touch modes"
+          title="Cycle Draw, Select, Accent, and Ghost touch modes"
         >
           <b aria-hidden="true">
             {touchEditMode === "draw"
               ? "✎"
-              : touchEditMode === "accent"
-                ? "!"
-                : "○"}
+              : touchEditMode === "select"
+                ? "□"
+                : touchEditMode === "accent"
+                  ? "!"
+                  : "○"}
           </b>
           <span>
             {touchEditMode === "draw"
               ? "Draw"
-              : touchEditMode === "accent"
-                ? "Accent"
-                : "Ghost"}
+              : touchEditMode === "select"
+                ? "Select"
+                : touchEditMode === "accent"
+                  ? "Accent"
+                  : "Ghost"}
           </span>
         </button>
 
