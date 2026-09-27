@@ -242,6 +242,15 @@ test("Playground records pad performance live into the selected bar and can eras
     name: "Bar 2",
   }).click();
 
+  const follow = page.getByRole("button", {
+    name: /Follow Playhead/i,
+  });
+  if (
+    (await follow.getAttribute("aria-pressed")) === "true"
+  ) {
+    await follow.click();
+  }
+
   await page.getByRole("button", {
     name: "1/4",
     exact: true,
