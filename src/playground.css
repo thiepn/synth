@@ -3437,7 +3437,7 @@
   }
 
   .playground-steps--lane .playground-step {
-    min-height: 38px;
+    min-height: 44px;
     aspect-ratio: auto;
     border-radius: 8px;
   }
