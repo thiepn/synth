@@ -390,6 +390,111 @@ export class SequencerStore {
     );
   }
 
+  recordRealtimeStep(
+    laneId: string,
+    stepIndex: number,
+    velocity: number,
+    timingOffsetUs: number,
+    mode: "overdub" | "erase",
+    gestureId: string,
+  ): boolean {
+    if (!this.isValidStep(stepIndex)) return false;
+
+    const sourceLane = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!sourceLane) return false;
+
+    const existing = eventAtStep(sourceLane, stepIndex);
+
+    if (mode === "erase") {
+      if (sourceLane.lock.rhythm || !existing) return false;
+
+      const beforeRevision = this.revision;
+      this.commit(
+        (draft) => {
+          const lane = draft.lanes.find(
+            (entry) => entry.id === laneId,
+          );
+          if (!lane) return;
+          const target = eventAtStep(lane, stepIndex);
+          if (!target) return;
+          lane.events = lane.events.filter(
+            (event) => event.id !== target.id,
+          );
+        },
+        "gesture:" + gestureId,
+      );
+      return this.revision !== beforeRevision;
+    }
+
+    if (!existing && sourceLane.lock.rhythm) {
+      return false;
+    }
+    if (
+      existing &&
+      sourceLane.lock.dynamics &&
+      sourceLane.lock.timing
+    ) {
+      return false;
+    }
+
+    const safeVelocity = normalizeVelocity(velocity);
+    const safeTiming = clampManualTimingOffsetUs(
+      timingOffsetUs,
+    );
+    const beforeRevision = this.revision;
+
+    this.commit(
+      (draft) => {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === laneId,
+        );
+        if (!lane) return;
+
+        const target = eventAtStep(lane, stepIndex);
+        if (target) {
+          if (!lane.lock.dynamics) {
+            target.velocity = Math.max(
+              target.velocity,
+              safeVelocity,
+            );
+            target.accent = accentFromVelocity(
+              target.velocity,
+            );
+          }
+          if (!lane.lock.timing) {
+            target.timingOffsetUs = safeTiming;
+            delete target.grooveBase;
+          }
+          target.generatorTags = [
+            ...(target.generatorTags ?? []).filter(
+              (tag) => tag !== "grid-record",
+            ),
+            "grid-record",
+          ];
+          return;
+        }
+
+        const next = createStepEvent(
+          laneId,
+          stepIndex,
+          safeVelocity,
+        );
+        if (!lane.lock.timing) {
+          next.timingOffsetUs = safeTiming;
+        }
+        next.generatorTags = ["grid-record"];
+        next.grooveBase = undefined;
+        lane.events.push(next);
+        lane.events.sort((a, b) => a.tick - b.tick);
+      },
+      "gesture:" + gestureId,
+    );
+
+    return this.revision !== beforeRevision;
+  }
+
   setStepProbability(
     laneId: string,
     stepIndex: number,
