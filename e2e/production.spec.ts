@@ -326,7 +326,11 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
 
   await expect.poll(patternSignature).not.toBe(beforeStyle);
   await expect(
-    page.locator(".playground-playhead"),
+    page
+      .locator(
+        ".playground-track-row .playground-step.is-current",
+      )
+      .first(),
   ).toBeVisible();
 
   await page.keyboard.press("Control+z");
@@ -335,7 +339,9 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
     page.getByLabel("Beat style"),
   ).toHaveValue("funk");
   await expect(
-    page.locator(".playground-playhead"),
+    page.locator(
+      ".playground-track-row .playground-step.is-current",
+    ),
   ).toHaveCount(0);
 
   await page.getByRole("button", {
@@ -1332,7 +1338,7 @@ test.describe("mobile interaction shell", () => {
     ).toHaveCount(8);
     await expect(
       page.getByRole("region", {
-        name: "KICK pattern editor",
+        name: /Whole pattern editor.*KICK/i,
       }),
     ).toBeVisible();
 
@@ -1351,7 +1357,7 @@ test.describe("mobile interaction shell", () => {
     }).click();
     await expect(
       page.getByRole("region", {
-        name: "SNARE pattern editor",
+        name: /Whole pattern editor.*SNARE/i,
       }),
     ).toBeVisible();
 
