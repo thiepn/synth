@@ -27,6 +27,11 @@ const required = [
   [playground, "fillSixteenth", "Q1 lane fills must remain available."],
   [playground, "duplicatePatternBar", "Q1 bar duplication must remain available."],
   [playground, "addPatternBar", "Q1 bar growth must remain available."],
+  [playground, "toggleGridRecording", "P2 grid recording controls must remain available."],
+  [playground, 'aria-label="Grid recording"', "P2 recording surface must remain visible."],
+  ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
+  ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
+  ["src/audio/AudioTransport.ts", "seekToAbsoluteTick(", "P2 selected-bar recording requires transport seek support."],
   [playground, 'aria-label="Pattern bars"', "Q1 direct bar navigation must remain available."],
   [playground, "patternBanks", "Q2 A/B pattern banks must remain available."],
   [playground, "Undo Remix", "Q2 Remix recovery must remain visible."],
@@ -55,6 +60,7 @@ const required = [
   ["e2e/playground.spec.ts", "Playground lane transforms are deterministic and undoable", "Q3 transforms must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground velocity editing changes an existing hit without stopping flow", "Q1 velocity behavior must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground bar editing grows duplicates clears and deletes musical bars", "Q1 bar editing must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground records pad performance live into the selected bar and can erase it", "P2 performance recording must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground count in restart repeat and momentary monitoring stay responsive", "Q5 flow behavior must remain browser-certified."],
 ];
 
