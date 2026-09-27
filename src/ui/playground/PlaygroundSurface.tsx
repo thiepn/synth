@@ -4027,7 +4027,10 @@ export function PlaygroundSurface({
         <button
           type="button"
           className="playground-record-button"
-          onClick={() => void toggleGridRecording()}
+          onClick={(event) => {
+            event.currentTarget.blur();
+            void toggleGridRecording();
+          }}
           aria-label={
             gridRecord.status === "recording"
               ? "Stop grid recording"
