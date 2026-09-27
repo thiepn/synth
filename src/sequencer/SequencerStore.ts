@@ -54,6 +54,17 @@ export interface SequencerStepSelection {
   stepIndex: number;
 }
 
+export interface StepSelectionClipboardEntry {
+  laneId: string;
+  offsetSteps: number;
+  event: StepEvent;
+}
+
+export interface StepSelectionClipboardData {
+  widthSteps: number;
+  entries: StepSelectionClipboardEntry[];
+}
+
 export type SequencerStepDynamic =
   | "ghost"
   | "normal"
@@ -748,6 +759,142 @@ export class SequencerStore {
     });
 
     return duplicated;
+  }
+
+  copySelectedSteps(
+    selection: readonly SequencerStepSelection[],
+  ): StepSelectionClipboardData | null {
+    const events: {
+      laneId: string;
+      stepIndex: number;
+      event: StepEvent;
+    }[] = [];
+
+    for (const entry of selection) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      const event = lane
+        ? eventAtStep(lane, entry.stepIndex)
+        : undefined;
+      if (!event) continue;
+      events.push({
+        laneId: entry.laneId,
+        stepIndex: entry.stepIndex,
+        event: cloneStepEvent(event),
+      });
+    }
+
+    if (events.length === 0) return null;
+
+    const minStep = Math.min(
+      ...events.map((entry) => entry.stepIndex),
+    );
+    const maxStep = Math.max(
+      ...events.map((entry) => entry.stepIndex),
+    );
+
+    return {
+      widthSteps: maxStep - minStep + 1,
+      entries: events.map((entry) => ({
+        laneId: entry.laneId,
+        offsetSteps:
+          entry.stepIndex - minStep,
+        event: cloneStepEvent(entry.event),
+      })),
+    };
+  }
+
+  pasteSelectedSteps(
+    clipboard: StepSelectionClipboardData,
+    startStepInput: number,
+  ): SequencerStepSelection[] | null {
+    const startStep = Math.max(
+      0,
+      Math.trunc(startStepInput),
+    );
+    if (
+      clipboard.entries.length === 0 ||
+      clipboard.widthSteps <= 0
+    ) {
+      return null;
+    }
+
+    const targets: {
+      laneId: string;
+      stepIndex: number;
+      event: StepEvent;
+    }[] = [];
+
+    for (const entry of clipboard.entries) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      if (!lane || lane.lock.rhythm) return null;
+
+      const stepIndex =
+        startStep + entry.offsetSteps;
+      const laneLength =
+        this.getLaneLengthSteps(entry.laneId);
+      if (
+        stepIndex < 0 ||
+        stepIndex >= laneLength
+      ) {
+        return null;
+      }
+
+      targets.push({
+        laneId: entry.laneId,
+        stepIndex,
+        event: cloneStepEvent(entry.event),
+      });
+    }
+
+    if (targets.length === 0) return null;
+
+    this.commit((draft) => {
+      for (const target of targets) {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === target.laneId,
+        );
+        if (!lane) continue;
+
+        const existing = eventAtStep(
+          lane,
+          target.stepIndex,
+        );
+        if (existing) {
+          lane.events = lane.events.filter(
+            (event) => event.id !== existing.id,
+          );
+        }
+
+        const next = cloneStepEvent(target.event);
+        next.id = eventId(
+          target.laneId,
+          target.stepIndex,
+        );
+        next.tick =
+          target.stepIndex *
+          FOUNDATION_STEP_TICKS;
+        next.generatorTags = [
+          ...(next.generatorTags ?? []).filter(
+            (tag) => tag !== "selection-paste",
+          ),
+          "selection-paste",
+        ];
+        delete next.grooveBase;
+        lane.events.push(next);
+        lane.events.sort((a, b) => a.tick - b.tick);
+      }
+    });
+
+    return targets.map((target) => ({
+      laneId: target.laneId,
+      stepIndex: target.stepIndex,
+    }));
   }
 
   recordRealtimeStep(
