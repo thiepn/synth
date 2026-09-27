@@ -1,7 +1,7 @@
 import type { StepEvent } from "../domain/contracts";
 
 export const SEQUENCER_ADVANCED_LIMITS = Object.freeze({
-  maxSteps: 64,
+  maxSteps: 128,
   maxRatchets: 4,
   maxFlamOffsetUs: 40_000,
   maxManualTimingOffsetUs: 50_000,
