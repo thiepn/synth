@@ -143,7 +143,7 @@ test("Playground A B banks preserve independent beat edits", async ({
   );
 
   await page.getByRole("button", {
-    name: /Duplicate.*B/i,
+    name: "Duplicate →B",
   }).click();
 
   await expect(
@@ -417,6 +417,8 @@ test("Playground count in restart repeat and momentary monitoring stay responsiv
   const mute = page.getByRole("button", {
     name: "Hold to momentarily mute selected lane",
   });
+  await mute.scrollIntoViewIfNeeded();
+  await mute.hover();
   const muteBox = await mute.boundingBox();
   expect(muteBox).not.toBeNull();
 
@@ -432,6 +434,8 @@ test("Playground count in restart repeat and momentary monitoring stay responsiv
   const solo = page.getByRole("button", {
     name: "Hold to momentarily solo selected lane",
   });
+  await solo.scrollIntoViewIfNeeded();
+  await solo.hover();
   const soloBox = await solo.boundingBox();
   expect(soloBox).not.toBeNull();
 
@@ -454,7 +458,7 @@ test("Playground sound favorites and recents remain fast", async ({
   await waitForPlayground(page);
 
   await page.getByRole("button", {
-    name: /Change KICK sound/i,
+    name: /Change KICK sound\. Current/i,
   }).click();
 
   const drawer = page.getByRole("region", {
@@ -478,7 +482,7 @@ test("Playground sound favorites and recents remain fast", async ({
 
   await page.keyboard.press("Escape");
   await page.getByRole("button", {
-    name: /Change KICK sound/i,
+    name: /Change KICK sound\. Current/i,
   }).click();
 
   await expect(
