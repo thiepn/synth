@@ -30,6 +30,11 @@ const required = [
   [playground, "toggleGridRecording", "P2 grid recording controls must remain available."],
   [playground, 'aria-label="Grid recording"', "P2 recording surface must remain visible."],
   [playground, "enablePlaygroundMidi", "P2 MIDI enablement must remain directly available from Playground."],
+  [playground, "selectedSteps", "P3 note selection state must remain available."],
+  [playground, "batchDuplicateSelection", "P3 batch duplication must remain available."],
+  [playground, 'aria-label="Note selection tools"', "P3 selection toolbar must remain visible."],
+  ["src/sequencer/SequencerStore.ts", "moveSelectedSteps(", "P3 canonical batch movement must remain in SequencerStore."],
+  ["src/sequencer/SequencerStore.ts", "duplicateSelectedSteps(", "P3 canonical batch duplication must remain in SequencerStore."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
   ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
   ["src/audio/AudioTransport.ts", "seekToAbsoluteTick(", "P2 selected-bar recording requires transport seek support."],
@@ -62,6 +67,7 @@ const required = [
   ["e2e/playground.spec.ts", "Playground velocity editing changes an existing hit without stopping flow", "Q1 velocity behavior must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground bar editing grows duplicates clears and deletes musical bars", "Q1 bar editing must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground records pad performance live into the selected bar and can erase it", "P2 performance recording must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground selection batch edits move duplicate delete and undo notes", "P3 selection and batch editing must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground count in restart repeat and momentary monitoring stay responsive", "Q5 flow behavior must remain browser-certified."],
 ];
 
