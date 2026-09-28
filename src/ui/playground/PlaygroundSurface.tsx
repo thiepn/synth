@@ -46,6 +46,7 @@ import {
 import {
   PPQ,
   type DrumMaterialSpec,
+  type Pattern,
   type ScaleId,
   type SceneRole,
 } from "../../domain/contracts";
@@ -664,6 +665,307 @@ const PLAY_STYLES: readonly BeatStyleId[] = [
   "techno",
   "gospel",
 ];
+
+type PlaygroundStarterId =
+  | "dusty-pocket"
+  | "neon-house"
+  | "808-night"
+  | "warm-lofi"
+  | "gospel-pocket"
+  | "live-rock";
+
+interface PlaygroundStarterKit {
+  id: PlaygroundStarterId;
+  label: string;
+  tagline: string;
+  style: BeatStyleId;
+  bpm: number;
+  intent: BeatGenerationIntent;
+  groove: {
+    personality: GroovePersonalityId;
+    humanization: number;
+    ghostNoteAmount: number;
+    swing: number;
+  };
+  sounds: Partial<Record<DrumVoiceId, number>>;
+  mix: Partial<
+    Record<
+      DrumVoiceId,
+      {
+        gainDb?: number;
+        pan?: number;
+        reverbSend?: number;
+      }
+    >
+  >;
+  masterGainDb: number;
+}
+
+const PLAYGROUND_STARTERS: readonly PlaygroundStarterKit[] = [
+  {
+    id: "dusty-pocket",
+    label: "Dusty Pocket",
+    tagline: "Warm hip-hop · loose pocket",
+    style: "hipHop",
+    bpm: 86,
+    intent: {
+      energy: 0.56,
+      density: 0.46,
+      complexity: 0.42,
+      syncopation: 0.58,
+      swing: 0.12,
+    },
+    groove: {
+      personality: "human",
+      humanization: 0.5,
+      ghostNoteAmount: 0.16,
+      swing: 0.12,
+    },
+    sounds: {
+      kick: 1,
+      snare: 5,
+      clap: 3,
+      closedHat: 5,
+      openHat: 3,
+      percussion: 1,
+    },
+    mix: {
+      kick: { gainDb: 1.2, pan: 0, reverbSend: 0.04 },
+      snare: { gainDb: -0.4, pan: 0, reverbSend: 0.1 },
+      clap: { gainDb: -2.2, pan: 0.08, reverbSend: 0.16 },
+      closedHat: { gainDb: -3, pan: 0.12, reverbSend: 0.05 },
+      openHat: { gainDb: -3.4, pan: -0.16, reverbSend: 0.1 },
+      percussion: { gainDb: -4, pan: 0.22, reverbSend: 0.12 },
+    },
+    masterGainDb: -0.8,
+  },
+  {
+    id: "neon-house",
+    label: "Neon House",
+    tagline: "Clean four-on-floor · bright lift",
+    style: "house",
+    bpm: 124,
+    intent: {
+      energy: 0.72,
+      density: 0.58,
+      complexity: 0.34,
+      syncopation: 0.36,
+      swing: 0.03,
+    },
+    groove: {
+      personality: "tight",
+      humanization: 0.24,
+      ghostNoteAmount: 0.04,
+      swing: 0.03,
+    },
+    sounds: {
+      kick: 2,
+      clap: 4,
+      closedHat: 1,
+      openHat: 1,
+      percussion: 2,
+      crash: 1,
+    },
+    mix: {
+      kick: { gainDb: 1.6, pan: 0, reverbSend: 0.02 },
+      clap: { gainDb: -1.2, pan: 0, reverbSend: 0.14 },
+      closedHat: { gainDb: -3.4, pan: -0.12, reverbSend: 0.05 },
+      openHat: { gainDb: -2.8, pan: 0.14, reverbSend: 0.12 },
+      percussion: { gainDb: -4.2, pan: 0.24, reverbSend: 0.1 },
+      crash: { gainDb: -4.5, pan: -0.08, reverbSend: 0.18 },
+    },
+    masterGainDb: -1,
+  },
+  {
+    id: "808-night",
+    label: "808 Night",
+    tagline: "Trap pulse · crisp top end",
+    style: "trap",
+    bpm: 142,
+    intent: {
+      energy: 0.7,
+      density: 0.54,
+      complexity: 0.62,
+      syncopation: 0.7,
+      swing: 0.07,
+    },
+    groove: {
+      personality: "tight",
+      humanization: 0.3,
+      ghostNoteAmount: 0.08,
+      swing: 0.07,
+    },
+    sounds: {
+      kick: 9,
+      snare: 10,
+      clap: 8,
+      closedHat: 8,
+      openHat: 9,
+      percussion: 8,
+    },
+    mix: {
+      kick: { gainDb: 2, pan: 0, reverbSend: 0.01 },
+      snare: { gainDb: -0.3, pan: 0, reverbSend: 0.08 },
+      clap: { gainDb: -2, pan: 0.08, reverbSend: 0.12 },
+      closedHat: { gainDb: -3.6, pan: -0.1, reverbSend: 0.03 },
+      openHat: { gainDb: -3.3, pan: 0.15, reverbSend: 0.08 },
+      percussion: { gainDb: -4.2, pan: -0.24, reverbSend: 0.08 },
+    },
+    masterGainDb: -1.2,
+  },
+  {
+    id: "warm-lofi",
+    label: "Warm Lo-Fi",
+    tagline: "Soft drums · human drift",
+    style: "lofi",
+    bpm: 76,
+    intent: {
+      energy: 0.42,
+      density: 0.42,
+      complexity: 0.4,
+      syncopation: 0.5,
+      swing: 0.16,
+    },
+    groove: {
+      personality: "human",
+      humanization: 0.58,
+      ghostNoteAmount: 0.18,
+      swing: 0.16,
+    },
+    sounds: {
+      kick: 3,
+      snare: 5,
+      clap: 5,
+      closedHat: 5,
+      openHat: 3,
+      percussion: 3,
+    },
+    mix: {
+      kick: { gainDb: 0.6, pan: 0, reverbSend: 0.05 },
+      snare: { gainDb: -1, pan: 0, reverbSend: 0.16 },
+      clap: { gainDb: -3, pan: 0.12, reverbSend: 0.2 },
+      closedHat: { gainDb: -4, pan: -0.14, reverbSend: 0.1 },
+      openHat: { gainDb: -4.2, pan: 0.18, reverbSend: 0.15 },
+      percussion: { gainDb: -4.4, pan: -0.22, reverbSend: 0.18 },
+    },
+    masterGainDb: -1.4,
+  },
+  {
+    id: "gospel-pocket",
+    label: "Gospel Pocket",
+    tagline: "Laid-back groove · roomy backbeat",
+    style: "gospel",
+    bpm: 104,
+    intent: {
+      energy: 0.66,
+      density: 0.56,
+      complexity: 0.5,
+      syncopation: 0.6,
+      swing: 0.1,
+    },
+    groove: {
+      personality: "laidBack",
+      humanization: 0.5,
+      ghostNoteAmount: 0.18,
+      swing: 0.1,
+    },
+    sounds: {
+      kick: 1,
+      snare: 2,
+      clap: 1,
+      closedHat: 2,
+      openHat: 1,
+      tom: 1,
+      percussion: 3,
+      crash: 1,
+    },
+    mix: {
+      kick: { gainDb: 1, pan: 0, reverbSend: 0.04 },
+      snare: { gainDb: -0.2, pan: 0, reverbSend: 0.18 },
+      clap: { gainDb: -2.4, pan: 0.08, reverbSend: 0.22 },
+      closedHat: { gainDb: -3.4, pan: -0.12, reverbSend: 0.08 },
+      openHat: { gainDb: -3.2, pan: 0.16, reverbSend: 0.12 },
+      tom: { gainDb: -2.8, pan: -0.18, reverbSend: 0.16 },
+      percussion: { gainDb: -3.5, pan: 0.22, reverbSend: 0.15 },
+      crash: { gainDb: -4, pan: 0, reverbSend: 0.22 },
+    },
+    masterGainDb: -1,
+  },
+  {
+    id: "live-rock",
+    label: "Live Rock",
+    tagline: "Punchy kit · straight drive",
+    style: "rock",
+    bpm: 112,
+    intent: {
+      energy: 0.76,
+      density: 0.54,
+      complexity: 0.36,
+      syncopation: 0.34,
+      swing: 0,
+    },
+    groove: {
+      personality: "tight",
+      humanization: 0.24,
+      ghostNoteAmount: 0.05,
+      swing: 0,
+    },
+    sounds: {
+      kick: 2,
+      snare: 7,
+      closedHat: 7,
+      openHat: 1,
+      tom: 4,
+      crash: 1,
+    },
+    mix: {
+      kick: { gainDb: 1.2, pan: 0, reverbSend: 0.02 },
+      snare: { gainDb: 0.2, pan: 0, reverbSend: 0.12 },
+      closedHat: { gainDb: -3.2, pan: -0.1, reverbSend: 0.04 },
+      openHat: { gainDb: -2.9, pan: 0.12, reverbSend: 0.08 },
+      tom: { gainDb: -2.2, pan: -0.16, reverbSend: 0.14 },
+      crash: { gainDb: -3.8, pan: 0.1, reverbSend: 0.16 },
+    },
+    masterGainDb: -1,
+  },
+];
+
+function preserveStarterLocks(
+  source: Pattern,
+  generated: Pattern,
+): Pattern {
+  const currentById = new Map(
+    source.lanes.map((lane) => [lane.id, lane]),
+  );
+  const next = structuredClone(generated);
+
+  next.lanes = next.lanes.map((lane) => {
+    const current = currentById.get(lane.id);
+    if (!current) return lane;
+
+    const protectedEvents =
+      current.lock.rhythm ||
+      current.lock.timing ||
+      current.lock.dynamics;
+
+    return {
+      ...lane,
+      lock: { ...current.lock },
+      regionLocks: current.regionLocks?.map(
+        (lock) => ({ ...lock }),
+      ),
+      events: protectedEvents
+        ? structuredClone(current.events)
+        : lane.events,
+      loopLengthTicks:
+        protectedEvents
+          ? current.loopLengthTicks
+          : lane.loopLengthTicks,
+    };
+  });
+
+  return next;
+}
 
 const LANE_COLORS: Record<DrumVoiceId, string> = {
   kick: "#ff5577",
