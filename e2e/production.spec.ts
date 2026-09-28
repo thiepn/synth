@@ -388,6 +388,13 @@ test("playground edits the real Pattern and exposes Studio without dashboard clu
       clapEndIndex +
       '"]',
   );
+  // P4 adds three melodic rows above the pad bank. Clicking the CLAP pad
+  // can therefore scroll the drum grid out of the viewport; bring the actual
+  // drag target back into view before deriving viewport-relative coordinates.
+  await clapStart.scrollIntoViewIfNeeded();
+  await expect(clapStart).toBeVisible();
+  await expect(clapEnd).toBeVisible();
+
   const clapStartBox = await clapStart.boundingBox();
   const clapEndBox = await clapEnd.boundingBox();
   expect(clapStartBox).not.toBeNull();
