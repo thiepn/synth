@@ -2697,7 +2697,8 @@
   .playground-play.is-playing > span,
   .playground-coach,
   .playground-step-context,
-  .playground-sound-drawer {
+  .playground-sound-drawer,
+  .playground-finish-panel {
     animation: none;
   }
 
@@ -2729,6 +2730,9 @@
   .playground-session-actions > button,
   .playground-project-menu,
   .playground-project-menu__row,
+  .playground-finish-panel,
+  .playground-finish-range > button,
+  .playground-finish-actions > button,
   .playground-flow-bar > button,
   .playground-mobile-dock,
   .playground-mobile-dock > button,
