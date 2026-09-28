@@ -4986,19 +4986,14 @@ export function PlaygroundSurface({
     const sourceId =
       arrangement.selectedSectionId ??
       arrangement.blueprint.sections[0]?.id;
-    if (!sourceId) return;
 
-    arrangementStore.duplicateSection(sourceId);
-    const newId =
-      arrangementStore.getSnapshot()
-        .selectedSectionId;
-    if (newId) {
-      arrangementStore.setSectionPattern(
-        newId,
-        PLAYGROUND_SONG_PATTERN_IDS[bank],
-      );
-      setNotice("Added Pattern " + bank + " section");
-    }
+    arrangementStore.addSectionFromPattern(
+      PLAYGROUND_SONG_PATTERN_IDS[bank],
+      sourceId,
+    );
+    setNotice(
+      "Added Pattern " + bank + " section",
+    );
   };
 
   const setSongSectionBank = (
