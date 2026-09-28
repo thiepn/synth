@@ -1051,6 +1051,8 @@ export function PlaygroundSurface({
   });
   const [selectedVoice, setSelectedVoice] =
     useState<DrumVoiceId>("kick");
+  const [mixLaneId, setMixLaneId] =
+    useState("lane-kick");
   const [selectedMelodicLaneId, setSelectedMelodicLaneId] =
     useState<string | null>(null);
   const [selectedMelodicNote, setSelectedMelodicNote] =
@@ -2245,6 +2247,15 @@ export function PlaygroundSurface({
         true,
       );
   }, []);
+
+  useEffect(() => {
+    const definition = SEQUENCER_LANES.find(
+      (entry) => entry.voice === selectedVoice,
+    );
+    if (definition) {
+      setMixLaneId(definition.id);
+    }
+  }, [selectedVoice]);
 
   useEffect(() => {
     const keyToVoice = new Map(
@@ -3473,6 +3484,7 @@ export function PlaygroundSurface({
     );
     if (!definition) return;
     setSelectedMelodicLaneId(laneId);
+    setMixLaneId(laneId);
     setSelectedMelodicNote(null);
     setSoundPickerVoice(null);
     clearSelection();
@@ -8141,6 +8153,11 @@ export function PlaygroundSurface({
                 },
               )}
             </div>
+
+            <PlaygroundMixStrip
+              laneId={mixLaneId}
+              onNotice={setNotice}
+            />
 
             {selectedMelodicDefinition &&
             selectedMelodicLane ? (
