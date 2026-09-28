@@ -96,6 +96,13 @@ import {
   type PerformanceMomentaryId,
 } from "../../performance/PerformanceStore";
 import { usePerformanceSnapshot } from "../../performance/usePerformance";
+import { modulationStore } from "../../modulation/ModulationStore";
+import {
+  type AutomationCurve,
+  type AutomationLane,
+} from "../../modulation/modulationEngine";
+import { engineTargetId } from "../../modulation/parameterRegistry";
+import { useModulationSnapshot } from "../../modulation/useModulation";
 import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
 import { masteringStore } from "../../master/MasteringStore";
@@ -214,6 +221,7 @@ function PlaygroundFinishPanel({
   const arrangement = useArrangementSnapshot();
   const drumSounds = useDrumSoundSnapshot();
   const transport = useTransportSnapshot();
+  const modulation = useModulationSnapshot();
   const [range, setRange] =
     useState<PlaygroundFinishRange>(
       songAvailable ? "song" : "pattern",
@@ -253,6 +261,7 @@ function PlaygroundFinishPanel({
     mastering.revision,
     arrangement.revision,
     drumSounds.revision,
+    modulation.revision,
     transport.bpm,
     transport.meter.numerator,
     transport.meter.denominator,
@@ -2041,6 +2050,436 @@ function PlaygroundJamStrip({
       >
         Reset
       </button>
+    </section>
+  );
+}
+
+type PlaygroundMotionTarget =
+  | "filter"
+  | "space"
+  | "tone";
+
+type PlaygroundMotionShape =
+  | "sweep"
+  | "pulse"
+  | "breathe"
+  | "wobble";
+
+const PLAYGROUND_MOTION_TARGETS: ReadonlyArray<{
+  id: PlaygroundMotionTarget;
+  label: string;
+}> = [
+  { id: "filter", label: "Filter" },
+  { id: "space", label: "Space" },
+  { id: "tone", label: "Tone" },
+];
+
+const PLAYGROUND_MOTION_SHAPES: ReadonlyArray<{
+  id: PlaygroundMotionShape;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "sweep",
+    label: "Sweep",
+    description: "One smooth rise and return",
+  },
+  {
+    id: "pulse",
+    label: "Pulse",
+    description: "Alternating high and low",
+  },
+  {
+    id: "breathe",
+    label: "Breathe",
+    description: "Slow organic movement",
+  },
+  {
+    id: "wobble",
+    label: "Wobble",
+    description: "Faster repeating movement",
+  },
+];
+
+function clampMotion(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function motionTargetId(
+  target: PlaygroundMotionTarget,
+): string {
+  return engineTargetId(target);
+}
+
+function motionBaseValue(
+  target: PlaygroundMotionTarget,
+): number {
+  const engine = drumEngine.getSnapshot();
+  if (target === "filter") return 1;
+  return clampMotion(
+    engine.macros[target],
+  );
+}
+
+function motionBounds(
+  target: PlaygroundMotionTarget,
+  amount: number,
+): { low: number; high: number } {
+  const strength = clampMotion(amount);
+  const base = motionBaseValue(target);
+
+  if (target === "filter") {
+    return {
+      low: clampMotion(
+        1 - strength * 0.82,
+      ),
+      high: 1,
+    };
+  }
+
+  if (target === "space") {
+    return {
+      low: clampMotion(
+        base - strength * 0.2,
+      ),
+      high: clampMotion(
+        base + strength * 0.58,
+      ),
+    };
+  }
+
+  return {
+    low: clampMotion(
+      base - strength * 0.36,
+    ),
+    high: clampMotion(
+      base + strength * 0.36,
+    ),
+  };
+}
+
+function motionShapeStops(
+  shape: PlaygroundMotionShape,
+): ReadonlyArray<{
+  position: number;
+  value: number;
+  curve: AutomationCurve;
+}> {
+  if (shape === "pulse") {
+    return [
+      { position: 0, value: 1, curve: "hold" },
+      { position: 0.25, value: 0, curve: "hold" },
+      { position: 0.5, value: 1, curve: "hold" },
+      { position: 0.75, value: 0, curve: "hold" },
+      { position: 1, value: 1, curve: "hold" },
+    ];
+  }
+
+  if (shape === "breathe") {
+    return [
+      { position: 0, value: 0.5, curve: "smooth" },
+      { position: 0.25, value: 1, curve: "smooth" },
+      { position: 0.5, value: 0.5, curve: "smooth" },
+      { position: 0.75, value: 0, curve: "smooth" },
+      { position: 1, value: 0.5, curve: "smooth" },
+    ];
+  }
+
+  if (shape === "wobble") {
+    return [
+      { position: 0, value: 0.5, curve: "linear" },
+      { position: 0.125, value: 1, curve: "linear" },
+      { position: 0.25, value: 0, curve: "linear" },
+      { position: 0.375, value: 1, curve: "linear" },
+      { position: 0.5, value: 0, curve: "linear" },
+      { position: 0.625, value: 1, curve: "linear" },
+      { position: 0.75, value: 0, curve: "linear" },
+      { position: 0.875, value: 1, curve: "linear" },
+      { position: 1, value: 0.5, curve: "linear" },
+    ];
+  }
+
+  return [
+    { position: 0, value: 0, curve: "smooth" },
+    { position: 0.5, value: 1, curve: "smooth" },
+    { position: 1, value: 0, curve: "smooth" },
+  ];
+}
+
+function buildPlaygroundMotionLane(
+  target: PlaygroundMotionTarget,
+  shape: PlaygroundMotionShape,
+  amount: number,
+  loopLengthTicks: number,
+): AutomationLane {
+  const targetId = motionTargetId(target);
+  const safeLength = Math.max(
+    2,
+    Math.round(loopLengthTicks),
+  );
+  const lastTick = safeLength - 1;
+  const bounds = motionBounds(
+    target,
+    amount,
+  );
+  const points = motionShapeStops(shape).map(
+    (stop, index) => ({
+      id:
+        "playground-motion-point-" +
+        target +
+        "-" +
+        index,
+      tick:
+        stop.position >= 1
+          ? lastTick
+          : Math.max(
+              0,
+              Math.min(
+                lastTick,
+                Math.round(
+                  lastTick * stop.position,
+                ),
+              ),
+            ),
+      value: clampMotion(
+        bounds.low +
+          (bounds.high - bounds.low) *
+            stop.value,
+      ),
+      curve: stop.curve,
+    }),
+  );
+
+  return {
+    id: "playground-motion-" + target,
+    targetId,
+    enabled: true,
+    loopLengthTicks: safeLength,
+    points,
+  };
+}
+
+function PlaygroundMotionStrip({
+  disabled,
+  onNotice,
+  onOpenStudio,
+}: {
+  disabled: boolean;
+  onNotice: (message: string) => void;
+  onOpenStudio: () => void;
+}) {
+  const modulation = useModulationSnapshot();
+  const sequencer = useSequencerSnapshot();
+  const [target, setTarget] =
+    useState<PlaygroundMotionTarget>(
+      "filter",
+    );
+  const [shape, setShape] =
+    useState<PlaygroundMotionShape>(
+      "sweep",
+    );
+  const [amount, setAmount] =
+    useState(55);
+
+  const targetId = motionTargetId(target);
+  const lane =
+    modulation.automationLanes.find(
+      (entry) =>
+        entry.targetId === targetId,
+    );
+  const playgroundOwned =
+    lane?.id ===
+    "playground-motion-" + target;
+  const studioOwned =
+    Boolean(lane) && !playgroundOwned;
+
+  const apply = () => {
+    if (disabled || studioOwned) return;
+
+    modulationStore.replaceAutomationLane(
+      buildPlaygroundMotionLane(
+        target,
+        shape,
+        amount / 100,
+        sequencer.pattern.lengthTicks,
+      ),
+    );
+
+    onNotice(
+      PLAYGROUND_MOTION_TARGETS.find(
+        (entry) => entry.id === target,
+      )?.label +
+        " motion · " +
+        PLAYGROUND_MOTION_SHAPES.find(
+          (entry) => entry.id === shape,
+        )?.label +
+        " " +
+        amount +
+        "%",
+    );
+  };
+
+  const clear = () => {
+    if (
+      disabled ||
+      !playgroundOwned
+    ) {
+      return;
+    }
+    modulationStore.clearAutomation(
+      targetId,
+    );
+    onNotice(
+      PLAYGROUND_MOTION_TARGETS.find(
+        (entry) => entry.id === target,
+      )?.label +
+        " motion cleared",
+    );
+  };
+
+  return (
+    <section
+      id="playground-motion"
+      className="playground-motion-strip"
+      aria-label="Motion automation"
+    >
+      <div className="playground-motion-strip__identity">
+        <span>MOTION</span>
+        <strong>
+          {playgroundOwned
+            ? "Active"
+            : studioOwned
+              ? "Studio"
+              : "Ready"}
+        </strong>
+        <small>
+          Loops with the current pattern
+        </small>
+      </div>
+
+      <div
+        className="playground-motion-targets"
+        aria-label="Motion target"
+      >
+        {PLAYGROUND_MOTION_TARGETS.map(
+          (entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              className={
+                target === entry.id
+                  ? "is-active"
+                  : ""
+              }
+              disabled={disabled}
+              onClick={() =>
+                setTarget(entry.id)
+              }
+              aria-pressed={
+                target === entry.id
+              }
+              aria-label={
+                "Motion target " +
+                entry.label
+              }
+            >
+              {entry.label}
+            </button>
+          ),
+        )}
+      </div>
+
+      <div
+        className="playground-motion-shapes"
+        aria-label="Motion shape"
+      >
+        {PLAYGROUND_MOTION_SHAPES.map(
+          (entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              className={
+                shape === entry.id
+                  ? "is-active"
+                  : ""
+              }
+              disabled={
+                disabled || studioOwned
+              }
+              onClick={() =>
+                setShape(entry.id)
+              }
+              aria-pressed={
+                shape === entry.id
+              }
+              aria-label={
+                "Motion shape " +
+                entry.label
+              }
+              title={entry.description}
+            >
+              {entry.label}
+            </button>
+          ),
+        )}
+      </div>
+
+      <label className="playground-motion-amount">
+        <span>Amount</span>
+        <input
+          type="range"
+          min="10"
+          max="100"
+          step="1"
+          value={amount}
+          disabled={
+            disabled || studioOwned
+          }
+          onChange={(event) =>
+            setAmount(
+              Number(
+                event.currentTarget.value,
+              ),
+            )
+          }
+          aria-label="Motion amount"
+        />
+        <output>{amount}%</output>
+      </label>
+
+      <div className="playground-motion-actions">
+        {studioOwned ? (
+          <button
+            type="button"
+            onClick={onOpenStudio}
+          >
+            Studio ↗
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="playground-motion-apply"
+              disabled={disabled}
+              onClick={apply}
+              aria-label="Apply motion automation"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              disabled={
+                disabled ||
+                !playgroundOwned
+              }
+              onClick={clear}
+              aria-label="Clear selected motion automation"
+            >
+              Clear
+            </button>
+          </>
+        )}
+      </div>
     </section>
   );
 }
