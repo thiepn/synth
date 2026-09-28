@@ -13,6 +13,7 @@ import type { MixArchitectPlan } from "../generation/mixArchitect";
 import {
   clampMixerChannel,
   cloneMixerLocks,
+  defaultMixerChannel,
   cloneMixerState,
   createDefaultMixerLocks,
   createDefaultMixerState,
@@ -205,6 +206,26 @@ export class MixerStore {
     this.preview = undefined;
     this.previewActive = false;
     this.redoStack = [];
+    this.publish();
+  }
+
+  resetChannel(
+    voice: DrumVoiceId,
+  ): void {
+    const current = this.state.channels[voice];
+    const next = defaultMixerChannel(voice);
+    if (JSON.stringify(current) === JSON.stringify(next)) {
+      return;
+    }
+
+    this.captureHistory();
+    this.state = cloneMixerState(this.state);
+    this.state.channels[voice] = next;
+    this.preview = undefined;
+    this.previewActive = false;
+    this.redoStack = [];
+    this.lastHistoryKey = null;
+    this.lastHistoryAt = 0;
     this.publish();
   }
 
