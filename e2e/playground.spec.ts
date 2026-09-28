@@ -1862,6 +1862,87 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   expect(errors).toEqual([]);
 });
 
+test("Playground P12 recovery checkpoints restore safely without losing the current state", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Clear selected lane",
+  }).click();
+
+  const kick = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="0"]',
+  );
+  await kick.click();
+  await expect(kick).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", {
+    name: "Create recovery checkpoint",
+  }).click();
+  await expect(
+    page.locator(".playground-notice"),
+  ).toContainText("Recovery snapshot saved");
+
+  await kick.click();
+  await expect(kick).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  await page.getByRole("button", {
+    name: /^Projects$/i,
+  }).click();
+
+  const projects = page.getByRole("dialog", {
+    name: "Recent projects",
+  });
+  const recovery = projects.getByRole("region", {
+    name: "Recovery checkpoints",
+  });
+  await expect(recovery).toBeVisible();
+  await expect(recovery).toContainText(
+    /Autosave on|Autosaving|Saving/i,
+  );
+  await expect(recovery).toContainText(
+    /Storage protected|Best-effort storage/i,
+  );
+
+  const checkpoint = recovery
+    .locator(".playground-project-checkpoint")
+    .filter({ hasText: "Recovery" })
+    .first();
+  await expect(checkpoint).toBeVisible();
+
+  await checkpoint.getByRole("button", {
+    name: /Restore checkpoint Recovery/i,
+  }).click();
+
+  await expect(projects).toHaveCount(0);
+  await expect(kick).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", {
+    name: /^Projects$/i,
+  }).click();
+  const reopened = page.getByRole("dialog", {
+    name: "Recent projects",
+  });
+  await expect(
+    reopened.getByRole("region", {
+      name: "Recovery checkpoints",
+    }),
+  ).toContainText("Before restore");
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground project session can create a fresh beat while preserving the previous project", async ({
   page,
 }) => {
