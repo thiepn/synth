@@ -2794,6 +2794,8 @@ export function PlaygroundSurface({
     useState(false);
   const [jamOpen, setJamOpen] =
     useState(false);
+  const [starterOpen, setStarterOpen] =
+    useState(false);
   const [projectBusy, setProjectBusy] =
     useState<string | null>(null);
   const [sessionHydratedProjectId, setSessionHydratedProjectId] =
