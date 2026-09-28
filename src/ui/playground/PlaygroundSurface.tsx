@@ -7255,24 +7255,33 @@ export function PlaygroundSurface({
                                   .filter(Boolean)
                                   .join(" ")}
                                 aria-label={
-                                  source
+                                  started
                                     ? definition.name +
                                       " " +
                                       midiNoteLabel(
                                         pitch,
                                       ) +
                                       " at step " +
-                                      (Math.round(
-                                        source.tick /
-                                          FOUNDATION_STEP_TICKS,
-                                      ) +
-                                        1) +
+                                      (stepIndex + 1) +
                                       ". Open piano roll"
-                                    : "Add " +
-                                      definition.name +
-                                      " note at step " +
-                                      (stepIndex +
-                                        1)
+                                    : held
+                                      ? definition.name +
+                                        " " +
+                                        midiNoteLabel(
+                                          pitch,
+                                        ) +
+                                        " held from step " +
+                                        (Math.round(
+                                          held.tick /
+                                            FOUNDATION_STEP_TICKS,
+                                        ) +
+                                          1) +
+                                        ". Open piano roll"
+                                      : "Add " +
+                                        definition.name +
+                                        " note at step " +
+                                        (stepIndex +
+                                          1)
                                 }
                                 onClick={() => {
                                   setSelectedMelodicLaneId(
