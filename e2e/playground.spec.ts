@@ -842,6 +842,20 @@ test("Playground builds and edits an A B song on the canonical arrangement timel
   ).toHaveCount(4);
 
   await song.getByRole("button", {
+    name: "Undo song arrangement edit",
+  }).click();
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(3);
+
+  await song.getByRole("button", {
+    name: "Redo song arrangement edit",
+  }).click();
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(4);
+
+  await song.getByRole("button", {
     name: "Play selected song section",
   }).click();
   await expect(
