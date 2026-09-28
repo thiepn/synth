@@ -29,12 +29,15 @@ import {
   useArrangementSnapshot,
 } from "../../arrange/useArrangement";
 import {
+  PLAYGROUND_SONG_DRAFTS,
   PLAYGROUND_SONG_PATTERN_IDS,
   cloneForPlaygroundSong,
   createPlaygroundSong,
+  createPlaygroundSongDraft,
   isPlaygroundSongBlueprint,
   playgroundSongBankForPatternId,
   type PlaygroundSongBank,
+  type PlaygroundSongDraft,
 } from "../../arrange/playgroundArrangement";
 import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
 import { useSampleAssetSnapshot } from "../../audio/useSampleAssets";
@@ -7572,14 +7575,7 @@ export function PlaygroundSurface({
     );
   };
 
-  const buildPlaygroundSong = () => {
-    if (patternRecordingActive()) {
-      setNotice(
-        "Stop recording before building the song",
-      );
-      return;
-    }
-
+  const currentPlaygroundSongSeed = () => {
     generationHistoryStore.checkpoint(
       sequencerStore.getSnapshot().pattern,
       "Pattern " + history.activePatternBank,
@@ -7606,11 +7602,17 @@ export function PlaygroundSurface({
       );
     };
 
-    const created = createPlaygroundSong({
+    return {
       bankA: resolve("A"),
       bankB: resolve("B"),
-    });
+    };
+  };
 
+  const installPlaygroundSong = (
+    created: ReturnType<
+      typeof createPlaygroundSong
+    >,
+  ) => {
     arrangementPlaybackStore.stop();
     arrangementStore.restoreProjectState({
       blueprint: created.blueprint,
@@ -7621,7 +7623,93 @@ export function PlaygroundSurface({
       patterns: created.patterns,
       edited: false,
     });
+  };
+
+  const buildPlaygroundSong = () => {
+    if (patternRecordingActive()) {
+      setNotice(
+        "Stop recording before building the song",
+      );
+      return;
+    }
+
+    installPlaygroundSong(
+      createPlaygroundSong(
+        currentPlaygroundSongSeed(),
+      ),
+    );
     setNotice("Song ready · A ×4 → B ×4");
+  };
+
+  const buildPlaygroundSongDraft = async (
+    draft: PlaygroundSongDraft,
+  ) => {
+    if (patternRecordingActive()) {
+      setNotice(
+        "Stop recording before drafting the song",
+      );
+      return;
+    }
+    if (projectBusy) return;
+    setProjectBusy("song-draft");
+
+    try {
+      cancelPatternPreview();
+      if (jamOpen) {
+        performanceStore.setActive(false);
+        setJamOpen(false);
+      }
+
+      if (
+        project.supported &&
+        project.initialized
+      ) {
+        if (
+          project.saveStatus === "conflict"
+        ) {
+          setNotice(
+            "Resolve the project conflict before drafting a song",
+          );
+          return;
+        }
+
+        const safety =
+          await projectStore.createVersion(
+            "Before song draft · " +
+              draft.label,
+          );
+        if (!safety) {
+          setNotice(
+            projectStore.getSnapshot().lastError ??
+              "Could not create the song recovery checkpoint",
+          );
+          return;
+        }
+      }
+
+      const created =
+        createPlaygroundSongDraft(
+          currentPlaygroundSongSeed(),
+          draft.id,
+        );
+      installPlaygroundSong(created);
+      setNotice(
+        draft.label +
+          " song ready · " +
+          created.blueprint.sections.length +
+          " sections",
+      );
+
+      await arrangementPlaybackStore.start();
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Song draft could not be created",
+      );
+    } finally {
+      setProjectBusy(null);
+    }
   };
 
   const addSongSection = (
