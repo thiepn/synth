@@ -158,7 +158,7 @@ const SONG_HEADER_STYLE: CSSProperties = {
 };
 
 const SONG_BUTTON_STYLE: CSSProperties = {
-  minHeight: 36,
+  minHeight: 44,
   padding: "0 10px",
   border: "1px solid rgba(255,255,255,.08)",
   borderRadius: 9,
