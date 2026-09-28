@@ -459,6 +459,116 @@ test("Playground selection batch edits move duplicate delete and undo notes", as
   );
 });
 
+test("Playground P11 Jam performs live macros fill and hold effects safely", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const jamToggle = page.getByRole("button", {
+    name: "Toggle live jam controls",
+  });
+  await expect(jamToggle).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await jamToggle.click();
+
+  const jam = page.getByRole("region", {
+    name: "Live jam controls",
+  });
+  await expect(jam).toBeVisible();
+  await expect(jamToggle).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  const energy = jam.getByLabel("Live energy");
+  const filter = jam.getByLabel("Live filter");
+  const space = jam.getByLabel("Live space");
+
+  await expect(energy).toHaveValue("50");
+  await expect(filter).toHaveValue("100");
+  await expect(space).toHaveValue("0");
+
+  await energy.fill("82");
+  await filter.fill("46");
+  await space.fill("28");
+  await expect(energy).toHaveValue("82");
+  await expect(filter).toHaveValue("46");
+  await expect(space).toHaveValue("28");
+
+  const fill = jam.getByRole("button", {
+    name: "Queue live fill",
+  });
+  await expect(fill).toBeDisabled();
+
+  await page.getByRole("button", {
+    name: "Start transport",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Pause transport",
+    }),
+  ).toBeVisible();
+  await expect(fill).toBeEnabled();
+
+  await fill.click();
+  await expect(
+    page.locator(".playground-notice"),
+  ).toContainText(
+    "Fill queued · final beat before next bar",
+  );
+
+  const stutter = jam.getByRole("button", {
+    name: /Stutter\. Hold for beat-quantized live effect\./i,
+  });
+  const box = await stutter.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(
+    box!.x + box!.width / 2,
+    box!.y + box!.height / 2,
+  );
+  await page.mouse.down();
+  await expect(stutter).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.mouse.up();
+
+  await jam.getByRole("button", {
+    name: "Reset live jam controls",
+  }).click();
+  await expect(energy).toHaveValue("50");
+  await expect(filter).toHaveValue("100");
+  await expect(space).toHaveValue("0");
+
+  await jamToggle.click();
+  await expect(jam).toHaveCount(0);
+  await expect(jamToggle).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  await jamToggle.click();
+  await expect(jam).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Start grid recording",
+  }).click();
+  await expect(jam).toHaveCount(0);
+  await expect(jamToggle).toBeDisabled();
+
+  const stopRecord = page.getByRole("button", {
+    name: "Stop grid recording",
+  });
+  if (await stopRecord.isVisible()) {
+    await stopRecord.click();
+  }
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground P10 micro variation edits selected hits and step context", async ({
   page,
 }) => {
