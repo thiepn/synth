@@ -3708,3 +3708,418 @@
     outline-color: Highlight;
   }
 }
+
+
+/* Playground P4 — melodic tracks and piano roll */
+.playground-track-row--melodic {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--lane-color) 5%, transparent),
+      transparent 34%
+    );
+}
+
+.playground-step--melodic {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.playground-step--melodic > span {
+  font-size: 0.46rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.playground-step--melodic.is-held {
+  background:
+    color-mix(in srgb, var(--lane-color) 12%, rgba(255,255,255,0.025));
+  border-color:
+    color-mix(in srgb, var(--lane-color) 20%, rgba(255,255,255,0.06));
+}
+
+.playground-piano {
+  margin: 4px 0 12px;
+  overflow: hidden;
+  border: 1px solid
+    color-mix(in srgb, var(--lane-color) 24%, rgba(255,255,255,0.08));
+  border-radius: 16px;
+  background: rgba(5, 7, 14, 0.72);
+}
+
+.playground-piano__toolbar {
+  min-height: 48px;
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+  padding: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.065);
+}
+
+.playground-piano__identity,
+.playground-piano__preset,
+.playground-piano__duration,
+.playground-piano__octave,
+.playground-piano__select,
+.playground-piano__scale-lock {
+  min-height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.035);
+}
+
+.playground-piano__identity {
+  min-width: 92px;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  padding: 3px 10px;
+}
+
+.playground-piano__identity span,
+.playground-piano__select span {
+  color: var(--pg-muted);
+  font-size: 0.45rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.playground-piano__identity strong {
+  color: var(--lane-color);
+  font-size: 0.66rem;
+}
+
+.playground-piano__preset,
+.playground-piano__duration,
+.playground-piano__octave {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.playground-piano__preset b {
+  min-width: 58px;
+  display: grid;
+  place-items: center;
+  padding-inline: 7px;
+  font-size: 0.57rem;
+}
+
+.playground-piano__preset button,
+.playground-piano__duration button,
+.playground-piano__octave button,
+.playground-piano__scale-lock,
+.playground-piano__chords button,
+.playground-piano__note-tools button {
+  border: 0;
+  background: transparent;
+  color: var(--pg-muted);
+  cursor: pointer;
+  font-size: 0.54rem;
+  font-weight: 850;
+}
+
+.playground-piano__preset button {
+  min-width: 34px;
+}
+
+.playground-piano__duration button {
+  min-width: 43px;
+  padding-inline: 6px;
+  border-left: 1px solid rgba(255,255,255,0.055);
+}
+
+.playground-piano__duration button:first-child {
+  border-left: 0;
+}
+
+.playground-piano__octave button {
+  min-width: 49px;
+}
+
+.playground-piano__select {
+  display: grid;
+  grid-template-columns: auto minmax(54px, auto);
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+}
+
+.playground-piano__select select {
+  min-width: 54px;
+  border: 0;
+  background: transparent;
+  color: var(--pg-text);
+  font: inherit;
+  font-size: 0.57rem;
+  font-weight: 800;
+}
+
+.playground-piano__scale-lock {
+  padding-inline: 10px;
+}
+
+.playground-piano__scale-lock.is-active,
+.playground-piano__duration button.is-active,
+.playground-piano__chords button.is-active {
+  background:
+    color-mix(in srgb, var(--lane-color) 13%, rgba(255,255,255,0.035));
+  color: var(--pg-text);
+  box-shadow: inset 0 -2px 0 var(--lane-color);
+}
+
+.playground-piano__chords,
+.playground-piano__note-tools {
+  min-height: 38px;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.055);
+}
+
+.playground-piano__chords button,
+.playground-piano__note-tools button {
+  min-width: 48px;
+  padding-inline: 8px;
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.025);
+}
+
+.playground-piano__note-tools > span {
+  min-width: 160px;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  padding-inline: 7px;
+  color: var(--pg-muted);
+  font-size: 0.57rem;
+  font-weight: 760;
+}
+
+.playground-piano__note-tools button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.playground-piano__viewport {
+  max-height: 500px;
+  overflow: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+.playground-piano__ruler,
+.playground-piano-row {
+  min-width: 690px;
+  display: grid;
+  grid-template-columns: 64px minmax(620px, 1fr);
+  gap: 4px;
+}
+
+.playground-piano__ruler {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #090b13;
+}
+
+.playground-piano__ruler > span {
+  min-height: 22px;
+}
+
+.playground-piano__ruler {
+  grid-template-columns: 64px repeat(16, minmax(36px, 1fr));
+}
+
+.playground-piano__ruler b {
+  display: grid;
+  place-items: center;
+  min-height: 22px;
+  color: var(--pg-muted);
+  font-size: 0.47rem;
+  font-weight: 800;
+}
+
+.playground-piano-row {
+  min-height: 36px;
+  margin-top: 3px;
+}
+
+.playground-piano-key {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 7px;
+  background: #11141d;
+  color: var(--pg-muted);
+  font-size: 0.56rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.playground-piano-row.is-in-scale
+.playground-piano-key {
+  color: var(--pg-text);
+}
+
+.playground-piano-row.is-root
+.playground-piano-key {
+  border-color:
+    color-mix(in srgb, var(--lane-color) 52%, rgba(255,255,255,0.08));
+  color: var(--lane-color);
+}
+
+.playground-piano-grid {
+  position: relative;
+  min-width: 620px;
+  min-height: 36px;
+  display: grid;
+  gap: 3px;
+}
+
+.playground-piano-cell {
+  min-width: 36px;
+  min-height: 36px;
+  border: 1px solid rgba(255,255,255,0.045);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.018);
+  cursor: pointer;
+}
+
+.playground-piano-cell.is-beat {
+  border-left-color: rgba(255,255,255,0.14);
+}
+
+.playground-piano-row.is-in-scale
+.playground-piano-cell {
+  background:
+    color-mix(in srgb, var(--lane-color) 2.5%, rgba(255,255,255,0.018));
+}
+
+.playground-piano-note {
+  position: absolute;
+  z-index: 2;
+  top: 3px;
+  bottom: 3px;
+  min-width: 8px;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  padding: 0 7px;
+  border: 1px solid
+    color-mix(in srgb, var(--lane-color) 72%, white 12%);
+  border-radius: 7px;
+  background:
+    color-mix(in srgb, var(--lane-color) 65%, #111525 35%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+}
+
+.playground-piano-note.is-selected {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.playground-piano-note > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.5rem;
+  font-weight: 900;
+}
+
+.playground-piano-note:not(.is-root-note) {
+  opacity: 0.7;
+  pointer-events: auto;
+}
+
+.playground-piano-note__resize {
+  position: absolute;
+  z-index: 3;
+  top: -2px;
+  right: -4px;
+  bottom: -2px;
+  width: 11px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.75);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+@media (max-width: 900px) {
+  .playground-piano__toolbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .playground-piano__toolbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .playground-piano {
+    margin-inline: -4px;
+  }
+
+  .playground-piano__toolbar,
+  .playground-piano__chords,
+  .playground-piano__note-tools {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .playground-piano__preset button,
+  .playground-piano__duration button,
+  .playground-piano__octave button,
+  .playground-piano__scale-lock,
+  .playground-piano__chords button,
+  .playground-piano__note-tools button,
+  .playground-piano-key,
+  .playground-piano-cell {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .playground-piano__ruler,
+  .playground-piano-row {
+    min-width: 830px;
+  }
+
+  .playground-piano-grid {
+    min-width: 760px;
+    min-height: 44px;
+  }
+
+  .playground-piano-note {
+    top: 4px;
+    bottom: 4px;
+  }
+}
+
+@media (forced-colors: active) {
+  .playground-piano,
+  .playground-piano__identity,
+  .playground-piano__preset,
+  .playground-piano__duration,
+  .playground-piano__select,
+  .playground-piano__scale-lock,
+  .playground-piano-key,
+  .playground-piano-cell,
+  .playground-piano-note {
+    border-color: ButtonText;
+  }
+
+  .playground-piano-note,
+  .playground-piano__scale-lock.is-active,
+  .playground-piano__duration button.is-active {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
