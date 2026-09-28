@@ -195,6 +195,9 @@ function PlaygroundFinishPanel({
 }) {
   const renderTask = useRenderTaskSnapshot();
   const mastering = useMasteringSnapshot();
+  const sequencer = useSequencerSnapshot();
+  const mixer = useMixerSnapshot();
+  const arrangement = useArrangementSnapshot();
   const [range, setRange] =
     useState<PlaygroundFinishRange>(
       songAvailable ? "song" : "pattern",
@@ -202,9 +205,17 @@ function PlaygroundFinishPanel({
   const [exactLoop, setExactLoop] =
     useState(false);
   const [action, setAction] =
-    useState<"download" | "share" | "backup" | null>(
-      null,
-    );
+    useState<
+      | "download"
+      | "prepareShare"
+      | "share"
+      | "backup"
+      | null
+    >(null);
+  const [readyArtifact, setReadyArtifact] =
+    useState<RenderArtifact | null>(null);
+  const [readySignature, setReadySignature] =
+    useState("");
 
   const busy =
     action !== null ||
@@ -217,9 +228,31 @@ function PlaygroundFinishPanel({
     range === "song" && songAvailable
       ? "song"
       : "pattern";
+  const sourceSignature = [
+    actualRange,
+    exactLoop ? "loop" : "tail",
+    projectName,
+    sequencer.revision,
+    mixer.revision,
+    mastering.revision,
+    arrangement.revision,
+  ].join(":");
+  const shareReady =
+    Boolean(readyArtifact) &&
+    readySignature === sourceSignature;
+
+  useEffect(() => {
+    if (
+      readySignature &&
+      readySignature !== sourceSignature
+    ) {
+      setReadyArtifact(null);
+      setReadySignature("");
+    }
+  }, [readySignature, sourceSignature]);
 
   const renderAudio = async (
-    intent: "download" | "share",
+    intent: "download" | "prepareShare",
   ) => {
     if (busy || previewLocked) return;
     setAction(intent);
@@ -262,26 +295,48 @@ function PlaygroundFinishPanel({
         return;
       }
 
-      if (intent === "share") {
-        const result =
-          await shareAudioArtifact(
-            artifact,
-            projectName,
-          );
-        onNotice(
-          result === "shared"
-            ? "Audio shared"
-            : result === "cancelled"
-              ? "Share cancelled"
-              : "WAV downloaded",
-        );
-      } else {
+      setReadyArtifact(artifact);
+      setReadySignature(sourceSignature);
+
+      if (intent === "download") {
         triggerBlobDownload(
           artifact.blob,
           artifact.filename,
         );
         onNotice("WAV downloaded");
+      } else {
+        onNotice(
+          "WAV ready · tap Share audio",
+        );
       }
+    } finally {
+      setAction(null);
+    }
+  };
+
+  const shareReadyAudio = async () => {
+    if (
+      busy ||
+      !readyArtifact ||
+      readySignature !== sourceSignature
+    ) {
+      return;
+    }
+
+    setAction("share");
+    try {
+      const result =
+        await shareAudioArtifact(
+          readyArtifact,
+          projectName,
+        );
+      onNotice(
+        result === "shared"
+          ? "Audio shared"
+          : result === "cancelled"
+            ? "Share cancelled"
+            : "WAV downloaded",
+      );
     } finally {
       setAction(null);
     }
@@ -454,18 +509,26 @@ function PlaygroundFinishPanel({
           type="button"
           disabled={busy || previewLocked}
           onClick={() =>
-            void renderAudio("share")
+            shareReady
+              ? void shareReadyAudio()
+              : void renderAudio("prepareShare")
           }
         >
           <span aria-hidden="true">↗</span>
           <span>
             <strong>
-              {action === "share"
+              {action === "prepareShare"
                 ? renderTask.phaseLabel
-                : "Share audio"}
+                : action === "share"
+                  ? "SHARING…"
+                  : shareReady
+                    ? "Share ready WAV"
+                    : "Prepare to share"}
             </strong>
             <small>
-              Uses system share when supported
+              {shareReady
+                ? "Native share when supported"
+                : "Render current audio first"}
             </small>
           </span>
         </button>
@@ -495,7 +558,9 @@ function PlaygroundFinishPanel({
         </button>
       </div>
 
-      {busy && action !== "backup" ? (
+      {busy &&
+      action !== "backup" &&
+      action !== "share" ? (
         <div
           className="playground-finish-progress"
           role="status"
