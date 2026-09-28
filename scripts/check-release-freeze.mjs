@@ -59,6 +59,8 @@ const contracts = [
   ["package.json", '"check:mix"'],
   ["package.json", '"check:finish"'],
   ["package.json", '"check:feel"'],
+  ["package.json", '"check:variation"'],
+  ["scripts/check-playground-variation.mjs", "P10 variation contracts verified"],
   ["scripts/check-playground-feel.mjs", "P9 Feel contracts verified"],
   ["scripts/check-playground-finish.mjs", "P8 Finish contracts verified"],
   ["scripts/check-playground-mix.mjs", "P7 mix contracts verified"],
