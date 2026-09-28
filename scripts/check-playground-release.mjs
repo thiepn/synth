@@ -50,6 +50,8 @@ const required = [
   ["src/arrange/playgroundArrangement.ts", "createPlaygroundSong(", "P5 A/B arrangement adapter must remain canonical."],
   ["src/arrange/ArrangementStore.ts", "setSectionPattern(", "P5 section A/B switching must remain in ArrangementStore."],
   ["src/arrange/ArrangementStore.ts", "upsertPattern(", "P5 active bank edits must sync into arrangement playback."],
+  ["src/arrange/ArrangementPlaybackStore.ts", "queueSection(", "P5 live section queuing must remain canonical."],
+  [playground, "selectOrQueueSongSection", "P5 song timeline clicks must queue sections during playback."],
   ["src/render/offlineRenderer.ts", "scheduleOfflineMelodic(", "P4 melodic notes must remain in master exports."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
   ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
