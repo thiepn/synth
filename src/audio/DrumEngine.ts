@@ -66,6 +66,12 @@ export interface DrumMacros {
   space: number;
 }
 
+export interface ExternalAudioMix {
+  gainDb?: number;
+  pan?: number;
+  reverbSend?: number;
+}
+
 export interface DrumEngineSnapshot {
   status: "cold" | "ready" | "error";
   master: number;
@@ -334,11 +340,41 @@ export class DrumEngine {
   connectExternalAudio(
     node: AudioNode,
     context: AudioContext,
+    mix?: ExternalAudioMix,
   ): void {
-    this.ensureGraph(context);
-    const destination =
-      this.graph?.input ?? context.destination;
-    node.connect(destination);
+    const graph = this.ensureGraph(context);
+    if (!mix) {
+      node.connect(graph.input);
+      return;
+    }
+
+    const trim = context.createGain();
+    const pan = context.createStereoPanner();
+    const send = context.createGain();
+
+    trim.gain.value = dbToGain(
+      Math.max(
+        -24,
+        Math.min(6, mix.gainDb ?? 0),
+      ),
+    );
+    pan.pan.value = Math.max(
+      -1,
+      Math.min(1, mix.pan ?? 0),
+    );
+    send.gain.value = Math.max(
+      0,
+      Math.min(1, mix.reverbSend ?? 0),
+    );
+
+    node.connect(trim);
+    trim.connect(pan);
+    pan.connect(graph.input);
+
+    if (send.gain.value > 0.0001) {
+      pan.connect(send);
+      send.connect(graph.convolver);
+    }
   }
 
   async triggerNow(
