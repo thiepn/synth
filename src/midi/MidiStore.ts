@@ -212,6 +212,7 @@ function targetKey(target: MidiBindingTarget): string {
 export class MidiStore {
   private listeners = new Set<Listener>();
   private noteListeners = new Set<MidiNoteListener>();
+  private melodicNoteCaptureActive = false;
   private supported =
     typeof navigator !== "undefined" &&
     typeof navigator.requestMIDIAccess === "function";
@@ -256,6 +257,13 @@ export class MidiStore {
     return () =>
       this.noteListeners.delete(listener);
   };
+
+  setMelodicNoteCaptureActive(
+    active: boolean,
+  ): void {
+    this.melodicNoteCaptureActive =
+      Boolean(active);
+  }
 
   exportProjectState(): MidiPersistentState {
     return {
@@ -808,7 +816,10 @@ export class MidiStore {
           triggeredPadVoices.add(binding.target.voice);
         }
       }
-    } else if (kind === "note") {
+    } else if (
+      kind === "note" &&
+      !this.melodicNoteCaptureActive
+    ) {
       const voice = DEFAULT_NOTE_MAP[number];
       if (voice) {
         if (noteOn) {
