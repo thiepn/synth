@@ -78,6 +78,7 @@ for (const [token, expected] of [
 
 for (const token of [
   "melodicVelocityGain",
+  "melodicLayerCompensation",
   "melodicVelocityFilterMultiplier",
   "melodicFilterEnvelopeVelocityScale",
   "melodicPresetStereoWidth",
