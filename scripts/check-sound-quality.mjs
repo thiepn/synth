@@ -108,6 +108,19 @@ if (
   );
 }
 
+if (
+  !melodicEngine.includes(
+    "MAX_ACTIVE_MELODIC_OSCILLATORS",
+  ) ||
+  !melodicEngine.includes(
+    "enforcePolyphony(",
+  )
+) {
+  failures.push(
+    "P6 rich melodic presets must retain bounded click-safe polyphony.",
+  );
+}
+
 for (const token of [
   "drumVelocityGain",
   "drumVelocityTone",
