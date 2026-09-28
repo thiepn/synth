@@ -10,6 +10,9 @@ export function cloneStepEvent(
 ): StepEvent {
   return {
     ...event,
+    pitchesMidi: event.pitchesMidi
+      ? [...event.pitchesMidi]
+      : undefined,
     generatorTags: event.generatorTags
       ? [...event.generatorTags]
       : undefined,
