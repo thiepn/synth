@@ -3979,3 +3979,128 @@
     border-color:ButtonText;background:Canvas;color:CanvasText
   }
 }
+
+
+/* Playground P15 — Motion & Automation */
+.playground-motion-strip{
+  width:min(1440px,calc(100% - clamp(36px,7vw,108px)));
+  min-height:64px;margin:8px auto 0;padding:7px;
+  display:grid;
+  grid-template-columns:minmax(118px,.7fr) minmax(210px,1.15fr) minmax(330px,1.8fr) minmax(190px,.9fr) auto;
+  align-items:stretch;gap:7px;
+  border:1px solid rgba(194,108,255,.15);
+  border-radius:16px;
+  background:linear-gradient(90deg,rgba(194,108,255,.05),rgba(99,222,244,.025));
+}
+.playground-motion-strip__identity,
+.playground-motion-targets,
+.playground-motion-shapes,
+.playground-motion-amount,
+.playground-motion-actions{
+  min-width:0;min-height:48px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;background:rgba(255,255,255,.025)
+}
+.playground-motion-strip__identity{
+  display:grid;align-content:center;padding:5px 9px
+}
+.playground-motion-strip__identity>span{
+  color:#d09aff;font-size:.46rem;font-weight:950;letter-spacing:.12em
+}
+.playground-motion-strip__identity>strong{font-size:.7rem}
+.playground-motion-strip__identity>small{color:var(--pg-muted);font-size:.43rem}
+.playground-motion-targets,
+.playground-motion-shapes,
+.playground-motion-actions{
+  display:grid;overflow:hidden
+}
+.playground-motion-targets{grid-template-columns:repeat(3,minmax(0,1fr))}
+.playground-motion-shapes{grid-template-columns:repeat(4,minmax(0,1fr))}
+.playground-motion-actions{grid-template-columns:repeat(2,minmax(64px,1fr))}
+.playground-motion-targets>button,
+.playground-motion-shapes>button,
+.playground-motion-actions>button{
+  min-width:0;border:0;border-left:1px solid rgba(255,255,255,.055);
+  background:transparent;color:var(--pg-muted);cursor:pointer;
+  font-size:.51rem;font-weight:900
+}
+.playground-motion-targets>button:first-child,
+.playground-motion-shapes>button:first-child,
+.playground-motion-actions>button:first-child{border-left:0}
+.playground-motion-targets>button:hover:not(:disabled),
+.playground-motion-shapes>button:hover:not(:disabled),
+.playground-motion-actions>button:hover:not(:disabled){
+  background:rgba(255,255,255,.055);color:var(--pg-text)
+}
+.playground-motion-targets>button.is-active,
+.playground-motion-shapes>button.is-active{
+  color:#e1c4ff;background:rgba(194,108,255,.1);
+  box-shadow:inset 0 -2px 0 #c26cff
+}
+.playground-motion-amount{
+  display:grid;grid-template-columns:auto minmax(72px,1fr) auto;
+  align-items:center;gap:8px;padding:5px 9px
+}
+.playground-motion-amount>span{
+  color:var(--pg-muted);font-size:.5rem;font-weight:900
+}
+.playground-motion-amount input{
+  width:100%;accent-color:#c26cff
+}
+.playground-motion-amount output{
+  min-width:31px;text-align:right;color:var(--pg-text);font-size:.49rem;font-weight:900
+}
+.playground-motion-actions>.playground-motion-apply:not(:disabled){
+  color:#e1c4ff;background:rgba(194,108,255,.07)
+}
+.playground-motion-strip button:disabled,
+.playground-motion-strip input:disabled{opacity:.3;cursor:default}
+@media(max-width:1120px){
+  .playground-motion-strip{
+    grid-template-columns:minmax(118px,.65fr) minmax(205px,1fr) minmax(320px,1.7fr)
+  }
+  .playground-motion-amount{grid-column:1 / 3}
+  .playground-motion-actions{grid-column:3 / 4}
+}
+@media(max-width:760px){
+  .playground-motion-strip{
+    width:calc(100% - 20px);display:flex;overflow-x:auto;
+    scrollbar-width:none;padding:6px;border-radius:14px;
+    overscroll-behavior-x:contain
+  }
+  .playground-motion-strip::-webkit-scrollbar{display:none}
+  .playground-motion-strip__identity{min-width:118px;flex:0 0 118px}
+  .playground-motion-targets{min-width:228px;flex:0 0 228px}
+  .playground-motion-shapes{min-width:330px;flex:0 0 330px}
+  .playground-motion-amount{min-width:190px;flex:0 0 190px}
+  .playground-motion-actions{min-width:148px;flex:0 0 148px}
+  .playground-motion-strip button,
+  .playground-motion-strip input{min-height:44px;touch-action:manipulation}
+}
+@media(prefers-contrast:more){
+  .playground-motion-strip,
+  .playground-motion-strip__identity,
+  .playground-motion-targets,
+  .playground-motion-shapes,
+  .playground-motion-amount,
+  .playground-motion-actions{
+    border-color:rgba(255,255,255,.3)
+  }
+}
+@media(forced-colors:active){
+  .playground-motion-strip,
+  .playground-motion-strip__identity,
+  .playground-motion-targets,
+  .playground-motion-shapes,
+  .playground-motion-amount,
+  .playground-motion-actions,
+  .playground-motion-targets>button,
+  .playground-motion-shapes>button,
+  .playground-motion-actions>button{
+    border-color:ButtonText;background:Canvas;color:CanvasText
+  }
+  .playground-motion-targets>button.is-active,
+  .playground-motion-shapes>button.is-active{
+    background:Highlight;color:HighlightText
+  }
+}
