@@ -2203,7 +2203,12 @@ export function PlaygroundSurface({
     }
 
     const width = 220;
-    const height = 210;
+    const hasHit =
+      sequencerStore.getStepVelocity(
+        laneId,
+        stepIndex,
+      ) !== undefined;
+    const height = hasHit ? 382 : 220;
     setStepContext({
       laneId,
       stepIndex,
@@ -11558,7 +11563,7 @@ export function PlaygroundSurface({
                 <h3>Experiment</h3>
                 <p>Remix is reversible and keeps recent versions.</p>
                 <p>A/B patterns let you compare two directions.</p>
-                <p>Right-click a step for Normal / Accent / Ghost / Clear.</p>
+                <p>Right-click or long-press a hit for Normal / Accent / Ghost plus Chance, Repeat and Flam.</p>
               </div>
             </div>
 
