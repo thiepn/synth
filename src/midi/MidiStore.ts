@@ -20,6 +20,18 @@ import { sequencerStore } from "../sequencer/SequencerStore";
 
 type Listener = () => void;
 
+export interface MidiNoteInputEvent {
+  type: "noteOn" | "noteOff";
+  note: number;
+  velocity: number;
+  channel: number;
+  inputName: string;
+}
+
+type MidiNoteListener = (
+  event: MidiNoteInputEvent,
+) => void;
+
 type MidiInputLike = MIDIInput;
 type MidiAccessLike = MIDIAccess;
 
@@ -199,6 +211,7 @@ function targetKey(target: MidiBindingTarget): string {
 
 export class MidiStore {
   private listeners = new Set<Listener>();
+  private noteListeners = new Set<MidiNoteListener>();
   private supported =
     typeof navigator !== "undefined" &&
     typeof navigator.requestMIDIAccess === "function";
@@ -235,6 +248,14 @@ export class MidiStore {
   };
 
   readonly getSnapshot = (): MidiSnapshot => this.snapshot;
+
+  readonly subscribeNoteEvents = (
+    listener: MidiNoteListener,
+  ): (() => void) => {
+    this.noteListeners.add(listener);
+    return () =>
+      this.noteListeners.delete(listener);
+  };
 
   exportProjectState(): MidiPersistentState {
     return {
@@ -729,6 +750,22 @@ export class MidiStore {
           number,
         );
         return;
+      }
+    }
+
+    if (noteOn || noteOff) {
+      const noteEvent: MidiNoteInputEvent = {
+        type: noteOn ? "noteOn" : "noteOff",
+        note: data1,
+        velocity: Math.max(
+          0,
+          Math.min(1, data2 / 127),
+        ),
+        channel,
+        inputName: input.name ?? input.id,
+      };
+      for (const listener of this.noteListeners) {
+        listener(noteEvent);
       }
     }
 
