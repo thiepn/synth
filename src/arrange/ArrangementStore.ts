@@ -207,6 +207,101 @@ export class ArrangementStore {
     this.publish();
   }
 
+  addSectionFromPattern(
+    patternId: string,
+    afterSectionId?: string,
+  ): void {
+    if (
+      !this.blueprint ||
+      !this.patternCatalog.has(patternId)
+    ) {
+      return;
+    }
+
+    const scene = this.blueprint.scenes.find(
+      (entry) =>
+        entry.patternIds.includes(patternId),
+    );
+    if (!scene) return;
+
+    const sourceIndex = afterSectionId
+      ? this.blueprint.sections.findIndex(
+          (section) =>
+            section.id === afterSectionId,
+        )
+      : this.blueprint.sections.length - 1;
+    const insertIndex =
+      sourceIndex >= 0
+        ? sourceIndex + 1
+        : this.blueprint.sections.length;
+    const source =
+      sourceIndex >= 0
+        ? this.blueprint.sections[sourceIndex]
+        : undefined;
+
+    let ordinal =
+      this.blueprint.sections.length + 1;
+    let id =
+      "playground-song-section-" +
+      String(ordinal).padStart(2, "0");
+    while (
+      this.blueprint.sections.some(
+        (section) => section.id === id,
+      )
+    ) {
+      ordinal += 1;
+      id =
+        "playground-song-section-" +
+        String(ordinal).padStart(2, "0");
+    }
+
+    const cycles = Math.max(
+      1,
+      source?.cycleCount ?? 4,
+    );
+    this.captureUndo();
+
+    const section: SectionBlueprint = {
+      id,
+      label: "SECTION " + String(ordinal),
+      role: scene.role ?? "verse",
+      sceneId: scene.id,
+      patternSequence: Array.from(
+        { length: cycles },
+        () => patternId,
+      ),
+      cycleCount: cycles,
+      startTick: 0,
+      lengthTicks: 0,
+      energyStart: Math.max(
+        0,
+        Math.min(
+          1,
+          source?.energyStart ??
+            scene.energy * 0.9,
+        ),
+      ),
+      energyEnd: Math.max(
+        0,
+        Math.min(
+          1,
+          source?.energyEnd ??
+            scene.energy,
+        ),
+      ),
+      fillPlacement: "off",
+      transitionPlacement: "off",
+    };
+
+    this.blueprint.sections.splice(
+      insertIndex,
+      0,
+      section,
+    );
+    this.selectedSectionId = section.id;
+    this.markEditedAndPublish();
+  }
+
   setSectionPattern(
     sectionId: string,
     patternId: string,
