@@ -1381,6 +1381,94 @@ test("Playground P8 Finish exports a high quality exact WAV loop", async ({
   expect(errors).toEqual([]);
 });
 
+test("Playground P9 Feel applies deterministic humanization swing and reset", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const feel = page.getByRole("region", {
+    name: "Feel and groove",
+  });
+  await expect(feel).toBeVisible();
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity strong",
+    ),
+  ).toHaveText("Straight");
+
+  await feel.getByRole("button", {
+    name: "Human feel",
+  }).click();
+
+  const swing = feel.getByLabel("Feel swing");
+  await swing.fill("18");
+  await expect(swing).toHaveValue("18");
+
+  await feel.getByRole("button", {
+    name: "Apply selected feel",
+  }).click();
+
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity strong",
+    ),
+  ).toHaveText("Human");
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity small",
+    ),
+  ).toContainText("58% human");
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity small",
+    ),
+  ).toContainText("18% swing");
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).first().click();
+
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity strong",
+    ),
+  ).toHaveText("Straight");
+
+  await feel.getByRole("button", {
+    name: "Laid-back feel",
+  }).click();
+  await swing.fill("12");
+  await feel.getByRole("button", {
+    name: "Apply selected feel",
+  }).click();
+
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity strong",
+    ),
+  ).toHaveText("Laid-back");
+
+  await feel.getByRole("button", {
+    name: "Reset feel to straight",
+  }).click();
+
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity strong",
+    ),
+  ).toHaveText("Straight");
+  await expect(swing).toHaveValue("0");
+  await expect(
+    feel.getByRole("button", {
+      name: "Reset feel to straight",
+    }),
+  ).toBeDisabled();
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground sound favorites and recents remain fast", async ({
   page,
 }) => {
@@ -1466,6 +1554,18 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   const pianoCellBox = await pianoCell.boundingBox();
   expect(pianoCellBox).not.toBeNull();
   expect(pianoCellBox!.height).toBeGreaterThanOrEqual(44);
+
+  const mobileFeel = page.getByRole("region", {
+    name: "Feel and groove",
+  });
+  await expect(mobileFeel).toBeVisible();
+  const humanFeel = mobileFeel.getByRole("button", {
+    name: "Human feel",
+  });
+  await humanFeel.scrollIntoViewIfNeeded();
+  const humanFeelBox = await humanFeel.boundingBox();
+  expect(humanFeelBox).not.toBeNull();
+  expect(humanFeelBox!.height).toBeGreaterThanOrEqual(44);
 
   const touchMode = page.getByRole("button", {
     name: "Touch edit mode: draw",
