@@ -31,6 +31,7 @@ const required = [
   [playground, '"Before song draft · " +', "P14 recovery-before-draft behavior is missing."],
   [playground, "installPlaygroundSong(created);", "P14 draft installation must use the canonical Playground song state."],
   [playground, "await arrangementPlaybackStore.start();", "P14 one-tap drafts must audition immediately."],
+  [playground, "await audioTransport.unlockAudio();", "P14 must claim Web Audio activation before async recovery work."],
   [playground, "buildPlaygroundSong", "P14 must preserve the original P5 basic A/B builder."],
   [store, "restoreProjectState(", "P14 must remain backed by ArrangementStore."],
   [playback, "async start(", "P14 must remain backed by ArrangementPlaybackStore."],
@@ -94,6 +95,9 @@ const handler =
     ? playground.slice(handlerStart, handlerEnd)
     : "";
 
+const unlockIndex = handler.indexOf(
+  "await audioTransport.unlockAudio();",
+);
 const checkpointIndex = handler.indexOf(
   "projectStore.createVersion(",
 );
@@ -103,6 +107,15 @@ const installIndex = handler.indexOf(
 const playIndex = handler.indexOf(
   "await arrangementPlaybackStore.start();",
 );
+if (
+  unlockIndex < 0 ||
+  checkpointIndex < 0 ||
+  unlockIndex > checkpointIndex
+) {
+  failures.push(
+    "P14 must request audio activation before awaiting the recovery checkpoint.",
+  );
+}
 if (
   checkpointIndex < 0 ||
   installIndex < 0 ||
