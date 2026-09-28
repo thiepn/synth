@@ -1151,6 +1151,61 @@ test("Playground count in restart repeat and momentary monitoring stay responsiv
   expect(errors).toEqual([]);
 });
 
+test("Playground P6 presets expose hybrid drums and direct melodic sound choice", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: /Change KICK sound\. Current/i,
+  }).click();
+
+  const drawer = page.getByRole("region", {
+    name: "KICK sounds",
+  });
+  const hybridKick = drawer.getByRole("button", {
+    name: "808 Punch+ KICK sound",
+  });
+  await expect(hybridKick).toContainText("HYBRID");
+  await hybridKick.click();
+  await expect(hybridKick).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    page.getByRole("button", {
+      name: /Change KICK sound\. Current sound 808 Punch\+/i,
+    }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", {
+    name: "Open BASS piano roll",
+  }).click();
+
+  const bassRoll = page.getByRole("region", {
+    name: "BASS piano roll",
+  });
+  const soundSelect = bassRoll.getByLabel(
+    "Choose melodic instrument",
+  );
+  await expect(soundSelect).toHaveValue("sub");
+  await soundSelect.selectOption("acid");
+  await expect(
+    bassRoll.locator(".playground-piano__preset b"),
+  ).toHaveText("Acid");
+
+  await bassRoll.getByRole("button", {
+    name: "Next melodic instrument",
+  }).click();
+  await expect(
+    bassRoll.locator(".playground-piano__preset b"),
+  ).toHaveText("Reese");
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground sound favorites and recents remain fast", async ({
   page,
 }) => {
