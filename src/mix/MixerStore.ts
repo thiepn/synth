@@ -209,11 +209,17 @@ export class MixerStore {
     this.publish();
   }
 
-  resetChannel(
+  resetPlaygroundChannel(
     voice: DrumVoiceId,
   ): void {
     const current = this.state.channels[voice];
-    const next = defaultMixerChannel(voice);
+    const defaults = defaultMixerChannel(voice);
+    const next = clampMixerChannel({
+      ...current,
+      gainDb: defaults.gainDb,
+      pan: defaults.pan,
+      reverbSend: defaults.reverbSend,
+    });
     if (JSON.stringify(current) === JSON.stringify(next)) {
       return;
     }
