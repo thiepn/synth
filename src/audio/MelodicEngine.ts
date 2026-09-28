@@ -23,6 +23,8 @@ import { arrangementPlaybackStore } from "../arrange/ArrangementPlaybackStore";
 import { songArchitectStore } from "../song/SongArchitectStore";
 import { evolutionStore } from "../evolve/EvolutionStore";
 import { creativePatternResolver } from "../playback/CreativePatternResolver";
+import { freezeStore } from "../resample/FreezeStore";
+import { performanceStore } from "../performance/PerformanceStore";
 import { eventPassesProbability } from "../sequencer/playbackRules";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
 
@@ -385,6 +387,20 @@ export class MelodicEngine {
             pulse.absoluteTick,
           )
         : null;
+
+    const freeze =
+      freezeStore.getSnapshot().active;
+    const performanceActive =
+      performanceStore.getSnapshot().active;
+    if (
+      freeze &&
+      !arrangement.engaged &&
+      !songResolved &&
+      !evolutionResolved &&
+      !performanceActive
+    ) {
+      return;
+    }
 
     let pattern: Pattern;
     let localTick: number;
