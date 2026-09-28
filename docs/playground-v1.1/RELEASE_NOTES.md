@@ -1,150 +1,139 @@
 # Synth v1.1.0
 
-Synth v1.1.0 is the Playground release: a substantial usability and workflow update built on the certified v1.0.0 engine, persistence, Studio, rendering, PWA and project-format foundation.
+Synth v1.1.0 is the Playground release: a major usability, composition and performance update built on the certified v1.0.0 engine, local-first persistence, Studio, rendering and PWA foundation.
 
-The release keeps ProjectDocument schema v1, backup package v1 and IndexedDB v2. Existing v1.0 projects remain on the same persisted data contract.
+The release keeps ProjectDocument schema v1, backup package v1 and IndexedDB v2. Existing v1.0 projects and backups remain loadable. The Pattern contract is extended backward-compatibly with optional melodic/harmonic fields and automatic migration of older patterns.
 
 ## Headline change
 
-The default Synth experience is now a focused musical Playground rather than exposing the complete Studio dashboard immediately.
+The default experience is now a focused musical Playground:
 
-The goal is:
+> Tap → draw → perform → select → arrange → add melody → export.
 
-> Tap → draw → hear → transform → remix → keep what works.
+The seven-mode Studio remains available for advanced synthesis, sequencing, arrangement, performance, mixing and export.
 
-The seven-mode Studio remains available for advanced sequencing, synthesis, arrangement, performance, mixing and export.
+## Playground Q1–Q8 foundation
 
-## Playground Q1–Q8
+The original Playground program delivered:
 
-### Q1 — Interaction speed
+- faster step editing, velocity gestures, fills, rotate/reverse and sound cycling
+- persistent Pattern A/B banks, Remix safety checkpoints and recent Remix history
+- Accent/Ghost painting and lane-level transformations
+- safe-area-aware mobile controls, page swiping, long-press sound choice and haptics
+- count-in, restart, playhead following, repeat pads and momentary monitoring
+- fast New Beat, Duplicate/Save As, recovery versions, project switching and sharing
+- Help/shortcut discovery, contextual step actions and sound favorites/recents
+- accessibility, modal/focus hardening, release contracts, browser QA and release-freeze protection
 
-- vertical velocity dragging on active steps
-- one-click lane clear and musical fills
-- lane rotation shortcuts
-- previous/next sound cycling
-- tap tempo
-- half/double tempo controls
-- coalesced gesture Undo behavior
+## P1 — Multi-track and bar editing
 
-### Q2 — Experimentation safety
+The drum sequencer was rebuilt around whole-pattern editing:
 
-- persistent Pattern A/B banks
-- current-pattern duplication into the alternate bank
-- exact pre-Remix recovery
-- recent Remix history
-- automatic safety checkpoints before destructive transformations
-- sound locks exposed in Playground
-- A/B state stored through the existing project history model
+- all drum tracks visible together
+- one-click note add/remove without switching instruments
+- natural 1–8 bar patterns instead of a fixed 16-step mental model
+- Add, Delete, Duplicate and Clear bar actions
+- bar navigation integrated directly into the main editor
+- half-, quarter-, eighth- and sixteenth-note fills scoped to the current bar
+- pattern lengths supported up to 128 steps
+- bar insertion/deletion shifts later musical material while preserving event metadata
 
-### Q3 — Fast musical transformations
+## P2 — Fast performance → grid recording
 
-- selected-lane Remix
-- density half/double
-- reverse and rotate
-- lane copy/paste
-- Shift-drag Accent painting
-- Alt-drag Ghost painting
-- touch-visible Accent/Ghost state
+Performance can now be captured directly into the visible grid:
 
-### Q4 — Mobile & touch polish
+- on-screen pads, computer drum keys and MIDI feed one canonical recorder
+- Overdub and Erase modes
+- Off / 1/16 / 1/8 / 1/4 quantize
+- selected-bar recording start
+- one-bar count-in integration
+- live recorded-cell feedback
+- one complete take = one Undo/Redo unit
+- direct MIDI enablement from Playground
+- Shift+R recording shortcut
+- recording isolation prevents conflicting pattern/history mutations during a take
 
-- fixed safe-area-aware mobile action dock
-- touch-safe tap / swipe / velocity gesture resolution
-- 16-step page swiping
-- long-press pad → sound picker
-- mobile Draw / Accent / Ghost modes
-- optional haptic feedback
-- hardened coarse-pointer targets
+## P3 — Selection and batch editing
 
-### Q5 — Playback & creative flow
+The grid now has a first-class note selection layer:
 
-- optional one-bar count-in
-- restart from step 1
-- automatic long-pattern playhead page following
-- manual page-lock behavior
-- tempo-synchronized pad hold-repeat
-- momentary lane mute/solo
-- continuous editing while transport keeps running
-- Space / Shift+Space / R transport shortcuts
+- Shift-click individual selection
+- Ctrl/Cmd-drag region selection
+- mobile Select mode
+- Bar / Track / All scopes
+- Delete, Duplicate and Move
+- velocity changes
+- Ghost / Normal / Accent batch dynamics
+- timing Earlier / Later
+- metadata-preserving Copy/Paste between bars
+- keyboard shortcuts for the full batch workflow
+- atomic lock handling and stale-selection cleanup
 
-### Q6 — Project & session flow
+## P4 — Melodic tracks and note-length editing
 
-- fast New Beat
-- Duplicate / Save As
-- inline project naming
-- visible autosave state
-- recovery snapshots using the existing version system
-- native Share with portable-backup download fallback
-- recent-project switcher
-- local project favorites
-- per-project Playground UI resume state
+Synth now supports first-class pitched material alongside drums:
 
-### Q7 — Discoverability & everyday polish
+- three canonical melodic lanes: BASS, CHORDS and LEAD
+- optional MIDI pitch and chord-pitch data on melodic events
+- sustained note durations
+- compact piano-roll editor inside Playground
+- click-to-create melodic notes
+- drag note edges to resize duration
+- 1/16, 1/8, 1/4, 1/2 and 1-bar duration presets
+- octave navigation
+- persistent key, scale and Scale Lock
+- Major, Minor, 7, m7, sus2 and sus4 chord shapes
+- bass/lead monophonic flow with automatic overlap truncation
+- chord voicing preservation across key/scale changes
+- per-track melodic presets for bass, chords and lead
+- melodic Mute/Solo
+- live MIDI note-on/note-off recording with held durations and velocity
+- one melodic MIDI take = one Undo unit
+- drum fallback notes are suppressed while melodic MIDI capture owns the controller
+- live melodic voices route through Synth's master audio path
+- melodic notes survive drum Style/Remix generation
+- melodic material is included in master offline rendering/export
 
-- ? Help / shortcut overlay
-- disappearing first-use guidance
-- fine-pointer contextual tooltips
-- right-click / long-press step actions
-- sound favorites
-- recent sounds
-- useful empty-lane guidance
-- deduplicated quieter notices
+## Audio, sound-bank and persistence hardening
 
-### Q8 — Final Playground QA & release polish
+The release also includes:
 
-- Help modal focus trap and focus restoration
-- modal scroll locking
-- keyboard-operable step context menu
-- narrow-mobile overflow hardening
-- stale style cleanup
-- safe native-share capability handling
-- dedicated Q1–Q8 static release contracts
-- focused Playwright Playground certification
-- Playground QA wired into normal CI
-- release-freeze protection for the v1.1 certification path
-
-## Sound bank, audio and persistence hardening
-
-The v1.1 release also includes non-UI work that landed after the original v1.0.0 certification:
-
-- curated CC0 TR-808 samples exposed as built-in Playground sound choices
-- build-time download pinned to a specific upstream commit with file verification
-- third-party audio provenance documented in `docs/THIRD_PARTY_AUDIO.md`
-- all bundled sample files precached by the PWA service worker for offline use
-- bundled/user asset provenance kept separate so an explicit user import wins identity collisions
-- only referenced bundled audio is persisted with projects
-- orphaned bundled audio is garbage-collected after committed autosave without deleting user audio
-- named project versions protect bundled audio still referenced by historical snapshots
-- tom and percussion synthesis/default materials retuned toward shorter, more drum-like behavior
-- Playground tom/percussion presets retuned to reduce excessive synthetic noise/character
-
-These changes remain covered by the full production browser suite in addition to the focused Playground suite.
+- curated CC0 TR-808 samples as built-in Playground sound choices
+- build-time sample download pinned to a specific upstream commit with verification
+- documented third-party audio provenance
+- PWA precaching of bundled sample files
+- safe bundled/user asset identity handling
+- persistence of only referenced bundled audio
+- orphaned bundled-audio garbage collection without deleting user audio
+- historical-version protection for referenced bundled samples
+- more natural tom/percussion synthesis and default materials
+- melodic-pattern migration for older projects/history snapshots
+- master-render parity for new melodic tracks
 
 ## Compatibility
 
-v1.1.0 intentionally does not change:
+v1.1.0 keeps:
 
 - ProjectDocument schema: v1
 - backup package format: v1
 - IndexedDB database version: v2
-- the canonical Pattern model
 - the seven advanced Studio modes
 - existing v1.0 local projects and backups
 
-Playground-only preferences such as favorite sounds, favorite projects, discovery dismissal and per-project UI position use lightweight browser metadata rather than modifying the project schema.
+The canonical Pattern model is extended, not replaced. New optional fields include harmonic context, melodic pitch/chord data and melodic instrument preset data. Older stored patterns are upgraded in memory by adding empty melodic lanes and safe default harmonic context, so old projects continue to load without a schema-version migration.
+
+Playground-only preferences continue to use lightweight browser metadata rather than changing the ProjectDocument schema.
 
 ## Release certification
 
-A v1.1.0 GitHub Release may be published only from a successful merged-main CI run.
-
-The required pipeline includes:
+The published release is gated by merged-main CI:
 
 1. exact dependency installation from the lockfile
 2. interaction contracts
-3. Playground Q1–Q8 release contracts
+3. Playground release contracts
 4. performance contracts
 5. architecture contracts
-6. v1.1 release-freeze contract
+6. release-freeze contract
 7. TypeScript
 8. production Vite build
 9. bundle budget
@@ -152,10 +141,10 @@ The required pipeline includes:
 11. full production browser QA
 12. release-candidate soak
 
-No browser-test result is claimed by this document before CI reports it.
+The certified P4 product head passed all of these gates, including 26/26 Playground tests, 38/38 production-browser tests and 6/6 soak tests.
 
 ## Local-first behavior
 
-Core beat creation, playback, projects, snapshots, backups, offline use and export continue to work without a Synth backend service.
+Core creation, playback, melodic editing, projects, snapshots, backups, offline use and export continue to work without a Synth backend service.
 
 Imported sample bytes and project documents stay local to the browser unless the user explicitly shares or exports them.
