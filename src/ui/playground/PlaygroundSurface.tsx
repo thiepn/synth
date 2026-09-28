@@ -1108,6 +1108,18 @@ export function PlaygroundSurface({
     gridRecorder.getSnapshot().status !== "idle" ||
     melodicMidiTakeRef.current !== null;
 
+  const selectDrumTrack = (
+    voice: DrumVoiceId,
+  ) => {
+    setSelectedVoice(voice);
+    const definition = SEQUENCER_LANES.find(
+      (entry) => entry.voice === voice,
+    );
+    if (definition) {
+      setMixLaneId(definition.id);
+    }
+  };
+
   const [stepPage, setStepPage] = useState(0);
   const [soundPickerVoice, setSoundPickerVoice] =
     useState<DrumVoiceId | null>(null);
@@ -2293,7 +2305,7 @@ export function PlaygroundSurface({
       if (!voice) return;
 
       event.preventDefault();
-      setSelectedVoice(voice);
+      selectDrumTrack(voice);
       setSoundPickerVoice(null);
       setPadPulse((current) => ({
         voice,
@@ -4256,7 +4268,7 @@ export function PlaygroundSurface({
 
     if (padRepeatDivision > 0) {
       suppressPadClickRef.current = voice;
-      setSelectedVoice(voice);
+      selectDrumTrack(voice);
       setSoundPickerVoice(null);
       padRepeatRef.current = {
         voice,
@@ -4295,7 +4307,7 @@ export function PlaygroundSurface({
       padLongPressTimerRef.current = null;
       padLongPressRef.current = null;
       suppressPadClickRef.current = voice;
-      setSelectedVoice(voice);
+      selectDrumTrack(voice);
       setSoundPickerVoice(voice);
       pulseHaptic([12, 22, 12]);
       setNotice(
@@ -5971,6 +5983,7 @@ export function PlaygroundSurface({
       );
       if (id) {
         setSelectedVoice("kick");
+        setMixLaneId("lane-kick");
         setStepPage(0);
         setFollowPlayhead(true);
         setTouchEditMode("draw");
@@ -7069,7 +7082,7 @@ export function PlaygroundSurface({
                       suppressPadClickRef.current = null;
                       return;
                     }
-                    setSelectedVoice(voice);
+                    selectDrumTrack(voice);
                     setSoundPickerVoice(null);
                     triggerVoice(voice);
                   }}
@@ -7146,7 +7159,7 @@ export function PlaygroundSurface({
                   type="button"
                   className="playground-beat-pad__sound"
                   onClick={() => {
-                    setSelectedVoice(voice);
+                    selectDrumTrack(voice);
                     setSoundPickerVoice((current) =>
                       current === voice ? null : voice,
                     );
@@ -7677,7 +7690,7 @@ export function PlaygroundSurface({
                         type="button"
                         className="playground-track-select"
                         onClick={() => {
-                          setSelectedVoice(voice);
+                          selectDrumTrack(voice);
                           setSoundPickerVoice(null);
                         }}
                         aria-pressed={selected}
@@ -7702,7 +7715,7 @@ export function PlaygroundSurface({
                         type="button"
                         className="playground-track-sound"
                         onClick={() => {
-                          setSelectedVoice(voice);
+                          selectDrumTrack(voice);
                           setSoundPickerVoice((current) =>
                             current === voice ? null : voice,
                           );
@@ -7821,7 +7834,7 @@ export function PlaygroundSurface({
                                   : ", off. Click to add")
                               }
                               onPointerDown={(event) => {
-                                setSelectedVoice(voice);
+                                selectDrumTrack(voice);
                                 if (
                                   soundPickerVoice !== null &&
                                   soundPickerVoice !== voice
@@ -7846,7 +7859,7 @@ export function PlaygroundSurface({
                               }}
                               onClick={(event) => {
                                 if (event.detail !== 0) return;
-                                setSelectedVoice(voice);
+                                selectDrumTrack(voice);
                                 activateFromKeyboard(
                                   definition.id,
                                   stepIndex,
