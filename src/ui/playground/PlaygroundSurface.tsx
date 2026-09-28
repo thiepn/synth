@@ -2135,7 +2135,14 @@ export function PlaygroundSurface({
       : undefined;
   const melodicPitchRows =
     selectedMelodicDefinition
-      ? Array.from({ length: 13 }, (_, index) => {
+      ? (() => {
+          const chordTrack =
+            selectedMelodicDefinition.track ===
+            "chords";
+          const rowCount =
+            chordTrack ? 17 : 13;
+          const lowerOffset =
+            chordTrack ? 4 : 6;
           const center =
             melodicPitchCursor[
               selectedMelodicDefinition.track
@@ -2148,15 +2155,21 @@ export function PlaygroundSurface({
             selectedMelodicDefinition.minPitchMidi,
             Math.min(
               selectedMelodicDefinition.maxPitchMidi -
-                12,
-              center - 6,
+                (rowCount - 1),
+              center - lowerOffset,
             ),
           );
-          return Math.min(
-            selectedMelodicDefinition.maxPitchMidi,
-            bottom + 12 - index,
+          return Array.from(
+            { length: rowCount },
+            (_, index) =>
+              Math.min(
+                selectedMelodicDefinition.maxPitchMidi,
+                bottom +
+                  (rowCount - 1) -
+                  index,
+              ),
           );
-        }).filter(
+        })().filter(
           (pitch, index, values) =>
             index === 0 ||
             pitch !== values[index - 1],
