@@ -27,6 +27,7 @@ export function clonePatternLane(
 ): PatternLane {
   return {
     ...lane,
+    mix: lane.mix ? { ...lane.mix } : undefined,
     events: lane.events.map(cloneStepEvent),
     lock: { ...lane.lock },
     regionLocks: lane.regionLocks?.map(
