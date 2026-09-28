@@ -3089,6 +3089,7 @@ export function PlaygroundSurface({
   const arrangementPlayback =
     useArrangementPlaybackSnapshot();
   const project = useProjectSnapshot();
+  const modulation = useModulationSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
   const [remixPulse, setRemixPulse] = useState(0);
@@ -3235,6 +3236,8 @@ export function PlaygroundSurface({
   const [finishOpen, setFinishOpen] =
     useState(false);
   const [jamOpen, setJamOpen] =
+    useState(false);
+  const [motionOpen, setMotionOpen] =
     useState(false);
   const [starterOpen, setStarterOpen] =
     useState(false);
@@ -3930,6 +3933,7 @@ export function PlaygroundSurface({
       performanceStore.setActive(false);
       setJamOpen(false);
     }
+    setMotionOpen(false);
     cancelPatternPreview();
     onOpenStudio();
   };
@@ -4575,6 +4579,15 @@ export function PlaygroundSurface({
   const editRecordingLocked =
     gridRecord.status !== "idle" ||
     melodicMidiRecording;
+  const playgroundMotionCount =
+    modulation.automationLanes.filter(
+      (lane) =>
+        lane.id.startsWith(
+          "playground-motion-",
+        ) &&
+        lane.enabled &&
+        lane.points.length > 0,
+    ).length;
 
   useEffect(() => {
     if (editRecordingLocked && jamOpen) {
@@ -4597,6 +4610,62 @@ export function PlaygroundSurface({
     performanceStore.setActive(false);
     setJamOpen(false);
   }, [project.projectId]);
+
+  useEffect(() => {
+    setMotionOpen(false);
+  }, [project.projectId]);
+
+  useEffect(() => {
+    const nextLength = Math.max(
+      2,
+      Math.round(
+        sequencer.pattern.lengthTicks,
+      ),
+    );
+
+    for (const lane of modulation.automationLanes) {
+      if (
+        !lane.id.startsWith(
+          "playground-motion-",
+        ) ||
+        !lane.loopLengthTicks ||
+        lane.loopLengthTicks === nextLength ||
+        lane.points.length === 0
+      ) {
+        continue;
+      }
+
+      const previousLast = Math.max(
+        1,
+        lane.loopLengthTicks - 1,
+      );
+      const nextLast = nextLength - 1;
+
+      modulationStore.replaceAutomationLane({
+        ...lane,
+        loopLengthTicks: nextLength,
+        points: lane.points.map(
+          (point) => ({
+            ...point,
+            tick: Math.max(
+              0,
+              Math.min(
+                nextLast,
+                Math.round(
+                  (point.tick /
+                    previousLast) *
+                    nextLast,
+                ),
+              ),
+            ),
+          }),
+        ),
+      });
+    }
+  }, [
+    modulation.automationLanes,
+    sequencer.pattern.lengthTicks,
+  ]);
   const playgroundSong =
     isPlaygroundSongBlueprint(
       arrangement.blueprint,
@@ -9988,6 +10057,9 @@ export function PlaygroundSurface({
               renderStore.cancel();
               setFinishOpen(false);
             }
+            if (!jamOpen && motionOpen) {
+              setMotionOpen(false);
+            }
             setJamOpen((current) => !current);
             pulseHaptic(6);
             setNotice(
@@ -10004,6 +10076,46 @@ export function PlaygroundSurface({
           <span>Jam</span>
           <b>{jamOpen ? "Live FX" : "Off"}</b>
         </button>
+
+        <button
+          type="button"
+          className={
+            motionOpen ||
+            playgroundMotionCount > 0
+              ? "is-active"
+              : ""
+          }
+          disabled={editRecordingLocked}
+          onClick={() => {
+            if (!motionOpen && jamOpen) {
+              performanceStore.setActive(false);
+              setJamOpen(false);
+            }
+            setMotionOpen(
+              (current) => !current,
+            );
+            pulseHaptic(5);
+            setNotice(
+              motionOpen
+                ? "Motion panel closed"
+                : "Motion controls ready",
+            );
+          }}
+          aria-pressed={
+            playgroundMotionCount > 0
+          }
+          aria-expanded={motionOpen}
+          aria-controls="playground-motion"
+          aria-label="Toggle motion automation controls"
+        >
+          <span>Motion</span>
+          <b>
+            {playgroundMotionCount > 0
+              ? playgroundMotionCount +
+                " active"
+              : "Off"}
+          </b>
+        </button>
       </section>
 
       {jamOpen ? (
@@ -10011,6 +10123,14 @@ export function PlaygroundSurface({
           playing={playing}
           disabled={editRecordingLocked}
           onNotice={setNotice}
+        />
+      ) : null}
+
+      {motionOpen ? (
+        <PlaygroundMotionStrip
+          disabled={editRecordingLocked}
+          onNotice={setNotice}
+          onOpenStudio={openStudio}
         />
       ) : null}
 
