@@ -1069,6 +1069,141 @@ test("Playground P14 drafts a structured editable song from A B in one tap", asy
   expect(errors).toEqual([]);
 });
 
+test("Playground P15 Motion creates persistent looping automation without exposing Studio complexity", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const toggle = page.getByRole("button", {
+    name: "Toggle motion automation controls",
+  });
+  await toggle.click();
+
+  let motion = page.getByRole("region", {
+    name: "Motion automation",
+  });
+  await expect(motion).toBeVisible();
+
+  await expect(
+    motion.getByRole("button", {
+      name: "Motion target Filter",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    motion.getByRole("button", {
+      name: "Motion shape Sweep",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  const amount = motion.getByLabel(
+    "Motion amount",
+  );
+  await amount.fill("64");
+  await motion.getByRole("button", {
+    name: "Apply motion automation",
+  }).click();
+
+  await expect(
+    motion.locator(
+      ".playground-motion-strip__identity strong",
+    ),
+  ).toHaveText("Active");
+  await expect(toggle).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(toggle).toContainText(
+    "1 active",
+  );
+
+  await motion.getByRole("button", {
+    name: "Motion target Space",
+  }).click();
+  await motion.getByRole("button", {
+    name: "Motion shape Breathe",
+  }).click();
+  await amount.fill("42");
+  await motion.getByRole("button", {
+    name: "Apply motion automation",
+  }).click();
+  await expect(toggle).toContainText(
+    "2 active",
+  );
+
+  await toggle.click();
+  await expect(motion).toHaveCount(0);
+  await expect(toggle).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await toggle.click();
+  motion = page.getByRole("region", {
+    name: "Motion automation",
+  });
+  await motion.getByRole("button", {
+    name: "Motion target Filter",
+  }).click();
+  await expect(
+    motion.getByRole("button", {
+      name: "Motion shape Sweep",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    motion.getByLabel("Motion amount"),
+  ).toHaveValue("64");
+
+  await expect
+    .poll(() =>
+      page
+        .locator(".playground-save-state")
+        .innerText(),
+    )
+    .toBe("Saved");
+
+  await page.reload();
+  await waitForPlayground(page);
+
+  const restoredToggle =
+    page.getByRole("button", {
+      name: "Toggle motion automation controls",
+    });
+  await expect(restoredToggle).toContainText(
+    "2 active",
+  );
+  await restoredToggle.click();
+
+  const restored = page.getByRole("region", {
+    name: "Motion automation",
+  });
+  await expect(
+    restored.locator(
+      ".playground-motion-strip__identity strong",
+    ),
+  ).toHaveText("Active");
+
+  await restored.getByRole("button", {
+    name: "Clear selected motion automation",
+  }).click();
+  await restored.getByRole("button", {
+    name: "Motion target Space",
+  }).click();
+  await restored.getByRole("button", {
+    name: "Clear selected motion automation",
+  }).click();
+
+  await expect(restoredToggle).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(restoredToggle).toContainText(
+    "Off",
+  );
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground builds and edits an A B song on the canonical arrangement timeline", async ({
   page,
 }) => {
@@ -1906,6 +2041,30 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   ).toBeGreaterThanOrEqual(44);
   await page.getByRole("button", {
     name: "Toggle live jam controls",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Toggle motion automation controls",
+  }).click();
+  const mobileMotion = page.getByRole("region", {
+    name: "Motion automation",
+  });
+  await expect(mobileMotion).toBeVisible();
+  const mobileWobble = mobileMotion.getByRole(
+    "button",
+    {
+      name: "Motion shape Wobble",
+    },
+  );
+  await mobileWobble.scrollIntoViewIfNeeded();
+  const mobileWobbleBox =
+    await mobileWobble.boundingBox();
+  expect(mobileWobbleBox).not.toBeNull();
+  expect(
+    mobileWobbleBox!.height,
+  ).toBeGreaterThanOrEqual(44);
+  await page.getByRole("button", {
+    name: "Toggle motion automation controls",
   }).click();
 
   const touchMode = page.getByRole("button", {
