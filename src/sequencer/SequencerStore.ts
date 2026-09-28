@@ -500,6 +500,7 @@ export class SequencerStore {
     pitchMidi: number,
     durationSteps = DEFAULT_MELODIC_DURATION_STEPS,
     pitchesMidi?: readonly number[],
+    gestureId?: string,
   ): boolean {
     const definition = melodicLaneDefinitionById(laneId);
     if (!definition || !this.isValidStep(stepIndex)) return false;
@@ -520,10 +521,31 @@ export class SequencerStore {
         ),
       ),
     );
+    const laneLength = this.getLaneLengthSteps(laneId);
+    const nextEventStep = source.events
+      .map((event) =>
+        Math.round(
+          event.tick / FOUNDATION_STEP_TICKS,
+        ),
+      )
+      .filter(
+        (candidate) =>
+          candidate > stepIndex,
+      )
+      .sort((a, b) => a - b)[0];
+    const maximumDurationSteps = Math.max(
+      1,
+      Math.min(
+        laneLength - stepIndex,
+        nextEventStep === undefined
+          ? laneLength - stepIndex
+          : nextEventStep - stepIndex,
+      ),
+    );
     const safeDurationSteps = Math.max(
       1,
       Math.min(
-        lengthStepsFromPattern(this.pattern) - stepIndex,
+        maximumDurationSteps,
         Math.round(durationSteps),
       ),
     );
@@ -579,7 +601,11 @@ export class SequencerStore {
         lane.events.push(next);
         lane.events.sort((a, b) => a.tick - b.tick);
       }
-    });
+    },
+      gestureId
+        ? "gesture:" + gestureId
+        : null,
+    );
 
     return this.revision !== beforeRevision;
   }
@@ -639,6 +665,7 @@ export class SequencerStore {
     laneId: string,
     stepIndex: number,
     durationSteps: number,
+    gestureId?: string,
   ): boolean {
     const current = this.getMelodicEvent(
       laneId,
@@ -651,6 +678,7 @@ export class SequencerStore {
       current.pitchMidi ?? 60,
       durationSteps,
       current.pitchesMidi,
+      gestureId,
     );
   }
 
