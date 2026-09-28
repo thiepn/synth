@@ -331,6 +331,16 @@ export class DrumEngine {
     this.publish();
   }
 
+  connectExternalAudio(
+    node: AudioNode,
+    context: AudioContext,
+  ): void {
+    this.ensureGraph(context);
+    const destination =
+      this.graph?.input ?? context.destination;
+    node.connect(destination);
+  }
+
   async triggerNow(
     voice: DrumVoiceId,
     velocity = 0.82,
