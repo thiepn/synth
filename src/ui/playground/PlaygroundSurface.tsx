@@ -11,10 +11,8 @@ import {
   TRANSPORT_SCHEDULER_CONFIG,
 } from "../../audio/AudioTransport";
 import { drumEngine } from "../../audio/DrumEngine";
-import {
-  MELODIC_PRESETS,
-  melodicEngine,
-} from "../../audio/MelodicEngine";
+import { melodicEngine } from "../../audio/MelodicEngine";
+import { MELODIC_PRESETS } from "../../audio/melodicSoundModel";
 import {
   DRUM_DEFAULT_SPECS,
   drumSoundStore,
