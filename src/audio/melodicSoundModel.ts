@@ -419,6 +419,33 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
+export function melodicLayerCompensation(
+  preset: MelodicPreset,
+): number {
+  const secondary = Math.max(
+    0,
+    Math.min(0.65, preset.secondaryGain ?? (preset.secondaryWave ? 0.32 : 0)),
+  );
+  const unison = Math.max(
+    0,
+    Math.min(0.5, preset.unisonGain ?? 0),
+  ) * 0.64;
+  const sub = Math.max(
+    0,
+    Math.min(0.5, preset.subGain ?? 0),
+  );
+  const energy =
+    1 +
+    secondary * secondary +
+    unison * unison * 2 +
+    sub * sub;
+
+  return Math.max(
+    0.72,
+    Math.min(1, 1 / Math.sqrt(energy)),
+  );
+}
+
 export function melodicVelocityGain(
   preset: MelodicPreset,
   velocity: number,
