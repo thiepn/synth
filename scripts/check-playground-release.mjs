@@ -37,6 +37,12 @@ const required = [
   ["src/sequencer/SequencerStore.ts", "duplicateSelectedSteps(", "P3 canonical batch duplication must remain in SequencerStore."],
   ["src/sequencer/SequencerStore.ts", "pasteSelectedSteps(", "P3 metadata-preserving selection paste must remain in SequencerStore."],
   [playground, "batchPasteSelection", "P3 cross-bar copy paste must remain available."],
+  [playground, 'aria-label="Melodic key"', "P4 key control must remain available."],
+  [playground, "beginMelodicResize", "P4 drag note-length editing must remain available."],
+  ["src/music/foundationPattern.ts", "MELODIC_LANES", "P4 bass, chords and lead lanes must remain canonical."],
+  ["src/sequencer/SequencerStore.ts", "setMelodicNote(", "P4 melodic notes must write through SequencerStore."],
+  ["src/audio/MelodicEngine.ts", "MELODIC_PRESETS", "P4 melodic playback engine must remain available."],
+  ["src/render/offlineRenderer.ts", "scheduleOfflineMelodic(", "P4 melodic notes must remain in master exports."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
   ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
   ["src/audio/AudioTransport.ts", "seekToAbsoluteTick(", "P2 selected-bar recording requires transport seek support."],
@@ -70,6 +76,7 @@ const required = [
   ["e2e/playground.spec.ts", "Playground bar editing grows duplicates clears and deletes musical bars", "Q1 bar editing must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground records pad performance live into the selected bar and can erase it", "P2 performance recording must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground selection batch edits move duplicate delete and undo notes", "P3 selection and batch editing must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground melodic tracks edit pitch duration chords scale and survive drum regeneration", "P4 melodic editing must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground count in restart repeat and momentary monitoring stay responsive", "Q5 flow behavior must remain browser-certified."],
 ];
 
