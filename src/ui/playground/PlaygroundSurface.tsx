@@ -12,6 +12,10 @@ import {
 } from "../../audio/AudioTransport";
 import { drumEngine } from "../../audio/DrumEngine";
 import {
+  MELODIC_PRESETS,
+  melodicEngine,
+} from "../../audio/MelodicEngine";
+import {
   DRUM_DEFAULT_SPECS,
   drumSoundStore,
 } from "../../audio/drumSoundModel";
@@ -23,7 +27,10 @@ import {
   bundledSampleById,
   type BundledSampleId,
 } from "../../audio/bundledSampleLibrary";
-import type { DrumMaterialSpec } from "../../domain/contracts";
+import type {
+  DrumMaterialSpec,
+  ScaleId,
+} from "../../domain/contracts";
 import {
   BEAT_STYLES,
   generateBeat,
@@ -41,8 +48,11 @@ import { inputActionRouter } from "../../input/InputActionRouter";
 import {
   DRUM_PADS,
   FOUNDATION_STEP_TICKS,
+  MELODIC_LANES,
   SEQUENCER_LANES,
   type DrumVoiceId,
+  type MelodicLaneDefinition,
+  type MelodicTrackId,
   type SequencerLaneDefinition,
 } from "../../music/foundationPattern";
 import { midiStore } from "../../midi/MidiStore";
@@ -105,6 +115,106 @@ const LANE_NAMES: Partial<Record<DrumVoiceId, string>> = {
   openHat: "OPEN HAT",
   percussion: "PERC",
 };
+
+const MELODIC_COLORS: Record<MelodicTrackId, string> = {
+  bass: "#ff6f8d",
+  chords: "#a58bff",
+  lead: "#63def4",
+};
+
+const NOTE_NAMES = [
+  "C",
+  "C♯",
+  "D",
+  "D♯",
+  "E",
+  "F",
+  "F♯",
+  "G",
+  "G♯",
+  "A",
+  "A♯",
+  "B",
+] as const;
+
+const KEY_OPTIONS = NOTE_NAMES.map((label, value) => ({
+  label,
+  value,
+}));
+
+const SCALE_OPTIONS: ReadonlyArray<{
+  id: ScaleId;
+  label: string;
+  intervals: readonly number[];
+}> = [
+  {
+    id: "chromatic",
+    label: "Chromatic",
+    intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  },
+  {
+    id: "major",
+    label: "Major",
+    intervals: [0, 2, 4, 5, 7, 9, 11],
+  },
+  {
+    id: "minor",
+    label: "Minor",
+    intervals: [0, 2, 3, 5, 7, 8, 10],
+  },
+  {
+    id: "majorPentatonic",
+    label: "Maj Pent",
+    intervals: [0, 2, 4, 7, 9],
+  },
+  {
+    id: "minorPentatonic",
+    label: "Min Pent",
+    intervals: [0, 3, 5, 7, 10],
+  },
+];
+
+type ChordShapeId =
+  | "major"
+  | "minor"
+  | "seventh"
+  | "minor7"
+  | "sus2"
+  | "sus4";
+
+const CHORD_SHAPES: ReadonlyArray<{
+  id: ChordShapeId;
+  label: string;
+  intervals: readonly number[];
+}> = [
+  { id: "major", label: "Maj", intervals: [0, 4, 7] },
+  { id: "minor", label: "Min", intervals: [0, 3, 7] },
+  { id: "seventh", label: "7", intervals: [0, 4, 7, 10] },
+  { id: "minor7", label: "m7", intervals: [0, 3, 7, 10] },
+  { id: "sus2", label: "sus2", intervals: [0, 2, 7] },
+  { id: "sus4", label: "sus4", intervals: [0, 5, 7] },
+];
+
+function midiNoteLabel(midi: number): string {
+  const safe = Math.max(0, Math.min(127, Math.round(midi)));
+  const name = NOTE_NAMES[safe % 12] ?? "C";
+  const octave = Math.floor(safe / 12) - 1;
+  return name + octave;
+}
+
+function pitchIsInScale(
+  midi: number,
+  rootPitchClass: number,
+  scaleId: ScaleId,
+): boolean {
+  const scale =
+    SCALE_OPTIONS.find((entry) => entry.id === scaleId) ??
+    SCALE_OPTIONS[0]!;
+  const relative =
+    (((Math.round(midi) % 12) - rootPitchClass) % 12 + 12) %
+    12;
+  return scale.intervals.includes(relative);
+}
 
 const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
   kick: [
@@ -568,6 +678,37 @@ export function PlaygroundSurface({
   });
   const [selectedVoice, setSelectedVoice] =
     useState<DrumVoiceId>("kick");
+  const [selectedMelodicLaneId, setSelectedMelodicLaneId] =
+    useState<string | null>(null);
+  const [selectedMelodicNote, setSelectedMelodicNote] =
+    useState<{ laneId: string; stepIndex: number } | null>(null);
+  const [melodicDurationSteps, setMelodicDurationSteps] =
+    useState(4);
+  const [melodicPitchCursor, setMelodicPitchCursor] =
+    useState<Record<MelodicTrackId, number>>({
+      bass: 36,
+      chords: 60,
+      lead: 72,
+    });
+  const [melodicOctaveShift, setMelodicOctaveShift] =
+    useState<Record<MelodicTrackId, number>>({
+      bass: 0,
+      chords: 0,
+      lead: 0,
+    });
+  const [chordShape, setChordShape] =
+    useState<ChordShapeId>("minor");
+  const melodicResizeCounterRef = useRef(0);
+  const melodicResizeRef = useRef<{
+    pointerId: number;
+    laneId: string;
+    stepIndex: number;
+    startX: number;
+    cellWidth: number;
+    startDurationSteps: number;
+    currentDurationSteps: number;
+    gestureId: string;
+  } | null>(null);
   const [stepPage, setStepPage] = useState(0);
   const [soundPickerVoice, setSoundPickerVoice] =
     useState<DrumVoiceId | null>(null);
@@ -1871,6 +2012,17 @@ export function PlaygroundSurface({
     [sequencer.pattern],
   );
 
+  const melodicLanes = useMemo(
+    () =>
+      MELODIC_LANES.map((definition) => ({
+        definition,
+        lane: sequencer.pattern.lanes.find(
+          (entry) => entry.id === definition.id,
+        ),
+      })).filter((entry) => Boolean(entry.lane)),
+    [sequencer.pattern],
+  );
+
   const pageSize = 16;
   const pageCount = Math.max(
     1,
@@ -1893,6 +2045,81 @@ export function PlaygroundSurface({
   const selectedSound =
     SOUND_PRESETS[selectedVoice][soundIndex[selectedVoice]]
       ?.label ?? "Custom";
+  const selectedMelodicDefinition =
+    MELODIC_LANES.find(
+      (definition) =>
+        definition.id === selectedMelodicLaneId,
+    );
+  const selectedMelodicLane =
+    selectedMelodicDefinition
+      ? sequencer.pattern.lanes.find(
+          (lane) =>
+            lane.id === selectedMelodicDefinition.id,
+        )
+      : undefined;
+  const selectedMelodicEvent =
+    selectedMelodicNote &&
+    selectedMelodicNote.laneId ===
+      selectedMelodicLaneId
+      ? selectedMelodicLane?.events.find(
+          (event) =>
+            Math.round(
+              event.tick /
+                FOUNDATION_STEP_TICKS,
+            ) === selectedMelodicNote.stepIndex,
+        )
+      : undefined;
+  const harmonicContext =
+    sequencer.pattern.harmonicContext ?? {
+      rootPitchClass: 0,
+      scaleId: "minor" as ScaleId,
+      lockToScale: true,
+    };
+  const selectedMelodicPreset =
+    selectedMelodicDefinition
+      ? (
+          MELODIC_PRESETS[
+            selectedMelodicDefinition.track
+          ].find(
+            (preset) =>
+              preset.id ===
+              selectedMelodicLane?.instrumentPresetId,
+          ) ??
+          MELODIC_PRESETS[
+            selectedMelodicDefinition.track
+          ][0]
+        )
+      : undefined;
+  const melodicPitchRows =
+    selectedMelodicDefinition
+      ? Array.from({ length: 13 }, (_, index) => {
+          const center =
+            melodicPitchCursor[
+              selectedMelodicDefinition.track
+            ] +
+            melodicOctaveShift[
+              selectedMelodicDefinition.track
+            ] *
+              12;
+          const bottom = Math.max(
+            selectedMelodicDefinition.minPitchMidi,
+            Math.min(
+              selectedMelodicDefinition.maxPitchMidi -
+                12,
+              center - 6,
+            ),
+          );
+          return Math.min(
+            selectedMelodicDefinition.maxPitchMidi,
+            bottom + 12 - index,
+          );
+        }).filter(
+          (pitch, index, values) =>
+            index === 0 ||
+            pitch !== values[index - 1],
+        )
+      : [];
+
   const favoriteSoundIndices =
     favoriteSounds[selectedVoice];
   const recentSoundIndices =
