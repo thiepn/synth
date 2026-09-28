@@ -43,9 +43,10 @@ import {
   bundledSampleById,
   type BundledSampleId,
 } from "../../audio/bundledSampleLibrary";
-import type {
-  DrumMaterialSpec,
-  ScaleId,
+import {
+  PPQ,
+  type DrumMaterialSpec,
+  type ScaleId,
 } from "../../domain/contracts";
 import {
   BEAT_STYLES,
@@ -2101,6 +2102,48 @@ export function PlaygroundSurface({
   const editRecordingLocked =
     gridRecord.status !== "idle" ||
     melodicMidiRecording;
+  const playgroundSong =
+    isPlaygroundSongBlueprint(
+      arrangement.blueprint,
+    );
+  const selectedSongSection =
+    arrangement.blueprint?.sections.find(
+      (section) =>
+        section.id ===
+        arrangement.selectedSectionId,
+    ) ??
+    arrangement.blueprint?.sections[0];
+  const selectedSongBank =
+    playgroundSong
+      ? playgroundSongBankForPatternId(
+          selectedSongSection
+            ?.patternSequence[0],
+        )
+      : undefined;
+  const songBarTicks =
+    PPQ *
+    Math.max(1, transport.meter.numerator) *
+    (4 /
+      Math.max(
+        1,
+        transport.meter.denominator,
+      ));
+  const songTotalBars =
+    arrangement.totalTicks > 0
+      ? arrangement.totalTicks /
+        Math.max(1, songBarTicks)
+      : 0;
+  const songProgress =
+    arrangement.totalTicks > 0
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            arrangementPlayback.playheadTick /
+              arrangement.totalTicks,
+          ),
+        )
+      : 0;
   const selectedDefinition =
     SEQUENCER_LANES.find(
       (definition) => definition.voice === selectedVoice,
@@ -4811,6 +4854,222 @@ export function PlaygroundSurface({
     audioTransport.setBpm(bpm);
     setNotice(Math.round(audioTransport.getSnapshot().bpm) + " BPM");
   };
+
+  const resolveSongBankPattern = (
+    bank: PlaygroundSongBank,
+  ) => {
+    if (history.activePatternBank === bank) {
+      return sequencer.pattern;
+    }
+
+    const nodeId = history.patternBanks[bank];
+    return (
+      history.nodes.find(
+        (node) => node.id === nodeId,
+      )?.pattern ?? sequencer.pattern
+    );
+  };
+
+  const buildPlaygroundSong = () => {
+    if (patternRecordingActive()) {
+      setNotice(
+        "Stop recording before building the song",
+      );
+      return;
+    }
+
+    generationHistoryStore.checkpoint(
+      sequencerStore.getSnapshot().pattern,
+      "Pattern " + history.activePatternBank,
+    );
+    const freshHistory =
+      generationHistoryStore.getSnapshot();
+    const current =
+      sequencerStore.getSnapshot().pattern;
+
+    const resolve = (
+      bank: PlaygroundSongBank,
+    ) => {
+      if (
+        freshHistory.activePatternBank === bank
+      ) {
+        return current;
+      }
+      const nodeId =
+        freshHistory.patternBanks[bank];
+      return (
+        freshHistory.nodes.find(
+          (node) => node.id === nodeId,
+        )?.pattern ?? current
+      );
+    };
+
+    const created = createPlaygroundSong({
+      bankA: resolve("A"),
+      bankB: resolve("B"),
+    });
+
+    arrangementPlaybackStore.stop();
+    arrangementStore.restoreProjectState({
+      blueprint: created.blueprint,
+      sourceFoundationId:
+        created.blueprint.id,
+      selectedSectionId:
+        created.blueprint.sections[0]?.id,
+      patterns: created.patterns,
+      edited: false,
+    });
+    setNotice("Song ready · A ×4 → B ×4");
+  };
+
+  const addSongSection = (
+    bank: PlaygroundSongBank,
+  ) => {
+    if (
+      editRecordingLocked ||
+      !playgroundSong ||
+      !arrangement.blueprint
+    ) {
+      return;
+    }
+
+    const sourceId =
+      arrangement.selectedSectionId ??
+      arrangement.blueprint.sections[0]?.id;
+    if (!sourceId) return;
+
+    arrangementStore.duplicateSection(sourceId);
+    const newId =
+      arrangementStore.getSnapshot()
+        .selectedSectionId;
+    if (newId) {
+      arrangementStore.setSectionPattern(
+        newId,
+        PLAYGROUND_SONG_PATTERN_IDS[bank],
+      );
+      setNotice("Added Pattern " + bank + " section");
+    }
+  };
+
+  const setSongSectionBank = (
+    bank: PlaygroundSongBank,
+  ) => {
+    if (
+      editRecordingLocked ||
+      !playgroundSong ||
+      !selectedSongSection
+    ) {
+      return;
+    }
+    arrangementStore.setSectionPattern(
+      selectedSongSection.id,
+      PLAYGROUND_SONG_PATTERN_IDS[bank],
+    );
+    setNotice(
+      selectedSongSection.label +
+        " · Pattern " +
+        bank,
+    );
+  };
+
+  const changeSongSectionCycles = (
+    delta: -1 | 1,
+  ) => {
+    if (
+      editRecordingLocked ||
+      !selectedSongSection
+    ) {
+      return;
+    }
+    arrangementStore.setSectionCycles(
+      selectedSongSection.id,
+      selectedSongSection.cycleCount +
+        delta,
+    );
+  };
+
+  const moveSongSection = (
+    delta: -1 | 1,
+  ) => {
+    if (
+      editRecordingLocked ||
+      !selectedSongSection
+    ) {
+      return;
+    }
+    arrangementStore.moveSection(
+      selectedSongSection.id,
+      delta,
+    );
+  };
+
+  const duplicateSongSection = () => {
+    if (
+      editRecordingLocked ||
+      !selectedSongSection
+    ) {
+      return;
+    }
+    arrangementStore.duplicateSection(
+      selectedSongSection.id,
+    );
+    setNotice("Section duplicated");
+  };
+
+  const removeSongSection = () => {
+    if (
+      editRecordingLocked ||
+      !selectedSongSection
+    ) {
+      return;
+    }
+    arrangementStore.removeSection(
+      selectedSongSection.id,
+    );
+    setNotice("Section removed");
+  };
+
+  const playSong = async (
+    sectionOnly = false,
+  ) => {
+    if (
+      editRecordingLocked ||
+      !arrangement.blueprint ||
+      arrangement.occurrences.length === 0
+    ) {
+      return;
+    }
+
+    cancelPatternPreview();
+    if (sectionOnly && selectedSongSection) {
+      await arrangementPlaybackStore.start(
+        selectedSongSection.id,
+        true,
+      );
+      setNotice(
+        "Playing " +
+          selectedSongSection.label,
+      );
+    } else {
+      await arrangementPlaybackStore.start();
+      setNotice("Playing song");
+    }
+  };
+
+  useEffect(() => {
+    if (!playgroundSong) return;
+
+    arrangementStore.upsertPattern(
+      cloneForPlaygroundSong(
+        sequencer.pattern,
+        history.activePatternBank,
+      ),
+    );
+  }, [
+    playgroundSong,
+    history.activePatternBank,
+    sequencer.revision,
+  ]);
 
   const addPatternBar = () => {
     if (patternRecordingActive()) {
