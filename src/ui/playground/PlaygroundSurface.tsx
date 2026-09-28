@@ -1455,30 +1455,33 @@ function PlaygroundFeelStrip({
       (entry) => entry.id === feel,
     ) ?? PLAYGROUND_FEELS[0];
 
+  const effectivelyStraight =
+    appliedHumanization <= 0.005 &&
+    Math.abs(
+      groove?.ghostNoteAmount ?? 0,
+    ) <= 0.005 &&
+    appliedSwing <= 0.005;
   const appliedMatchesDraft =
-    groove?.personality ===
-      preset.personality &&
-    Math.abs(
-      appliedHumanization -
-        preset.humanization,
-    ) < 0.005 &&
-    Math.abs(
-      (groove?.ghostNoteAmount ?? 0) -
-        preset.ghostNoteAmount,
-    ) < 0.005 &&
+    (
+      preset.id === "straight"
+        ? effectivelyStraight
+        : groove?.personality ===
+            preset.personality &&
+          Math.abs(
+            appliedHumanization -
+              preset.humanization,
+          ) < 0.005 &&
+          Math.abs(
+            (groove?.ghostNoteAmount ?? 0) -
+              preset.ghostNoteAmount,
+          ) < 0.005
+    ) &&
     Math.abs(
       appliedSwing - swing / 100,
     ) < 0.005;
 
   const hasAppliedFeel =
-    Math.abs(appliedHumanization) >
-      0.005 ||
-    Math.abs(
-      groove?.ghostNoteAmount ?? 0,
-    ) > 0.005 ||
-    Math.abs(appliedSwing) > 0.005 ||
-    groove?.personality ===
-      "mechanical";
+    !effectivelyStraight;
 
   const applyFeel = () => {
     if (disabled) return;
@@ -1526,13 +1529,18 @@ function PlaygroundFeelStrip({
   };
 
   const currentLabel =
-    groove?.personality
-      ? groove.personality
-          .replace("laidBack", "Laid-back")
-          .replace(/^./, (value) =>
-            value.toUpperCase(),
-          )
-      : "Straight";
+    effectivelyStraight
+      ? "Straight"
+      : groove?.personality
+        ? groove.personality
+            .replace(
+              "laidBack",
+              "Laid-back",
+            )
+            .replace(/^./, (value) =>
+              value.toUpperCase(),
+            )
+        : "Straight";
 
   return (
     <section
@@ -7674,6 +7682,11 @@ export function PlaygroundSurface({
           )}
         </div>
       </section>
+
+      <PlaygroundFeelStrip
+        disabled={editRecordingLocked}
+        onNotice={setNotice}
+      />
 
       <section
         className="playground-flow-bar"
