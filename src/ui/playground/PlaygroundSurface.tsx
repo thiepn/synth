@@ -102,8 +102,10 @@ interface PlaygroundSurfaceProps {
 
 interface SoundPreset {
   label: string;
+  source?: "synth" | "sample" | "hybrid";
   spec?: Partial<DrumMaterialSpec>;
   bundledSampleId?: BundledSampleId;
+  synthGainDb?: number;
 }
 
 const PLAY_STYLES: readonly BeatStyleId[] = [
@@ -319,6 +321,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808 Short", bundledSampleId: "tr808-kick-short" },
     { label: "808 Classic", bundledSampleId: "tr808-kick" },
     { label: "808 Long", bundledSampleId: "tr808-kick-long" },
+    { label: "808 Punch+", source: "hybrid", bundledSampleId: "tr808-kick-short", synthGainDb: -8, spec: { impact: 0.94, body: 0.9, noise: 0.035, air: 0.05, tone: 0.5, decay: 0.42, pitch: 0.38, character: 0.28 } },
   ],
   snare: [
     { label: "Core", spec: {} },
@@ -332,6 +335,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808 Dry", bundledSampleId: "tr808-snare-dry" },
     { label: "808 Snare", bundledSampleId: "tr808-snare" },
     { label: "808 Snap", bundledSampleId: "tr808-snare-snap" },
+    { label: "808 Body+", source: "hybrid", bundledSampleId: "tr808-snare-snap", synthGainDb: -10, spec: { impact: 0.8, body: 0.78, noise: 0.5, air: 0.3, tone: 0.5, decay: 0.38, pitch: 0.48, character: 0.4 } },
   ],
   clap: [
     { label: "Core", spec: {} },
@@ -343,6 +347,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Crunch", spec: { impact: 0.72, noise: 0.92, character: 0.94, tone: 0.46 } },
     { label: "Airy", spec: { air: 0.96, noise: 0.8, decay: 0.5, body: 0.12 } },
     { label: "808 Clap", bundledSampleId: "tr808-clap" },
+    { label: "808 Wide+", source: "hybrid", bundledSampleId: "tr808-clap", synthGainDb: -12, spec: { impact: 0.52, body: 0.16, noise: 0.72, air: 0.56, tone: 0.6, decay: 0.4, pitch: 0.5, character: 0.84 } },
   ],
   closedHat: [
     { label: "Core", spec: {} },
@@ -354,6 +359,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "Tiny", spec: { impact: 0.74, decay: 0.1, body: 0.08, pitch: 0.82 } },
     { label: "Bright", spec: { air: 0.98, tone: 0.94, pitch: 0.7, decay: 0.2 } },
     { label: "808 Hat", bundledSampleId: "tr808-closed-hat" },
+    { label: "808 Metal+", source: "hybrid", bundledSampleId: "tr808-closed-hat", synthGainDb: -14, spec: { impact: 0.46, body: 0.12, noise: 0.34, air: 0.66, tone: 0.78, decay: 0.18, pitch: 0.64, character: 0.72 } },
   ],
   openHat: [
     { label: "Core", spec: {} },
@@ -367,6 +373,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808 Open Short", bundledSampleId: "tr808-open-hat-short" },
     { label: "808 Open", bundledSampleId: "tr808-open-hat" },
     { label: "808 Open Long", bundledSampleId: "tr808-open-hat-long" },
+    { label: "808 Air+", source: "hybrid", bundledSampleId: "tr808-open-hat", synthGainDb: -14, spec: { impact: 0.4, body: 0.16, noise: 0.46, air: 0.82, tone: 0.74, decay: 0.58, pitch: 0.6, character: 0.72 } },
   ],
   tom: [
     { label: "Core", spec: {} },
@@ -380,6 +387,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808 Tom Low", bundledSampleId: "tr808-tom-low" },
     { label: "808 Tom", bundledSampleId: "tr808-tom" },
     { label: "808 Tom High", bundledSampleId: "tr808-tom-high" },
+    { label: "808 Body+", source: "hybrid", bundledSampleId: "tr808-tom", synthGainDb: -9, spec: { impact: 0.72, body: 0.92, noise: 0.012, air: 0.025, tone: 0.38, decay: 0.52, pitch: 0.46, character: 0.16 } },
   ],
   percussion: [
     { label: "Core", spec: {} },
@@ -394,6 +402,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808 Claves", bundledSampleId: "tr808-percussion-claves" },
     { label: "808 Cowbell", bundledSampleId: "tr808-percussion-cowbell" },
     { label: "808 Maracas", bundledSampleId: "tr808-percussion-maracas" },
+    { label: "808 Wood+", source: "hybrid", bundledSampleId: "tr808-percussion-claves", synthGainDb: -13, spec: { impact: 0.78, body: 0.62, noise: 0.012, air: 0.025, tone: 0.32, decay: 0.16, pitch: 0.5, character: 0.12 } },
   ],
   crash: [
     { label: "Core", spec: {} },
@@ -407,6 +416,7 @@ const SOUND_PRESETS: Record<DrumVoiceId, readonly SoundPreset[]> = {
     { label: "808 Cymbal Short", bundledSampleId: "tr808-crash-short" },
     { label: "808 Cymbal", bundledSampleId: "tr808-crash" },
     { label: "808 Cymbal Long", bundledSampleId: "tr808-crash-long" },
+    { label: "808 Air+", source: "hybrid", bundledSampleId: "tr808-crash", synthGainDb: -15, spec: { impact: 0.5, body: 0.14, noise: 0.58, air: 0.88, tone: 0.82, decay: 0.84, pitch: 0.62, character: 0.68 } },
   ],
 };
 
@@ -421,13 +431,31 @@ const MATERIAL_PARAMS = [
   "character",
 ] as const;
 
-function synthPresetMatches(
+function soundPresetSource(
+  preset: SoundPreset,
+): "synth" | "sample" | "hybrid" {
+  return (
+    preset.source ??
+    (preset.bundledSampleId ? "sample" : "synth")
+  );
+}
+
+function soundPresetSourceLabel(
+  preset: SoundPreset,
+): string {
+  const source = soundPresetSource(preset);
+  return source === "hybrid"
+    ? "HYBRID"
+    : source === "sample"
+      ? "808 SAMPLE"
+      : "SYNTH";
+}
+
+function synthPresetSpecMatches(
   voice: DrumVoiceId,
   preset: SoundPreset,
   actual: DrumMaterialSpec,
 ): boolean {
-  if (preset.bundledSampleId) return false;
-
   return MATERIAL_PARAMS.every((key) => {
     const expected =
       preset.spec?.[key] ??
@@ -435,6 +463,21 @@ function synthPresetMatches(
 
     return Math.abs(expected - actual[key]) < 0.0001;
   });
+}
+
+function synthPresetMatches(
+  voice: DrumVoiceId,
+  preset: SoundPreset,
+  actual: DrumMaterialSpec,
+): boolean {
+  return (
+    soundPresetSource(preset) === "synth" &&
+    synthPresetSpecMatches(
+      voice,
+      preset,
+      actual,
+    )
+  );
 }
 
 const INITIAL_SOUND_INDEX: Record<DrumVoiceId, number> = {
@@ -1841,7 +1884,8 @@ export function PlaygroundSurface({
         let resolved = -1;
 
         if (
-          source.mode === "sample" &&
+          (source.mode === "sample" ||
+            source.mode === "hybrid") &&
           source.sample
         ) {
           const asset = sampleAssets.assets.find(
@@ -1853,11 +1897,34 @@ export function PlaygroundSurface({
 
           if (bundledSampleId) {
             resolved = presets.findIndex(
-              (preset) =>
-                preset.bundledSampleId ===
-                bundledSampleId,
+              (preset) => {
+                if (
+                  preset.bundledSampleId !==
+                    bundledSampleId ||
+                  soundPresetSource(preset) !==
+                    source.mode
+                ) {
+                  return false;
+                }
+
+                if (source.mode !== "hybrid") {
+                  return true;
+                }
+
+                return (
+                  synthPresetSpecMatches(
+                    voice,
+                    preset,
+                    drumSounds.specs[voice],
+                  ) &&
+                  Math.abs(
+                    (preset.synthGainDb ?? -9) -
+                      source.synthGainDb,
+                  ) < 0.0001
+                );
+              },
             );
-          } else {
+          } else if (source.mode === "sample") {
             const assetLabel =
               asset?.reference.name.replace(
                 /\.wav$/i,
@@ -1867,6 +1934,8 @@ export function PlaygroundSurface({
             if (assetLabel) {
               resolved = presets.findIndex(
                 (preset) =>
+                  soundPresetSource(preset) ===
+                    "sample" &&
                   Boolean(preset.bundledSampleId) &&
                   preset.label === assetLabel,
               );
@@ -5500,6 +5569,7 @@ export function PlaygroundSurface({
     if (!preset) return;
 
     try {
+      const sourceMode = soundPresetSource(preset);
       if (preset.bundledSampleId) {
         await audioTransport.unlockAudio();
         const sample = bundledSampleById(
@@ -5513,6 +5583,29 @@ export function PlaygroundSurface({
 
         setSoundLoading(sample.id);
         await applyBundledSample(sample);
+
+        if (sourceMode === "hybrid") {
+          const base = DRUM_DEFAULT_SPECS[voice];
+          drumSoundStore.setSpec(voice, {
+            ...base,
+            ...(preset.spec ?? {}),
+            voice,
+            engineVersion: base.engineVersion,
+          });
+          drumSoundStore.setHybridSynthGainDb(
+            voice,
+            preset.synthGainDb ?? -9,
+          );
+          drumSoundStore.setSourceMode(
+            voice,
+            "hybrid",
+          );
+        } else {
+          drumSoundStore.setSourceMode(
+            voice,
+            "sample",
+          );
+        }
       } else {
         const base = DRUM_DEFAULT_SPECS[voice];
         drumSoundStore.setSourceMode(voice, "synth");
@@ -8899,6 +8992,19 @@ export function PlaygroundSurface({
                             soundLoading
                               ? "Loading…"
                               : preset.label}
+                            <small
+                              style={{
+                                color:
+                                  "var(--pg-muted)",
+                                fontSize: ".45rem",
+                                fontWeight: 850,
+                                letterSpacing: ".05em",
+                              }}
+                            >
+                              {soundPresetSourceLabel(
+                                preset,
+                              )}
+                            </small>
                           </button>
                           <button
                             type="button"
