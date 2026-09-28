@@ -459,6 +459,106 @@ test("Playground selection batch edits move duplicate delete and undo notes", as
   );
 });
 
+test("Playground P10 micro variation edits selected hits and step context", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Clear selected lane",
+  }).click();
+
+  const step = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="0"]',
+  );
+  await step.click();
+  await step.click({
+    modifiers: ["Shift"],
+  });
+  await expect(step).toHaveClass(/is-selected/);
+
+  await page.getByRole("button", {
+    name: "Cycle selected note chance",
+  }).click();
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /chance 75 percent/i,
+  );
+  await expect(
+    step.locator(".playground-step__variation"),
+  ).toContainText("75%");
+
+  await page.getByRole("button", {
+    name: "Cycle selected note repeat",
+  }).click();
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /repeat 2 times/i,
+  );
+  await expect(
+    step.locator(".playground-step__variation"),
+  ).toContainText("×2");
+
+  await page.getByRole("button", {
+    name: "Cycle selected note flam",
+  }).click();
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /flam 15 milliseconds/i,
+  );
+  await expect(
+    step.locator(".playground-step__variation"),
+  ).toContainText("F");
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).first().click();
+  await expect(step).not.toHaveAttribute(
+    "aria-label",
+    /flam/i,
+  );
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /chance 75 percent/i,
+  );
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /repeat 2 times/i,
+  );
+
+  await step.click({ button: "right" });
+  const menu = page.getByRole("menu", {
+    name: "Step 1 actions",
+  });
+  await expect(
+    menu.getByRole("menuitem", {
+      name: /Chance 75%/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    menu.getByRole("menuitem", {
+      name: /Repeat ×2/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    menu.getByRole("menuitem", {
+      name: /Flam Off/i,
+    }),
+  ).toBeVisible();
+
+  await menu.getByRole("menuitem", {
+    name: /Chance 75%/i,
+  }).click();
+  await expect(step).toHaveAttribute(
+    "aria-label",
+    /chance 50 percent/i,
+  );
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground melodic tracks edit pitch duration chords scale and survive drum regeneration", async ({
   page,
 }) => {
