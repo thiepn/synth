@@ -967,6 +967,91 @@ function preserveStarterLocks(
   return next;
 }
 
+function starterIntentForBank(
+  starter: PlaygroundStarterKit,
+  bank: PatternBankId,
+): BeatGenerationIntent {
+  if (bank === "A") {
+    return { ...starter.intent };
+  }
+
+  return {
+    energy: Math.min(
+      1,
+      starter.intent.energy + 0.1,
+    ),
+    density: Math.min(
+      1,
+      starter.intent.density + 0.08,
+    ),
+    complexity: Math.min(
+      1,
+      starter.intent.complexity + 0.08,
+    ),
+    syncopation: Math.min(
+      1,
+      starter.intent.syncopation + 0.06,
+    ),
+    swing: starter.intent.swing,
+  };
+}
+
+function starterPattern(
+  starter: PlaygroundStarterKit,
+  bank: PatternBankId,
+  source: Pattern,
+  stepCount: number,
+  meter: ReturnType<
+    typeof audioTransport.getSnapshot
+  >["meter"],
+): Pattern {
+  const generated = generateBeat({
+    seed:
+      "playground-starter:" +
+      starter.id +
+      ":" +
+      bank,
+    style: starter.style,
+    intent: starterIntentForBank(
+      starter,
+      bank,
+    ),
+    stepCount,
+    bpm: starter.bpm,
+    meter,
+  });
+
+  if (!generated.validation.valid) {
+    throw new Error(
+      starter.label +
+        " could not generate a valid Pattern " +
+        bank,
+    );
+  }
+
+  const locked = preserveStarterLocks(
+    source,
+    generated.pattern,
+  );
+
+  return applyGroove({
+    source: locked,
+    seed:
+      "playground-starter-groove:" +
+      starter.id +
+      ":" +
+      bank,
+    personality:
+      starter.groove.personality,
+    humanization:
+      starter.groove.humanization,
+    ghostNoteAmount:
+      starter.groove.ghostNoteAmount,
+    swing: starter.groove.swing,
+  }).pattern;
+}
+
+
 const LANE_COLORS: Record<DrumVoiceId, string> = {
   kick: "#ff5577",
   snare: "#7867ff",
