@@ -7055,6 +7055,344 @@ export function PlaygroundSurface({
     setNotice(styleLabel(nextStyle) + " beat ready");
   };
 
+  const applyStarterSound = async (
+    voice: DrumVoiceId,
+    presetIndex: number,
+    lockedVoices: ReadonlySet<DrumVoiceId>,
+  ) => {
+    if (lockedVoices.has(voice)) return;
+
+    const preset = SOUND_PRESETS[voice][presetIndex];
+    if (!preset) return;
+
+    const sourceMode = soundPresetSource(preset);
+    if (preset.bundledSampleId) {
+      await audioTransport.unlockAudio();
+      const sample = bundledSampleById(
+        preset.bundledSampleId,
+      );
+      if (!sample || sample.voice !== voice) {
+        throw new Error(
+          "Starter sound is unavailable for " +
+            voice,
+        );
+      }
+
+      await applyBundledSample(sample);
+      if (sourceMode === "hybrid") {
+        const base = DRUM_DEFAULT_SPECS[voice];
+        drumSoundStore.setSpec(voice, {
+          ...base,
+          ...(preset.spec ?? {}),
+          voice,
+          engineVersion: base.engineVersion,
+        });
+        drumSoundStore.setHybridSynthGainDb(
+          voice,
+          preset.synthGainDb ?? -9,
+        );
+        drumSoundStore.setSourceMode(
+          voice,
+          "hybrid",
+        );
+      } else {
+        drumSoundStore.setSourceMode(
+          voice,
+          "sample",
+        );
+      }
+    } else {
+      const base = DRUM_DEFAULT_SPECS[voice];
+      drumSoundStore.setSourceMode(
+        voice,
+        "synth",
+      );
+      drumSoundStore.setSpec(voice, {
+        ...base,
+        ...(preset.spec ?? {}),
+        voice,
+        engineVersion: base.engineVersion,
+      });
+    }
+
+    setSoundIndex((current) => ({
+      ...current,
+      [voice]: presetIndex,
+    }));
+    recordSoundUse(voice, presetIndex);
+  };
+
+  const applyStarterMix = (
+    starter: PlaygroundStarterKit,
+  ) => {
+    const locks =
+      mixerStore.getSnapshot().locks;
+
+    for (const [voiceKey, settings] of Object.entries(
+      starter.mix,
+    )) {
+      const voice = voiceKey as DrumVoiceId;
+      if (
+        !settings ||
+        locks.channels[voice]
+      ) {
+        continue;
+      }
+      if (settings.gainDb !== undefined) {
+        mixerStore.setChannelValue(
+          voice,
+          "gainDb",
+          settings.gainDb,
+        );
+      }
+      if (settings.pan !== undefined) {
+        mixerStore.setChannelValue(
+          voice,
+          "pan",
+          settings.pan,
+        );
+      }
+      if (
+        settings.reverbSend !== undefined
+      ) {
+        mixerStore.setChannelValue(
+          voice,
+          "reverbSend",
+          settings.reverbSend,
+        );
+      }
+    }
+
+    if (!locks.master) {
+      mixerStore.setMasterGainDb(
+        starter.masterGainDb,
+      );
+    }
+  };
+
+  const applyStarterKit = async (
+    starter: PlaygroundStarterKit,
+  ) => {
+    if (patternRecordingActive()) {
+      setNotice(
+        "Stop recording before applying a starter",
+      );
+      return;
+    }
+    if (projectBusy) return;
+
+    setProjectBusy("starter");
+
+    try {
+      if (finishOpen) {
+        renderStore.cancel();
+        setFinishOpen(false);
+      }
+      prepareProjectSwitch();
+      setStarterOpen(false);
+
+      if (
+        project.supported &&
+        project.initialized
+      ) {
+        if (
+          project.saveStatus === "conflict"
+        ) {
+          setNotice(
+            "Resolve the project conflict before applying a starter",
+          );
+          return;
+        }
+
+        const safety =
+          await projectStore.createVersion(
+            "Before starter · " +
+              starter.label,
+          );
+        if (!safety) {
+          setNotice(
+            projectStore.getSnapshot()
+              .lastError ??
+              "Could not create the starter recovery checkpoint",
+          );
+          return;
+        }
+      }
+
+      checkpointCurrentPattern(
+        "Before starter · " +
+          starter.label,
+      );
+
+      const soundLockedVoices =
+        new Set<DrumVoiceId>();
+      const historyBefore =
+        generationHistoryStore.getSnapshot();
+      const bankPatterns = [
+        sequencerStore.getSnapshot().pattern,
+        ...(["A", "B"] as const).flatMap(
+          (bank) => {
+            const nodeId =
+              historyBefore.patternBanks[bank];
+            const pattern = nodeId
+              ? historyBefore.nodes.find(
+                  (node) =>
+                    node.id === nodeId,
+                )?.pattern
+              : undefined;
+            return pattern ? [pattern] : [];
+          },
+        ),
+      ];
+      for (const pattern of bankPatterns) {
+        for (const lane of pattern.lanes) {
+          if (!lane.lock.sound) continue;
+          const voice =
+            SEQUENCER_LANES.find(
+              (definition) =>
+                definition.id === lane.id,
+            )?.voice;
+          if (voice) {
+            soundLockedVoices.add(voice);
+          }
+        }
+      }
+
+      audioTransport.setBpm(starter.bpm);
+      setStyle(starter.style);
+
+      const activeHistory =
+        generationHistoryStore.getSnapshot();
+      if (
+        activeHistory.activePatternBank !== "A"
+      ) {
+        const patternA =
+          generationHistoryStore.switchPatternBank(
+            "A",
+            sequencerStore.getSnapshot().pattern,
+          );
+        sequencerStore.restorePatternSnapshot(
+          patternA,
+        );
+      }
+
+      const sourceA =
+        sequencerStore.getSnapshot().pattern;
+      const patternA = starterPattern(
+        starter,
+        "A",
+        sourceA,
+        Math.round(
+          sourceA.lengthTicks /
+            FOUNDATION_STEP_TICKS,
+        ),
+        audioTransport.getSnapshot().meter,
+      );
+      commitCreativePattern(
+        patternA,
+        "generateBeat",
+        "STARTER A",
+        starter.label + " · Pattern A",
+      );
+
+      const duplicated =
+        generationHistoryStore
+          .duplicateActivePatternBank(
+            sequencerStore.getSnapshot()
+              .pattern,
+          );
+      sequencerStore.restorePatternSnapshot(
+        duplicated.node.pattern,
+      );
+
+      const sourceB =
+        sequencerStore.getSnapshot().pattern;
+      const patternB = starterPattern(
+        starter,
+        "B",
+        sourceB,
+        Math.round(
+          sourceB.lengthTicks /
+            FOUNDATION_STEP_TICKS,
+        ),
+        audioTransport.getSnapshot().meter,
+      );
+      commitCreativePattern(
+        patternB,
+        "generateBeat",
+        "STARTER B",
+        starter.label + " · Pattern B",
+      );
+
+      const restoredA =
+        generationHistoryStore.switchPatternBank(
+          "A",
+          sequencerStore.getSnapshot().pattern,
+        );
+      sequencerStore.restorePatternSnapshot(
+        restoredA,
+      );
+
+      for (const [voiceKey, presetIndex] of Object.entries(
+        starter.sounds,
+      )) {
+        if (
+          presetIndex === undefined
+        ) {
+          continue;
+        }
+        await applyStarterSound(
+          voiceKey as DrumVoiceId,
+          presetIndex,
+          soundLockedVoices,
+        );
+      }
+
+      applyStarterMix(starter);
+      setSelectedVoice("kick");
+      setMixLaneId("lane-kick");
+      setStepPage(0);
+      setFollowPlayhead(true);
+      setLastRemixSourceNodeId(null);
+      setRemixCounter(
+        (value) => value + 1,
+      );
+      setRemixPulse(
+        (value) => value + 1,
+      );
+      completeFirstUseAction("starter");
+
+      const livePattern =
+        sequencerStore.getSnapshot().pattern;
+      if (!playing) {
+        void drumEngine.auditionPattern(
+          livePattern,
+          starter.bpm,
+        );
+        startVisualAudition(
+          Math.round(
+            livePattern.lengthTicks /
+              FOUNDATION_STEP_TICKS,
+          ),
+          starter.bpm,
+        );
+      }
+
+      setNotice(
+        starter.label +
+          " ready · Pattern A + B",
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Starter could not be applied",
+      );
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
   const remix = () => {
     if (patternRecordingActive()) {
       setNotice("Stop recording before Remix");
