@@ -38,11 +38,15 @@ import { swingOffsetUsForStep } from "../groove/grooveEngine";
 
 interface ActiveMelodicVoice {
   epoch: number | null;
+  startTime: number;
   endTime: number;
   oscillators: OscillatorNode[];
   gain: GainNode;
   liveKey?: string;
 }
+
+const MAX_ACTIVE_MELODIC_VOICES = 24;
+const MAX_ACTIVE_MELODIC_OSCILLATORS = 144;
 
 function midiToFrequency(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
@@ -458,6 +462,27 @@ export class MelodicEngine {
   ): void {
     if (pitches.length === 0) return;
 
+    this.prune(context.currentTime);
+    const layersPerPitch =
+      1 +
+      (preset.secondaryWave ? 1 : 0) +
+      (
+        (preset.unisonGain ?? 0) > 0.001 &&
+        (preset.unisonDetuneCents ?? 0) > 0.001
+          ? 2
+          : 0
+      ) +
+      (
+        preset.subWave &&
+        (preset.subGain ?? 0) > 0.001
+          ? 1
+          : 0
+      );
+    this.enforcePolyphony(
+      context.currentTime,
+      pitches.length * layersPerPitch,
+    );
+
     const voiceGain = context.createGain();
     const filter = context.createBiquadFilter();
     const pan = context.createStereoPanner();
@@ -748,11 +773,68 @@ export class MelodicEngine {
 
     this.activeVoices.push({
       epoch,
+      startTime: start,
       endTime: start + duration + 0.03,
       oscillators,
       gain: voiceGain,
       liveKey,
     });
+  }
+
+  private enforcePolyphony(
+    now: number,
+    incomingOscillators: number,
+  ): void {
+    const activeOscillators = () =>
+      this.activeVoices.reduce(
+        (sum, voice) =>
+          sum + voice.oscillators.length,
+        0,
+      );
+
+    while (
+      this.activeVoices.length >=
+        MAX_ACTIVE_MELODIC_VOICES ||
+      activeOscillators() +
+        incomingOscillators >
+        MAX_ACTIVE_MELODIC_OSCILLATORS
+    ) {
+      const oldestIndex =
+        this.activeVoices.reduce(
+          (best, voice, index, voices) =>
+            best < 0 ||
+            voice.startTime <
+              (voices[best]?.startTime ??
+                Number.POSITIVE_INFINITY)
+              ? index
+              : best,
+          -1,
+        );
+      if (oldestIndex < 0) break;
+
+      const [voice] =
+        this.activeVoices.splice(
+          oldestIndex,
+          1,
+        );
+      if (!voice) break;
+
+      try {
+        voice.gain.gain.cancelScheduledValues(
+          now,
+        );
+        voice.gain.gain.setTargetAtTime(
+          0.0001,
+          now,
+          0.004,
+        );
+        for (const oscillator of voice.oscillators) {
+          oscillator.stop(now + 0.025);
+        }
+      } catch {
+        // Already-ended voices are safe to discard.
+      }
+    }
   }
 
   private cancelObsoleteEpoch(
