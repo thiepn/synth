@@ -3645,6 +3645,13 @@ export function PlaygroundSurface({
           ) === stepIndex,
       );
 
+  const contextStepEvent = stepContext
+    ? stepEventFor(
+        stepContext.laneId,
+        stepContext.stepIndex,
+      )
+    : undefined;
+
   const selectionInRectangle = (
     startLaneId: string,
     endLaneId: string,
@@ -8793,6 +8800,64 @@ export function PlaygroundSurface({
                   >
                     Late
                   </button>
+                  <button
+                    type="button"
+                    className="playground-selection-variation"
+                    onClick={cycleSelectedChance}
+                    disabled={
+                      editRecordingLocked ||
+                      selectedSteps.length === 0
+                    }
+                    aria-label="Cycle selected note chance"
+                    title="Chance: 100 → 75 → 50 → 25%"
+                  >
+                    Chance{" "}
+                    {selectedVariation.probability === null
+                      ? "Mix"
+                      : Math.round(
+                          selectedVariation.probability * 100,
+                        ) + "%"}
+                  </button>
+                  <button
+                    type="button"
+                    className="playground-selection-variation"
+                    onClick={cycleSelectedRepeat}
+                    disabled={
+                      editRecordingLocked ||
+                      selectedSteps.length === 0
+                    }
+                    aria-label="Cycle selected note repeat"
+                    title="Repeat: ×1 → ×2 → ×3 → ×4"
+                  >
+                    Repeat{" "}
+                    {selectedVariation.ratchetCount === null
+                      ? "Mix"
+                      : "×" +
+                        Math.round(
+                          selectedVariation.ratchetCount,
+                        )}
+                  </button>
+                  <button
+                    type="button"
+                    className="playground-selection-variation"
+                    onClick={cycleSelectedFlam}
+                    disabled={
+                      editRecordingLocked ||
+                      selectedSteps.length === 0
+                    }
+                    aria-label="Cycle selected note flam"
+                    title="Flam: Off → 15 ms → 30 ms"
+                  >
+                    Flam{" "}
+                    {selectedVariation.flamOffsetUs === null
+                      ? "Mix"
+                      : selectedVariation.flamOffsetUs <= 0
+                        ? "Off"
+                        : Math.round(
+                            selectedVariation.flamOffsetUs /
+                              1000,
+                          ) + "ms"}
+                  </button>
                 </div>
               ) : (
                 <div className="playground-selection-hint">
@@ -11308,6 +11373,67 @@ export function PlaygroundSurface({
                 ? "Add hit"
                 : "Clear step"}
             </button>
+            {contextStepEvent ? (
+              <>
+                <div
+                  className="playground-step-context__divider"
+                  role="separator"
+                />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() =>
+                    applyStepContextVariation(
+                      "chance",
+                    )
+                  }
+                >
+                  <b>?</b>
+                  Chance{" "}
+                  {Math.round(
+                    (contextStepEvent.probability ??
+                      1) * 100,
+                  )}
+                  %
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() =>
+                    applyStepContextVariation(
+                      "repeat",
+                    )
+                  }
+                >
+                  <b>↻</b>
+                  Repeat ×
+                  {Math.max(
+                    1,
+                    contextStepEvent.ratchetCount ??
+                      1,
+                  )}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() =>
+                    applyStepContextVariation(
+                      "flam",
+                    )
+                  }
+                >
+                  <b>≋</b>
+                  Flam{" "}
+                  {(contextStepEvent.flamOffsetUs ??
+                    0) > 0
+                    ? Math.round(
+                        (contextStepEvent.flamOffsetUs ??
+                          0) / 1000,
+                      ) + "ms"
+                    : "Off"}
+                </button>
+              </>
+            ) : null}
           </div>
         </>
       ) : null}
