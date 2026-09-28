@@ -444,31 +444,38 @@ export class SequencerStore {
         if (!lane) continue;
 
         for (const event of lane.events) {
-          const root = nearestScalePitch(
+          const previousRoot =
             event.pitchMidi ??
-              definition.defaultPitchMidi,
-            next,
-          );
-          event.pitchMidi = Math.max(
+            definition.defaultPitchMidi;
+          const root = Math.max(
             definition.minPitchMidi,
             Math.min(
               definition.maxPitchMidi,
-              root,
+              nearestScalePitch(
+                previousRoot,
+                next,
+              ),
             ),
           );
+          event.pitchMidi = root;
 
           if (
             definition.track === "chords" &&
             event.pitchesMidi
           ) {
+            const intervals =
+              event.pitchesMidi.map(
+                (pitch) =>
+                  pitch - previousRoot,
+              );
             event.pitchesMidi = [
               ...new Set(
-                event.pitchesMidi.map((pitch) =>
+                intervals.map((interval) =>
                   Math.max(
                     definition.minPitchMidi,
                     Math.min(
                       definition.maxPitchMidi,
-                      nearestScalePitch(pitch, next),
+                      root + interval,
                     ),
                   ),
                 ),
@@ -550,15 +557,17 @@ export class SequencerStore {
         Math.round(durationSteps),
       ),
     );
+    const requestedRoot =
+      clampMidiPitch(pitchMidi);
     const chord =
       definition.track === "chords"
         ? normalizedChordPitches(
             pitch,
-            pitchesMidi?.map((candidate) =>
-              nearestScalePitch(
-                candidate,
-                harmony,
-              ),
+            pitchesMidi?.map(
+              (candidate) =>
+                pitch +
+                (clampMidiPitch(candidate) -
+                  requestedRoot),
             ),
           )
         : undefined;
@@ -571,6 +580,44 @@ export class SequencerStore {
       if (!lane) return;
 
       const existing = eventAtStep(lane, stepIndex);
+
+      if (
+        definition.track !== "chords"
+      ) {
+        lane.events = lane.events.map(
+          (event) => {
+            if (
+              event.id === existing?.id ||
+              event.tick >=
+                stepIndex *
+                  FOUNDATION_STEP_TICKS
+            ) {
+              return event;
+            }
+
+            const duration =
+              event.durationTicks ??
+              FOUNDATION_STEP_TICKS;
+            const endTick =
+              event.tick + duration;
+            const nextTick =
+              stepIndex *
+              FOUNDATION_STEP_TICKS;
+            if (endTick <= nextTick) {
+              return event;
+            }
+
+            return {
+              ...event,
+              durationTicks: Math.max(
+                FOUNDATION_STEP_TICKS,
+                nextTick - event.tick,
+              ),
+            };
+          },
+        );
+      }
+
       const next: StepEvent = {
         ...(existing
           ? cloneStepEvent(existing)
