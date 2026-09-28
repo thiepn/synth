@@ -3747,3 +3747,83 @@
   }
   .playground-jam-pad.is-active{background:Highlight;color:HighlightText}
 }
+
+
+/* Playground P12 — session safety / recovery */
+.playground-project-recovery{
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.07)
+}
+.playground-project-recovery>header{
+  min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px
+}
+.playground-project-recovery>header small,
+.playground-project-recovery>header strong{display:block}
+.playground-project-recovery>header small{
+  margin-bottom:2px;color:#63def4;font-size:.48rem;font-weight:950;letter-spacing:.12em
+}
+.playground-project-recovery>header strong{font-size:.72rem}
+.playground-project-recovery>header>span{
+  color:var(--pg-muted);font-size:.49rem;text-align:right
+}
+.playground-project-recovery__health{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;
+  gap:6px;margin:6px 0 8px
+}
+.playground-project-recovery__health>div{
+  min-width:0;display:grid;align-content:center;gap:2px;padding:7px 9px;
+  border:1px solid rgba(255,255,255,.06);border-radius:11px;background:rgba(255,255,255,.025)
+}
+.playground-project-recovery__health b{font-size:.56rem}
+.playground-project-recovery__health small{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pg-muted);font-size:.46rem
+}
+.playground-project-recovery__health>button{
+  min-width:72px;border:1px solid rgba(99,222,244,.18);border-radius:11px;
+  background:rgba(99,222,244,.065);color:#8deaf8;cursor:pointer;font-size:.52rem;font-weight:900
+}
+.playground-project-checkpoints{display:grid;gap:5px}
+.playground-project-checkpoint{
+  min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:6px 7px 6px 10px;border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;background:rgba(255,255,255,.022)
+}
+.playground-project-checkpoint>span{min-width:0}
+.playground-project-checkpoint strong,
+.playground-project-checkpoint small{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.playground-project-checkpoint strong{font-size:.59rem}
+.playground-project-checkpoint small{margin-top:2px;color:var(--pg-muted);font-size:.46rem}
+.playground-project-checkpoint>button{
+  min-width:68px;min-height:34px;border:1px solid rgba(120,103,255,.16);
+  border-radius:9px;background:rgba(120,103,255,.07);color:#c8c2ff;
+  cursor:pointer;font-size:.5rem;font-weight:900
+}
+.playground-project-checkpoint>button:disabled,
+.playground-project-recovery__health>button:disabled{opacity:.3;cursor:default}
+.playground-project-recovery__empty{
+  margin:7px 2px 2px;color:var(--pg-muted);font-size:.52rem;line-height:1.4
+}
+@media(max-width:760px){
+  .playground-project-recovery__health{grid-template-columns:1fr 1fr}
+  .playground-project-recovery__health>button{
+    grid-column:1 / -1;min-height:44px
+  }
+  .playground-project-checkpoint{min-height:54px}
+  .playground-project-checkpoint>button{min-height:44px}
+}
+@media(prefers-contrast:more){
+  .playground-project-recovery__health>div,
+  .playground-project-checkpoint,
+  .playground-project-recovery__health>button,
+  .playground-project-checkpoint>button{border-color:rgba(255,255,255,.3)}
+}
+@media(forced-colors:active){
+  .playground-project-recovery__health>div,
+  .playground-project-checkpoint,
+  .playground-project-recovery__health>button,
+  .playground-project-checkpoint>button{
+    border-color:ButtonText;background:Canvas;color:CanvasText
+  }
+}
