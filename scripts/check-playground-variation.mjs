@@ -24,7 +24,7 @@ const required = [
   [playground, 'aria-label="Cycle selected note flam"', "P10 batch Flam control is missing."],
   [playground, 'applyStepContextVariation(', "P10 step-context variation access is missing."],
   [playground, 'className="playground-step__variation"', "P10 step variation badges are missing."],
-  [playground, 'chance " +', "P10 accessible Chance metadata is missing from step labels."],
+  [playground, '", chance " +', "P10 accessible Chance metadata is missing from step labels."],
   [playground, '" times"', "P10 accessible Repeat metadata is missing from step labels."],
   [playground, '" milliseconds"', "P10 accessible Flam metadata is missing from step labels."],
   [css, ".playground-step__variation", "P10 variation badge styling is missing."],
