@@ -53,6 +53,7 @@ const required = [
   [finish, "Project file", "P8 editable project backup escape hatch is missing."],
   [finish, "Use Studio", "P8 advanced export handoff is missing."],
   [css, ".playground-finish-panel", "P8 Finish styling is missing."],
+  [css, ".playground-finish-panel {\n    animation: none;", "P8 Finish must respect reduced-motion preference."],
   [e2e, "Playground P8 Finish exports a high quality exact WAV loop", "P8 Pattern WAV browser certification is missing."],
   [e2e, 'name: "Export full Song"', "P8 Song-range browser certification is missing."],
   [renderStore, "renderWav(", "Canonical RenderStore WAV pipeline is missing."],
@@ -104,7 +105,11 @@ if (
   !finish.includes("sequencer.revision") ||
   !finish.includes("mixer.revision") ||
   !finish.includes("mastering.revision") ||
-  !finish.includes("arrangement.revision")
+  !finish.includes("arrangement.revision") ||
+  !finish.includes("drumSounds.revision") ||
+  !finish.includes("transport.bpm") ||
+  !finish.includes("transport.meter.numerator") ||
+  !finish.includes("transport.meter.denominator")
 ) {
   failures.push(
     "Prepared WAV sharing must invalidate when musical or mix state changes.",
