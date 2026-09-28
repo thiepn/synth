@@ -29,13 +29,13 @@ const starterDefinitions =
     : "";
 
 const applyStart = playground.indexOf(
-  "const applyStarterKit = async",
+  "const applyStarterSound = async",
 );
 const applyEnd = playground.indexOf(
   "\n\n  const remix =",
   applyStart,
 );
-const applyStarter =
+const starterOrchestration =
   applyStart >= 0 && applyEnd > applyStart
     ? playground.slice(
         applyStart,
@@ -89,7 +89,7 @@ if (new Set(ids).size !== 6) {
 
 if (
   starterDefinitions.includes("Math.random(") ||
-  applyStarter.includes("Math.random(")
+  starterOrchestration.includes("Math.random(")
 ) {
   failures.push(
     "P13 starters must remain deterministic.",
@@ -97,11 +97,11 @@ if (
 }
 
 const checkpointIndex =
-  applyStarter.indexOf(
+  starterOrchestration.indexOf(
     "projectStore.createVersion",
   );
 const tempoIndex =
-  applyStarter.indexOf(
+  starterOrchestration.indexOf(
     "audioTransport.setBpm",
   );
 if (
@@ -122,7 +122,7 @@ for (const forbidden of [
 ]) {
   if (
     starterDefinitions.includes(forbidden) ||
-    applyStarter.includes(forbidden)
+    starterOrchestration.includes(forbidden)
   ) {
     failures.push(
       "P13 Starter must remain simple; advanced control leaked in: " +
