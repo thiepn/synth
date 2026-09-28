@@ -139,6 +139,56 @@ const MELODIC_COLORS: Record<MelodicTrackId, string> = {
   lead: "#63def4",
 };
 
+const SONG_PANEL_STYLE: CSSProperties = {
+  width:
+    "min(1440px, calc(100% - clamp(20px, 7vw, 108px)))",
+  margin: "10px auto 18px",
+  padding: 10,
+  border: "1px solid rgba(255,255,255,.08)",
+  borderRadius: 16,
+  background: "rgba(8,10,18,.62)",
+};
+
+const SONG_HEADER_STYLE: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 8,
+  marginBottom: 9,
+};
+
+const SONG_BUTTON_STYLE: CSSProperties = {
+  minHeight: 36,
+  padding: "0 10px",
+  border: "1px solid rgba(255,255,255,.08)",
+  borderRadius: 9,
+  background: "rgba(255,255,255,.04)",
+  color: "var(--pg-text)",
+  fontSize: ".58rem",
+  fontWeight: 850,
+  cursor: "pointer",
+};
+
+const SONG_TIMELINE_STYLE: CSSProperties = {
+  position: "relative",
+  minHeight: 76,
+  display: "flex",
+  alignItems: "stretch",
+  gap: 6,
+  overflowX: "auto",
+  padding: "5px 2px 7px",
+};
+
+const SONG_EDITOR_STYLE: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 6,
+  marginTop: 8,
+  paddingTop: 8,
+  borderTop: "1px solid rgba(255,255,255,.06)",
+};
+
 const NOTE_NAMES = [
   "C",
   "C♯",
@@ -8787,17 +8837,41 @@ export function PlaygroundSurface({
 
       <section
         className="playground-song"
+        style={SONG_PANEL_STYLE}
         aria-label="Song arrangement"
       >
-        <header className="playground-song__header">
-          <div>
-            <span>SONG</span>
+        <header
+          className="playground-song__header"
+          style={SONG_HEADER_STYLE}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: 2,
+              marginRight: "auto",
+            }}
+          >
+            <span
+              style={{
+                color: "var(--pg-muted)",
+                fontSize: ".48rem",
+                fontWeight: 900,
+                letterSpacing: ".09em",
+              }}
+            >
+              SONG
+            </span>
             <strong>
               {arrangement.blueprint
                 ? arrangement.blueprint.name
                 : "Turn A/B into a song"}
             </strong>
-            <small>
+            <small
+              style={{
+                color: "var(--pg-muted)",
+                fontSize: ".54rem",
+              }}
+            >
               {arrangement.blueprint
                 ? Math.max(
                     1,
@@ -8812,6 +8886,7 @@ export function PlaygroundSurface({
             <button
               type="button"
               className="playground-song__build"
+              style={SONG_BUTTON_STYLE}
               onClick={buildPlaygroundSong}
               disabled={editRecordingLocked}
               aria-label="Build song from Pattern A and B"
@@ -8819,7 +8894,10 @@ export function PlaygroundSurface({
               Build A/B Song
             </button>
           ) : (
-            <div className="playground-song__transport">
+            <div
+              className="playground-song__transport"
+              style={{ display: "flex", gap: 5 }}
+            >
               <button
                 type="button"
                 onClick={() => void playSong(false)}
@@ -8827,6 +8905,7 @@ export function PlaygroundSurface({
                   editRecordingLocked ||
                   arrangement.occurrences.length === 0
                 }
+                style={SONG_BUTTON_STYLE}
                 aria-label="Play full song"
               >
                 ▶ Song
@@ -8838,6 +8917,7 @@ export function PlaygroundSurface({
                   editRecordingLocked ||
                   !selectedSongSection
                 }
+                style={SONG_BUTTON_STYLE}
                 aria-label="Play selected song section"
               >
                 ▶ Section
@@ -8850,6 +8930,7 @@ export function PlaygroundSurface({
                 disabled={
                   !arrangementPlayback.engaged
                 }
+                style={SONG_BUTTON_STYLE}
                 aria-label={
                   arrangementPlayback.transportStatus ===
                   "running"
@@ -8870,6 +8951,7 @@ export function PlaygroundSurface({
                 disabled={
                   !arrangementPlayback.engaged
                 }
+                style={SONG_BUTTON_STYLE}
                 aria-label="Stop song playback"
               >
                 ■
@@ -8879,13 +8961,17 @@ export function PlaygroundSurface({
 
           {arrangement.blueprint &&
           playgroundSong ? (
-            <div className="playground-song__add">
+            <div
+              className="playground-song__add"
+              style={{ display: "flex", gap: 5 }}
+            >
               <button
                 type="button"
                 onClick={() =>
                   addSongSection("A")
                 }
                 disabled={editRecordingLocked}
+                style={SONG_BUTTON_STYLE}
                 aria-label="Add Pattern A song section"
               >
                 ＋ A
@@ -8896,6 +8982,7 @@ export function PlaygroundSurface({
                   addSongSection("B")
                 }
                 disabled={editRecordingLocked}
+                style={SONG_BUTTON_STYLE}
                 aria-label="Add Pattern B song section"
               >
                 ＋ B
@@ -8906,12 +8993,25 @@ export function PlaygroundSurface({
 
         {arrangement.blueprint ? (
           <>
-            <div className="playground-song__timeline">
+            <div
+              className="playground-song__timeline"
+              style={SONG_TIMELINE_STYLE}
+            >
               {arrangementPlayback.engaged ? (
                 <i
                   className="playground-song__playhead"
                   aria-hidden="true"
                   style={{
+                    position: "absolute",
+                    zIndex: 5,
+                    top: 2,
+                    bottom: 2,
+                    width: 2,
+                    borderRadius: 2,
+                    background: "#fff",
+                    boxShadow:
+                      "0 0 10px rgba(255,255,255,.55)",
+                    pointerEvents: "none",
                     left:
                       songProgress * 100 +
                       "%",
@@ -8956,6 +9056,31 @@ export function PlaygroundSurface({
                           1,
                           section.lengthTicks,
                         ),
+                        flexBasis: 120,
+                        minWidth: 110,
+                        minHeight: 64,
+                        display: "grid",
+                        alignContent: "center",
+                        gap: 2,
+                        padding: "7px 10px",
+                        border:
+                          "1px solid " +
+                          (active
+                            ? "rgba(99,222,244,.75)"
+                            : selected
+                              ? "rgba(165,139,255,.65)"
+                              : "rgba(255,255,255,.08)"),
+                        borderRadius: 11,
+                        background: active
+                          ? "rgba(99,222,244,.11)"
+                          : selected
+                            ? "rgba(165,139,255,.10)"
+                            : "rgba(255,255,255,.035)",
+                        color: "var(--pg-text)",
+                        textAlign: "left",
+                        cursor: editRecordingLocked
+                          ? "default"
+                          : "pointer",
                       }}
                       draggable={
                         !editRecordingLocked
@@ -9058,6 +9183,7 @@ export function PlaygroundSurface({
             {selectedSongSection ? (
               <div
                 className="playground-song__editor"
+                style={SONG_EDITOR_STYLE}
                 aria-label="Selected song section controls"
               >
                 <strong>
@@ -9067,6 +9193,7 @@ export function PlaygroundSurface({
                 {playgroundSong ? (
                   <div
                     className="playground-song__banks"
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
                     aria-label="Section pattern"
                   >
                     {(["A", "B"] as const).map(
@@ -9088,6 +9215,14 @@ export function PlaygroundSurface({
                           disabled={
                             editRecordingLocked
                           }
+                          style={{
+                            ...SONG_BUTTON_STYLE,
+                            minWidth: 38,
+                            borderColor:
+                              selectedSongBank === bank
+                                ? "#a58bff"
+                                : "rgba(255,255,255,.08)",
+                          }}
                           aria-pressed={
                             selectedSongBank ===
                             bank
@@ -9105,7 +9240,8 @@ export function PlaygroundSurface({
                   </div>
                 ) : null}
 
-                <div className="playground-song__cycles">
+                <div className="playground-song__cycles"
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <button
                     type="button"
                     onClick={() =>
@@ -9116,6 +9252,7 @@ export function PlaygroundSurface({
                       selectedSongSection.cycleCount <=
                         1
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Decrease section repeats"
                   >
                     −
@@ -9133,13 +9270,15 @@ export function PlaygroundSurface({
                       selectedSongSection.cycleCount >=
                         16
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Increase section repeats"
                   >
                     ＋
                   </button>
                 </div>
 
-                <div className="playground-song__moves">
+                <div className="playground-song__moves"
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <button
                     type="button"
                     onClick={() =>
@@ -9151,6 +9290,7 @@ export function PlaygroundSurface({
                         ?.id ===
                         selectedSongSection.id
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Move song section left"
                   >
                     ←
@@ -9167,6 +9307,7 @@ export function PlaygroundSurface({
                       )?.id ===
                         selectedSongSection.id
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Move song section right"
                   >
                     →
@@ -9177,6 +9318,7 @@ export function PlaygroundSurface({
                       duplicateSongSection
                     }
                     disabled={editRecordingLocked}
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Duplicate selected song section"
                   >
                     Duplicate
@@ -9189,13 +9331,15 @@ export function PlaygroundSurface({
                       arrangement.blueprint.sections
                         .length <= 1
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Delete selected song section"
                   >
                     Delete
                   </button>
                 </div>
 
-                <div className="playground-song__history">
+                <div className="playground-song__history"
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <button
                     type="button"
                     onClick={() =>
@@ -9205,6 +9349,7 @@ export function PlaygroundSurface({
                       editRecordingLocked ||
                       !arrangement.canUndo
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Undo song arrangement edit"
                   >
                     ↶
@@ -9218,6 +9363,7 @@ export function PlaygroundSurface({
                       editRecordingLocked ||
                       !arrangement.canRedo
                     }
+                    style={SONG_BUTTON_STYLE}
                     aria-label="Redo song arrangement edit"
                   >
                     ↷
