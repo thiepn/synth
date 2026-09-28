@@ -2891,7 +2891,7 @@ export function PlaygroundSurface({
   };
 
   const beginMelodicResize = (
-    event: ReactPointerEvent<HTMLButtonElement>,
+    event: ReactPointerEvent<HTMLElement>,
     laneId: string,
     stepIndex: number,
   ) => {
@@ -2952,7 +2952,7 @@ export function PlaygroundSurface({
   };
 
   const moveMelodicResize = (
-    event: ReactPointerEvent<HTMLButtonElement>,
+    event: ReactPointerEvent<HTMLElement>,
   ) => {
     const resize = melodicResizeRef.current;
     if (
