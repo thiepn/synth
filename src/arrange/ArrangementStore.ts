@@ -348,10 +348,6 @@ export class ArrangementStore {
 
     this.captureUndo();
     section.role = role;
-    section.label =
-      role === "preChorus"
-        ? "PRE-CHORUS"
-        : role.toUpperCase();
     this.markEditedAndPublish();
   }
 
