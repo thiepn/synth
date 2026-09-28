@@ -3360,3 +3360,108 @@
   .playground-mix-strip,.playground-mix-strip__identity,.playground-mix-control,.playground-mix-monitor{border-color:ButtonText}
   .playground-mix-monitor button.is-active{background:Highlight;color:HighlightText}
 }
+
+
+/* Playground P8 — finish / export flow */
+.playground-finish-panel{
+  position:relative;z-index:11;
+  width:min(980px,calc(100% - clamp(36px,7vw,108px)));
+  margin:10px auto 0;padding:12px;
+  border:1px solid rgba(120,103,255,.24);border-radius:20px;
+  background:linear-gradient(135deg,rgba(120,103,255,.09),rgba(8,10,18,.94) 48%);
+  box-shadow:0 18px 52px rgba(0,0,0,.26);
+  animation:playground-coach-in 180ms ease-out
+}
+.playground-finish-panel__header{
+  min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:0 2px 10px;border-bottom:1px solid rgba(255,255,255,.07)
+}
+.playground-finish-panel__header>div{min-width:0;display:grid;gap:2px}
+.playground-finish-panel__header span{color:#9c93ff;font-size:.48rem;font-weight:950;letter-spacing:.14em}
+.playground-finish-panel__header strong{font-size:1.04rem;letter-spacing:-.02em}
+.playground-finish-panel__header small{color:var(--pg-muted);font-size:.54rem}
+.playground-finish-panel__header>button{
+  width:38px;height:38px;flex:0 0 38px;border:0;border-radius:11px;
+  background:rgba(255,255,255,.06);color:var(--pg-text);cursor:pointer;font-size:1.1rem
+}
+.playground-finish-range{display:flex;gap:7px;margin-top:10px}
+.playground-finish-range>button{
+  min-width:140px;min-height:54px;display:grid;align-content:center;gap:2px;padding:6px 12px;
+  border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(255,255,255,.03);
+  color:var(--pg-text);cursor:pointer;text-align:left
+}
+.playground-finish-range>button.is-active{
+  border-color:rgba(120,103,255,.48);background:rgba(120,103,255,.13)
+}
+.playground-finish-range strong{font-size:.67rem}
+.playground-finish-range span{color:var(--pg-muted);font-size:.5rem}
+.playground-finish-loop{
+  min-height:48px;margin-top:7px;display:flex;align-items:center;gap:10px;padding:7px 10px;
+  border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(255,255,255,.025);cursor:pointer
+}
+.playground-finish-loop input{width:18px;height:18px;accent-color:#7867ff}
+.playground-finish-loop>span{display:grid;gap:2px}
+.playground-finish-loop strong{font-size:.6rem}
+.playground-finish-loop small{color:var(--pg-muted);font-size:.5rem}
+.playground-finish-warning{
+  margin-top:8px;padding:9px 10px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;
+  border:1px solid rgba(255,216,74,.2);border-radius:12px;background:rgba(255,216,74,.055)
+}
+.playground-finish-warning>strong{color:#ffd84a;font-size:.58rem}
+.playground-finish-warning>span{color:var(--pg-muted);font-size:.52rem;line-height:1.35}
+.playground-finish-warning>div{display:flex;gap:5px}
+.playground-finish-warning button,.playground-finish-progress button,.playground-finish-advanced button{
+  min-height:32px;padding:0 9px;border:1px solid rgba(255,255,255,.08);border-radius:9px;
+  background:rgba(255,255,255,.045);color:var(--pg-text);cursor:pointer;font-size:.52rem;font-weight:850
+}
+.playground-finish-actions{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:7px;margin-top:9px}
+.playground-finish-actions>button{
+  min-width:0;min-height:66px;display:flex;align-items:center;gap:9px;padding:9px 11px;
+  border:1px solid rgba(255,255,255,.075);border-radius:13px;background:rgba(255,255,255,.035);
+  color:var(--pg-text);cursor:pointer;text-align:left
+}
+.playground-finish-actions>button:hover:not(:disabled){background:rgba(255,255,255,.065)}
+.playground-finish-actions>button:disabled{opacity:.36;cursor:default}
+.playground-finish-actions>button>span:first-child{
+  width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;
+  background:rgba(255,255,255,.06);color:#9c93ff;font-size:.86rem
+}
+.playground-finish-actions>button>span:last-child{min-width:0;display:grid;gap:2px}
+.playground-finish-actions strong{font-size:.64rem}
+.playground-finish-actions small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pg-muted);font-size:.49rem}
+.playground-finish-actions>.playground-finish-primary{
+  border-color:rgba(99,222,244,.24);
+  background:linear-gradient(135deg,rgba(99,222,244,.09),rgba(120,103,255,.08))
+}
+.playground-finish-actions>.playground-finish-primary>span:first-child{color:#63def4}
+.playground-finish-progress,.playground-finish-result{
+  min-height:38px;margin-top:8px;display:flex;align-items:center;gap:10px;padding:5px 8px;
+  border-radius:10px;background:rgba(255,255,255,.025)
+}
+.playground-finish-progress>span{margin-right:auto;color:#63def4;font-size:.53rem;font-weight:900}
+.playground-finish-error{
+  margin:8px 0 0;padding:8px 10px;border:1px solid rgba(255,85,119,.24);border-radius:10px;
+  background:rgba(255,85,119,.065);color:#ff879e;font-size:.55rem
+}
+.playground-finish-result{color:var(--pg-muted);font-size:.51rem}
+.playground-finish-result>span+span::before{content:"·";margin-right:10px;color:rgba(255,255,255,.25)}
+.playground-finish-advanced{margin:9px 2px 0;color:var(--pg-muted);font-size:.5rem}
+.playground-finish-advanced button{margin-left:4px;min-height:28px}
+@media(max-width:760px){
+  .playground-finish-panel{width:calc(100% - 20px);padding:9px;border-radius:16px}
+  .playground-finish-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .playground-finish-range>button{min-width:0;min-height:52px}
+  .playground-finish-actions{grid-template-columns:1fr}
+  .playground-finish-actions>button{min-height:58px}
+  .playground-finish-warning{grid-template-columns:1fr}
+  .playground-finish-warning>div{width:100%}
+  .playground-finish-warning button{flex:1;min-height:44px}
+  .playground-finish-panel button,.playground-finish-loop{touch-action:manipulation}
+  .playground-finish-panel__header>button{width:44px;height:44px;flex-basis:44px}
+  .playground-finish-result{flex-wrap:wrap}
+}
+@media(forced-colors:active){
+  .playground-finish-panel,.playground-finish-range>button,.playground-finish-loop,
+  .playground-finish-actions>button,.playground-finish-warning{border-color:ButtonText}
+  .playground-finish-range>button.is-active,.playground-finish-actions>.playground-finish-primary{background:Highlight;color:HighlightText}
+}
