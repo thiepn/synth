@@ -8049,6 +8049,8 @@ export function PlaygroundSurface({
               !project.supported ||
               project.saveStatus === "conflict"
             }
+            aria-label="Create recovery checkpoint"
+            title="Save a named recovery checkpoint"
           >
             <span aria-hidden="true">◇</span>
             Snapshot
@@ -8205,9 +8207,126 @@ export function PlaygroundSurface({
               </p>
             )}
 
+            <section
+              className="playground-project-recovery"
+              aria-label="Recovery checkpoints"
+            >
+              <header>
+                <div>
+                  <small>RECOVERY</small>
+                  <strong>Checkpoints</strong>
+                </div>
+                <span>
+                  {project.lastSavedAt
+                    ? "Autosaved " +
+                      shortProjectTime(
+                        project.lastSavedAt,
+                      )
+                    : projectSaveLabel(
+                        project.saveStatus,
+                        project.dirty,
+                      )}
+                </span>
+              </header>
+
+              <div className="playground-project-recovery__health">
+                <div>
+                  <b>
+                    {project.saveStatus === "clean"
+                      ? "Autosave on"
+                      : projectSaveLabel(
+                          project.saveStatus,
+                          project.dirty,
+                        )}
+                  </b>
+                  <small>
+                    {project.saveStatus === "conflict"
+                      ? "Resolve the project conflict before restoring."
+                      : "Edits save automatically after a short pause."}
+                  </small>
+                </div>
+                <div>
+                  <b>
+                    {project.storage.persisted
+                      ? "Storage protected"
+                      : "Best-effort storage"}
+                  </b>
+                  <small>
+                    {projectStorageLabel(
+                      project.storage,
+                    )}
+                  </small>
+                </div>
+                {persistentStorageAvailable &&
+                project.supported &&
+                !project.storage.persisted ? (
+                  <button
+                    type="button"
+                    disabled={Boolean(projectBusy)}
+                    onClick={() =>
+                      void protectProjectStorage()
+                    }
+                    aria-label="Protect local project storage"
+                  >
+                    Protect
+                  </button>
+                ) : null}
+              </div>
+
+              {recentCheckpoints.length > 0 ? (
+                <div className="playground-project-checkpoints">
+                  {recentCheckpoints.map(
+                    (version) => (
+                      <div
+                        key={version.id}
+                        className="playground-project-checkpoint"
+                      >
+                        <span>
+                          <strong>
+                            {version.name}
+                          </strong>
+                          <small>
+                            {shortProjectTime(
+                              version.createdAt,
+                            )}
+                            {" · REV "}
+                            {version.sourceRevision}
+                          </small>
+                        </span>
+                        <button
+                          type="button"
+                          disabled={
+                            Boolean(projectBusy) ||
+                            project.saveStatus ===
+                              "conflict"
+                          }
+                          onClick={() =>
+                            void restoreRecoveryCheckpoint(
+                              version.id,
+                              version.name,
+                            )
+                          }
+                          aria-label={
+                            "Restore checkpoint " +
+                            version.name
+                          }
+                        >
+                          Restore
+                        </button>
+                      </div>
+                    ),
+                  )}
+                </div>
+              ) : (
+                <p className="playground-project-recovery__empty">
+                  No checkpoints yet. Snapshot saves one without interrupting your beat.
+                </p>
+              )}
+            </section>
+
             <footer>
               <span>
-                Full project library, versions and
+                Full project library, checkpoint cleanup and
                 imports are available in Studio.
               </span>
               <button
