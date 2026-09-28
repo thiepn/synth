@@ -16,6 +16,11 @@ import {
   DRUM_MATERIAL_PARAMS,
 } from "../audio/drumSoundModel";
 import {
+  drumVelocityGain,
+  drumVelocityImpact,
+  drumVelocityTone,
+} from "../audio/velocityResponse";
+import {
   MELODIC_PRESETS,
   melodicFilterEnvelopeVelocityScale,
   melodicPresetStereoWidth,
@@ -315,10 +320,6 @@ function materialDecay(
   return min + range * clamp01(
     spec.decay * 0.72 + macro * 0.28,
   );
-}
-
-function velocityGain(velocity: number): number {
-  return 0.22 + clamp01(velocity) * 0.78;
 }
 
 function graphFor(
@@ -662,10 +663,10 @@ function scheduleKick(
 ): void {
   const context = graph.context;
   const spec = resolveMaterial(snapshot, voice, tick);
-  const tone = materialTone(snapshot, spec, tick);
-  const impact = materialImpact(snapshot, spec, tick);
+  const tone = drumVelocityTone(materialTone(snapshot, spec, tick), velocity);
+  const impact = drumVelocityImpact(materialImpact(snapshot, spec, tick), velocity);
   const decay = materialDecay(snapshot, spec, tick, 0.16, 0.68);
-  const amp = velocityGain(velocity);
+  const amp = drumVelocityGain(velocity);
   const baseHz = 37 + spec.pitch * 28;
   const pitchStart = baseHz * (2.1 + impact * 2.8);
 
@@ -733,8 +734,8 @@ function scheduleSnareLike(
 ): void {
   const context = graph.context;
   const spec = resolveMaterial(snapshot, voice, tick);
-  const tone = materialTone(snapshot, spec, tick);
-  const impact = materialImpact(snapshot, spec, tick);
+  const tone = drumVelocityTone(materialTone(snapshot, spec, tick), velocity);
+  const impact = drumVelocityImpact(materialImpact(snapshot, spec, tick), velocity);
   const decay = materialDecay(
     snapshot,
     spec,
@@ -742,7 +743,7 @@ function scheduleSnareLike(
     voice === "snare" ? 0.09 : 0.08,
     voice === "snare" ? 0.42 : 0.34,
   );
-  const amp = velocityGain(velocity);
+  const amp = drumVelocityGain(velocity);
 
   const noise = context.createBufferSource();
   noise.buffer = graph.noiseBuffer;
@@ -803,7 +804,7 @@ function scheduleHat(
 ): void {
   const context = graph.context;
   const spec = resolveMaterial(snapshot, voice, tick);
-  const tone = materialTone(snapshot, spec, tick);
+  const tone = drumVelocityTone(materialTone(snapshot, spec, tick), velocity);
   const isOpen = voice === "openHat";
   const isCrash = voice === "crash";
   const decay = isCrash
@@ -811,7 +812,7 @@ function scheduleHat(
     : isOpen
       ? materialDecay(snapshot, spec, tick, 0.16, 0.78)
       : materialDecay(snapshot, spec, tick, 0.022, 0.095);
-  const amp = velocityGain(velocity);
+  const amp = drumVelocityGain(velocity);
 
   const noise = context.createBufferSource();
   noise.buffer = graph.noiseBuffer;
@@ -855,10 +856,10 @@ function scheduleTom(
   const context = graph.context;
   const voice: DrumVoiceId = "tom";
   const spec = resolveMaterial(snapshot, voice, tick);
-  const tone = materialTone(snapshot, spec, tick);
-  const impact = materialImpact(snapshot, spec, tick);
+  const tone = drumVelocityTone(materialTone(snapshot, spec, tick), velocity);
+  const impact = drumVelocityImpact(materialImpact(snapshot, spec, tick), velocity);
   const decay = materialDecay(snapshot, spec, tick, 0.18, 0.65);
-  const amp = velocityGain(velocity);
+  const amp = drumVelocityGain(velocity);
   const base = 72 + spec.pitch * 110;
 
   const osc = context.createOscillator();
@@ -893,9 +894,9 @@ function schedulePercussion(
   const context = graph.context;
   const voice: DrumVoiceId = "percussion";
   const spec = resolveMaterial(snapshot, voice, tick);
-  const tone = materialTone(snapshot, spec, tick);
+  const tone = drumVelocityTone(materialTone(snapshot, spec, tick), velocity);
   const decay = materialDecay(snapshot, spec, tick, 0.05, 0.32);
-  const amp = velocityGain(velocity);
+  const amp = drumVelocityGain(velocity);
   const carrier = context.createOscillator();
   const modulator = context.createOscillator();
   const modGain = context.createGain();
