@@ -35,6 +35,12 @@ const required = [
   [playground, 'aria-label={label + " pan"}', "P7 track Pan control is missing."],
   [playground, 'aria-label={label + " space"}', "P7 track Space control is missing."],
   [playground, 'aria-label="Playground master level"', "P7 master level control is missing."],
+  [playground, "mixerStore.setChannelMute(", "P7 drum mute must remain unified with MixerStore."],
+  [playground, "mixerStore.setChannelSolo(", "P7 drum solo must remain unified with MixerStore."],
+  [playground, 'max="6"', "P7 master control must cover the canonical MixerStore range."],
+  [drumEngine, "limiter.threshold.value = -1.5", "Realtime P7 master safety limiter is missing."],
+  [offline, "includeMastering || includeSafetyLimiter", "Offline P7 safety limiter routing is missing."],
+  [offline, ": -1.5", "Offline P7 fallback safety ceiling is missing."],
   [css, ".playground-mix-strip", "P7 mix strip styling is missing."],
   [e2e, "Playground P7 mix strip controls drum melodic and master balance", "P7 browser certification is missing."],
 ];
@@ -119,6 +125,15 @@ if (
 ) {
   failures.push(
     "Live/export melodic Space parity is incomplete.",
+  );
+}
+
+if (
+  !drumEngine.includes("limiter.ratio.value = 20") ||
+  !offline.includes("limiter.ratio.value = 20")
+) {
+  failures.push(
+    "P7 output safety limiting must remain active in realtime and offline paths.",
   );
 }
 
