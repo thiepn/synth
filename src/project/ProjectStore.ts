@@ -512,6 +512,7 @@ export class ProjectStore {
 
       await localProjectDatabase.saveVersion(version);
       await this.refreshVersions();
+      await this.refreshStorageEstimate();
       this.publish();
       return this.versions.find(
         (entry) => entry.id === version.id,
