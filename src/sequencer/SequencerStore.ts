@@ -2337,6 +2337,9 @@ export class SequencerStore {
       ),
     );
     const generated = clonePattern(nextPattern);
+    generated.harmonicContext = {
+      ...this.getHarmonicContext(),
+    };
 
     generated.lanes = generated.lanes.map((lane) => {
       const current = currentById.get(lane.id);
