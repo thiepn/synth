@@ -524,6 +524,16 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
 
   await expect(
     bassRoll.getByRole("button", {
+      name: /BASS note C2 step 1, length (?!1\/4).+/i,
+    }),
+  ).toBeVisible();
+
+  await bassRoll.getByRole("button", {
+    name: "1/2",
+    exact: true,
+  }).click();
+  await expect(
+    bassRoll.getByRole("button", {
       name: /BASS note C2 step 1, length 1\/2/i,
     }),
   ).toBeVisible();
