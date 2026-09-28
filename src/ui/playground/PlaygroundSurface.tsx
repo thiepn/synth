@@ -8232,6 +8232,7 @@ export function PlaygroundSurface({
     }
     setMomentaryMonitor(null);
     setSoundPickerVoice(null);
+    setStarterOpen(false);
   };
 
   const createFreshProject = async () => {
@@ -9170,6 +9171,29 @@ export function PlaygroundSurface({
         aria-label="Pattern experimentation controls"
       >
         <div className="playground-pattern-banks">
+          <button
+            type="button"
+            className={
+              starterOpen
+                ? "playground-starter-toggle is-active"
+                : "playground-starter-toggle"
+            }
+            disabled={
+              editRecordingLocked ||
+              Boolean(projectBusy)
+            }
+            onClick={() => {
+              setStarterOpen(
+                (current) => !current,
+              );
+              pulseHaptic(5);
+            }}
+            aria-expanded={starterOpen}
+            aria-controls="playground-starter-kits"
+            aria-label="Toggle musical starter kits"
+          >
+            ✦ Starter
+          </button>
           <span>Pattern</span>
           {(["A", "B"] as const).map((bank) => (
             <button
@@ -9258,6 +9282,84 @@ export function PlaygroundSurface({
           )}
         </div>
       </section>
+
+      {starterOpen ? (
+        <section
+          id="playground-starter-kits"
+          className="playground-starter-panel"
+          aria-label="Musical starter kits"
+        >
+          <header>
+            <div>
+              <span>START FAST</span>
+              <strong>
+                Pick a musical starting point.
+              </strong>
+              <small>
+                Creates editable Pattern A + B, sounds, Feel and a basic mix.
+              </small>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setStarterOpen(false)
+              }
+              aria-label="Close starter kits"
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="playground-starter-list">
+            {PLAYGROUND_STARTERS.map(
+              (starter) => (
+                <button
+                  type="button"
+                  key={starter.id}
+                  className="playground-starter-card"
+                  disabled={
+                    editRecordingLocked ||
+                    Boolean(projectBusy)
+                  }
+                  onClick={() =>
+                    void applyStarterKit(
+                      starter,
+                    )
+                  }
+                  aria-label={
+                    "Apply starter " +
+                    starter.label
+                  }
+                >
+                  <span>
+                    {styleLabel(
+                      starter.style,
+                    )}
+                  </span>
+                  <strong>
+                    {starter.label}
+                  </strong>
+                  <small>
+                    {starter.tagline}
+                  </small>
+                  <b>
+                    {starter.bpm} BPM · A/B
+                  </b>
+                </button>
+              ),
+            )}
+          </div>
+
+          <footer>
+            <span>
+              Existing lane, sound and mix locks are respected.
+            </span>
+            <span>
+              A recovery checkpoint is created first when project storage is available.
+            </span>
+          </footer>
+        </section>
+      ) : null}
 
       <PlaygroundFeelStrip
         disabled={editRecordingLocked}
