@@ -2463,9 +2463,31 @@ export class SequencerStore {
       draft.lengthTicks = nextLength * FOUNDATION_STEP_TICKS;
 
       for (const lane of draft.lanes) {
-        lane.events = lane.events.filter(
-          (event) => event.tick < draft.lengthTicks,
-        );
+        lane.events = lane.events
+          .filter(
+            (event) =>
+              event.tick < draft.lengthTicks,
+          )
+          .map((event) => {
+            if (!melodicLaneDefinitionById(lane.id)) {
+              return event;
+            }
+            const remaining = Math.max(
+              FOUNDATION_STEP_TICKS,
+              draft.lengthTicks - event.tick,
+            );
+            return {
+              ...event,
+              durationTicks: Math.max(
+                FOUNDATION_STEP_TICKS,
+                Math.min(
+                  event.durationTicks ??
+                    FOUNDATION_STEP_TICKS,
+                  remaining,
+                ),
+              ),
+            };
+          });
 
         // A lane explicitly matching the old Pattern length is musically
         // equivalent to inheriting it. Let it grow with the Pattern so
