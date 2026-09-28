@@ -4920,6 +4920,23 @@ export function PlaygroundSurface({
     );
   };
 
+  const syncPlaygroundSongPatterns = () => {
+    if (!playgroundSong) return;
+
+    arrangementStore.upsertPattern(
+      cloneForPlaygroundSong(
+        resolveSongBankPattern("A"),
+        "A",
+      ),
+    );
+    arrangementStore.upsertPattern(
+      cloneForPlaygroundSong(
+        resolveSongBankPattern("B"),
+        "B",
+      ),
+    );
+  };
+
   const buildPlaygroundSong = () => {
     if (patternRecordingActive()) {
       setNotice(
@@ -5077,23 +5094,41 @@ export function PlaygroundSurface({
   const playSong = async (
     sectionOnly = false,
   ) => {
+    if (editRecordingLocked) return;
+
+    if (playgroundSong) {
+      syncPlaygroundSongPatterns();
+    }
+
+    const live =
+      arrangementStore.getSnapshot();
     if (
-      editRecordingLocked ||
-      !arrangement.blueprint ||
-      arrangement.occurrences.length === 0
+      !live.blueprint ||
+      live.occurrences.length === 0
     ) {
+      setNotice(
+        "Song has no playable sections yet",
+      );
       return;
     }
 
+    const liveSelected =
+      live.blueprint.sections.find(
+        (section) =>
+          section.id ===
+          live.selectedSectionId,
+      ) ??
+      live.blueprint.sections[0];
+
     cancelPatternPreview();
-    if (sectionOnly && selectedSongSection) {
+    if (sectionOnly && liveSelected) {
       await arrangementPlaybackStore.start(
-        selectedSongSection.id,
+        liveSelected.id,
         true,
       );
       setNotice(
         "Playing " +
-          selectedSongSection.label,
+          liveSelected.label,
       );
     } else {
       await arrangementPlaybackStore.start();
@@ -5104,15 +5139,12 @@ export function PlaygroundSurface({
   useEffect(() => {
     if (!playgroundSong) return;
 
-    arrangementStore.upsertPattern(
-      cloneForPlaygroundSong(
-        sequencer.pattern,
-        history.activePatternBank,
-      ),
-    );
+    syncPlaygroundSongPatterns();
   }, [
     playgroundSong,
     history.activePatternBank,
+    history.patternBanks.A,
+    history.patternBanks.B,
     sequencer.revision,
   ]);
 
