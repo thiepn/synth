@@ -1777,6 +1777,30 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   expect(humanFeelBox).not.toBeNull();
   expect(humanFeelBox!.height).toBeGreaterThanOrEqual(44);
 
+  await page.getByRole("button", {
+    name: "Toggle live jam controls",
+  }).click();
+  const mobileJam = page.getByRole("region", {
+    name: "Live jam controls",
+  });
+  await expect(mobileJam).toBeVisible();
+  const mobileStutter = mobileJam.getByRole(
+    "button",
+    {
+      name: /Stutter\. Hold for beat-quantized live effect\./i,
+    },
+  );
+  await mobileStutter.scrollIntoViewIfNeeded();
+  const mobileStutterBox =
+    await mobileStutter.boundingBox();
+  expect(mobileStutterBox).not.toBeNull();
+  expect(
+    mobileStutterBox!.height,
+  ).toBeGreaterThanOrEqual(44);
+  await page.getByRole("button", {
+    name: "Toggle live jam controls",
+  }).click();
+
   const touchMode = page.getByRole("button", {
     name: "Touch edit mode: draw",
   });
