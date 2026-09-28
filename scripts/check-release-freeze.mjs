@@ -56,6 +56,8 @@ const contracts = [
   ["src/project/projectTypes.ts", "SYNTH_PROJECT_DOCUMENT_VERSION"],
   ["package.json", '"check:playground"'],
   ["package.json", '"check:sound"'],
+  ["package.json", '"check:mix"'],
+  ["scripts/check-playground-mix.mjs", "P7 mix contracts verified"],
   ["scripts/check-sound-quality.mjs", "P6 sound-quality contracts verified"],
   ["package.json", '"qa:playground"'],
   ["package.json", '"qa:e2e"'],
