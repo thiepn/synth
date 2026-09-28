@@ -2557,6 +2557,457 @@ export function PlaygroundSurface({
     }
   };
 
+  const melodicDurationLabel = (
+    steps: number,
+  ): string =>
+    steps === 1
+      ? "1/16"
+      : steps === 2
+        ? "1/8"
+        : steps === 4
+          ? "1/4"
+          : steps === 8
+            ? "1/2"
+            : steps === 16
+              ? "1 BAR"
+              : steps + " steps";
+
+  const chordPitchesForRoot = (
+    rootPitch: number,
+  ): number[] => {
+    const shape =
+      CHORD_SHAPES.find(
+        (entry) => entry.id === chordShape,
+      ) ?? CHORD_SHAPES[1]!;
+    return shape.intervals.map(
+      (interval) => rootPitch + interval,
+    );
+  };
+
+  const melodicEventPitches = (
+    definition: MelodicLaneDefinition,
+    event: typeof selectedMelodicEvent,
+  ): number[] => {
+    if (!event) return [];
+    return event.pitchesMidi &&
+      event.pitchesMidi.length > 0
+      ? [...event.pitchesMidi]
+      : [
+          event.pitchMidi ??
+            definition.defaultPitchMidi,
+        ];
+  };
+
+  const auditionMelodic = (
+    definition: MelodicLaneDefinition,
+    pitches: readonly number[],
+    durationSteps = melodicDurationSteps,
+    velocity = 0.76,
+  ) => {
+    const durationSeconds =
+      Math.max(1, durationSteps) *
+      (60 / Math.max(30, transport.bpm) / 4);
+    void melodicEngine.triggerNow(
+      definition.id,
+      pitches,
+      durationSeconds,
+      velocity,
+    );
+  };
+
+  const selectMelodicTrack = (
+    laneId: string,
+  ) => {
+    const definition = MELODIC_LANES.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!definition) return;
+    setSelectedMelodicLaneId(laneId);
+    setSelectedMelodicNote(null);
+    setSoundPickerVoice(null);
+    clearSelection();
+    setNotice(
+      definition.name + " piano roll",
+    );
+  };
+
+  const createMelodicNoteAt = (
+    laneId: string,
+    stepIndex: number,
+    pitchMidi: number,
+  ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      setNotice("Stop recording before editing melodic notes");
+      return;
+    }
+
+    const definition = MELODIC_LANES.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!definition) return;
+
+    const pitches =
+      definition.track === "chords"
+        ? chordPitchesForRoot(pitchMidi)
+        : undefined;
+    const changed = sequencerStore.setMelodicNote(
+      laneId,
+      stepIndex,
+      pitchMidi,
+      melodicDurationSteps,
+      pitches,
+    );
+    if (!changed) {
+      setNotice("Melodic note is locked or unchanged");
+      return;
+    }
+
+    const event = sequencerStore.getMelodicEvent(
+      laneId,
+      stepIndex,
+    );
+    setSelectedMelodicLaneId(laneId);
+    setSelectedMelodicNote({
+      laneId,
+      stepIndex,
+    });
+    setMelodicPitchCursor((current) => ({
+      ...current,
+      [definition.track]:
+        event?.pitchMidi ?? pitchMidi,
+    }));
+    const auditionPitches = event
+      ? melodicEventPitches(definition, event)
+      : pitches ?? [pitchMidi];
+    auditionMelodic(
+      definition,
+      auditionPitches,
+      melodicDurationSteps,
+      event?.velocity ?? 0.76,
+    );
+    pulseHaptic(6);
+    setNotice(
+      definition.name +
+        " · " +
+        auditionPitches
+          .map(midiNoteLabel)
+          .join(" / ") +
+        " · " +
+        melodicDurationLabel(melodicDurationSteps),
+    );
+  };
+
+  const removeSelectedMelodicNote = () => {
+    if (!selectedMelodicNote) return;
+    if (
+      sequencerStore.removeMelodicNote(
+        selectedMelodicNote.laneId,
+        selectedMelodicNote.stepIndex,
+      )
+    ) {
+      setSelectedMelodicNote(null);
+      pulseHaptic(5);
+      setNotice("Melodic note removed");
+    } else {
+      setNotice("Melodic note is locked");
+    }
+  };
+
+  const changeSelectedMelodicPitch = (
+    delta: number,
+  ) => {
+    if (
+      !selectedMelodicDefinition ||
+      !selectedMelodicNote ||
+      !selectedMelodicEvent
+    ) {
+      return;
+    }
+
+    const currentPitch =
+      selectedMelodicEvent.pitchMidi ??
+      selectedMelodicDefinition.defaultPitchMidi;
+    const nextPitch =
+      currentPitch + delta;
+    if (
+      !sequencerStore.setMelodicPitch(
+        selectedMelodicNote.laneId,
+        selectedMelodicNote.stepIndex,
+        nextPitch,
+      )
+    ) {
+      return;
+    }
+
+    const event = sequencerStore.getMelodicEvent(
+      selectedMelodicNote.laneId,
+      selectedMelodicNote.stepIndex,
+    );
+    if (!event) return;
+    setMelodicPitchCursor((current) => ({
+      ...current,
+      [selectedMelodicDefinition.track]:
+        event.pitchMidi ?? nextPitch,
+    }));
+    auditionMelodic(
+      selectedMelodicDefinition,
+      melodicEventPitches(
+        selectedMelodicDefinition,
+        event,
+      ),
+      Math.max(
+        1,
+        Math.round(
+          (event.durationTicks ??
+            FOUNDATION_STEP_TICKS) /
+            FOUNDATION_STEP_TICKS,
+        ),
+      ),
+      event.velocity,
+    );
+  };
+
+  const applyChordShape = (
+    nextShape: ChordShapeId,
+  ) => {
+    setChordShape(nextShape);
+    if (
+      !selectedMelodicDefinition ||
+      selectedMelodicDefinition.track !== "chords" ||
+      !selectedMelodicNote ||
+      !selectedMelodicEvent
+    ) {
+      return;
+    }
+
+    const shape =
+      CHORD_SHAPES.find(
+        (entry) => entry.id === nextShape,
+      ) ?? CHORD_SHAPES[1]!;
+    const root =
+      selectedMelodicEvent.pitchMidi ??
+      selectedMelodicDefinition.defaultPitchMidi;
+    const pitches = shape.intervals.map(
+      (interval) => root + interval,
+    );
+    if (
+      sequencerStore.setMelodicChordPitches(
+        selectedMelodicNote.laneId,
+        selectedMelodicNote.stepIndex,
+        pitches,
+      )
+    ) {
+      const event = sequencerStore.getMelodicEvent(
+        selectedMelodicNote.laneId,
+        selectedMelodicNote.stepIndex,
+      );
+      if (event) {
+        auditionMelodic(
+          selectedMelodicDefinition,
+          melodicEventPitches(
+            selectedMelodicDefinition,
+            event,
+          ),
+          Math.max(
+            1,
+            Math.round(
+              (event.durationTicks ??
+                FOUNDATION_STEP_TICKS) /
+                FOUNDATION_STEP_TICKS,
+            ),
+          ),
+          event.velocity,
+        );
+      }
+    }
+  };
+
+  const cycleMelodicPreset = (
+    definition: MelodicLaneDefinition,
+    direction: -1 | 1,
+  ) => {
+    const lane = sequencer.pattern.lanes.find(
+      (entry) => entry.id === definition.id,
+    );
+    if (!lane) return;
+    const presets =
+      MELODIC_PRESETS[definition.track];
+    const currentIndex = Math.max(
+      0,
+      presets.findIndex(
+        (preset) =>
+          preset.id === lane.instrumentPresetId,
+      ),
+    );
+    const nextIndex =
+      (currentIndex + direction + presets.length) %
+      presets.length;
+    const next = presets[nextIndex];
+    if (!next) return;
+
+    if (
+      sequencerStore.setMelodicInstrumentPreset(
+        definition.id,
+        next.id,
+      )
+    ) {
+      const pitches =
+        selectedMelodicNote?.laneId ===
+          definition.id &&
+        selectedMelodicEvent
+          ? melodicEventPitches(
+              definition,
+              selectedMelodicEvent,
+            )
+          : [
+              melodicPitchCursor[
+                definition.track
+              ],
+            ];
+      auditionMelodic(
+        definition,
+        pitches,
+        Math.min(4, melodicDurationSteps),
+      );
+      setNotice(
+        definition.name + " sound · " + next.label,
+      );
+    }
+  };
+
+  const setMelodicHarmony = (
+    update: {
+      rootPitchClass?: number;
+      scaleId?: ScaleId;
+      lockToScale?: boolean;
+    },
+  ) => {
+    if (
+      sequencerStore.setHarmonicContext(update)
+    ) {
+      setSelectedMelodicNote(null);
+      setNotice("Key / scale updated");
+    }
+  };
+
+  const beginMelodicResize = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    laneId: string,
+    stepIndex: number,
+  ) => {
+    if (gridRecorder.getSnapshot().status !== "idle") {
+      return;
+    }
+    const note = sequencerStore.getMelodicEvent(
+      laneId,
+      stepIndex,
+    );
+    const grid = event.currentTarget.closest(
+      ".playground-piano-grid",
+    ) as HTMLElement | null;
+    if (!note || !grid) return;
+
+    const visibleSteps = Math.max(
+      1,
+      Math.min(
+        pageSize,
+        sequencer.lengthSteps - pageStart,
+      ),
+    );
+    const rect = grid.getBoundingClientRect();
+    const startDurationSteps = Math.max(
+      1,
+      Math.round(
+        (note.durationTicks ??
+          FOUNDATION_STEP_TICKS) /
+          FOUNDATION_STEP_TICKS,
+      ),
+    );
+    const gestureId =
+      "melodic-resize-" +
+      String(
+        ++melodicResizeCounterRef.current,
+      ).padStart(6, "0");
+
+    sequencerStore.beginPaintGesture(
+      gestureId,
+    );
+    melodicResizeRef.current = {
+      pointerId: event.pointerId,
+      laneId,
+      stepIndex,
+      startX: event.clientX,
+      cellWidth:
+        rect.width / visibleSteps,
+      startDurationSteps,
+      currentDurationSteps:
+        startDurationSteps,
+      gestureId,
+    };
+    event.currentTarget.setPointerCapture?.(
+      event.pointerId,
+    );
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const moveMelodicResize = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const resize = melodicResizeRef.current;
+    if (
+      !resize ||
+      resize.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    const delta = Math.round(
+      (event.clientX - resize.startX) /
+        Math.max(1, resize.cellWidth),
+    );
+    const next = Math.max(
+      1,
+      Math.min(
+        sequencer.lengthSteps -
+          resize.stepIndex,
+        resize.startDurationSteps + delta,
+      ),
+    );
+    if (next === resize.currentDurationSteps) {
+      return;
+    }
+    resize.currentDurationSteps = next;
+    sequencerStore.setMelodicDurationSteps(
+      resize.laneId,
+      resize.stepIndex,
+      next,
+      resize.gestureId,
+    );
+  };
+
+  const finishMelodicResize = (
+    pointerId: number,
+  ) => {
+    const resize = melodicResizeRef.current;
+    if (
+      !resize ||
+      resize.pointerId !== pointerId
+    ) {
+      return;
+    }
+    sequencerStore.endPaintGesture(
+      resize.gestureId,
+    );
+    melodicResizeRef.current = null;
+    setNotice(
+      "Note length · " +
+        melodicDurationLabel(
+          resize.currentDurationSteps,
+        ),
+    );
+  };
+
   useEffect(() => {
     setSelectedSteps((current) =>
       current.filter(
