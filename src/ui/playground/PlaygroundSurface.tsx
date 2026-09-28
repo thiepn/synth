@@ -18,6 +18,24 @@ import {
   drumSoundStore,
 } from "../../audio/drumSoundModel";
 import { useTransportSnapshot } from "../../audio/useTransport";
+import {
+  arrangementStore,
+} from "../../arrange/ArrangementStore";
+import {
+  arrangementPlaybackStore,
+} from "../../arrange/ArrangementPlaybackStore";
+import {
+  useArrangementPlaybackSnapshot,
+  useArrangementSnapshot,
+} from "../../arrange/useArrangement";
+import {
+  PLAYGROUND_SONG_PATTERN_IDS,
+  cloneForPlaygroundSong,
+  createPlaygroundSong,
+  isPlaygroundSongBlueprint,
+  playgroundSongBankForPatternId,
+  type PlaygroundSongBank,
+} from "../../arrange/playgroundArrangement";
 import { useDrumSoundSnapshot } from "../../audio/useDrumSounds";
 import { useSampleAssetSnapshot } from "../../audio/useSampleAssets";
 import {
@@ -661,6 +679,9 @@ export function PlaygroundSurface({
   const drumSounds = useDrumSoundSnapshot();
   const sampleAssets = useSampleAssetSnapshot();
   const history = useGenerationHistorySnapshot();
+  const arrangement = useArrangementSnapshot();
+  const arrangementPlayback =
+    useArrangementPlaybackSnapshot();
   const project = useProjectSnapshot();
   const [style, setStyle] = useState<BeatStyleId>("funk");
   const [remixCounter, setRemixCounter] = useState(0);
@@ -714,6 +735,8 @@ export function PlaygroundSurface({
     });
   const [chordShape, setChordShape] =
     useState<ChordShapeId>("minor");
+  const [songDraggingSectionId, setSongDraggingSectionId] =
+    useState<string | null>(null);
   const melodicResizeCounterRef = useRef(0);
   const melodicResizeRef = useRef<{
     pointerId: number;
