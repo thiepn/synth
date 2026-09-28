@@ -135,10 +135,12 @@ function deterministicTimingOffsetUs(
   definition: GroovePersonalityDefinition,
 ): number {
   const base = baseEvent(event);
+  if (lane.lock.timing) {
+    return event.timingOffsetUs;
+  }
   if (
     request.humanization <= 0 ||
-    definition.timingScale <= 0 ||
-    lane.lock.timing
+    definition.timingScale <= 0
   ) {
     return base.timingOffsetUs;
   }
@@ -177,10 +179,12 @@ function deterministicVelocity(
   definition: GroovePersonalityDefinition,
 ): number {
   const base = baseEvent(event);
+  if (lane.lock.dynamics) {
+    return event.velocity;
+  }
   if (
     request.humanization <= 0 ||
-    definition.velocityScale <= 0 ||
-    lane.lock.dynamics
+    definition.velocityScale <= 0
   ) {
     return base.velocity;
   }
@@ -431,18 +435,43 @@ export function resetGroove(source: Pattern): Pattern {
     const retained: StepEvent[] = [];
 
     for (const event of lane.events) {
-      if (isGeneratedGrooveGhost(event)) continue;
-
-      if (event.grooveBase) {
-        event.velocity = event.grooveBase.velocity;
-        event.timingOffsetUs = event.grooveBase.timingOffsetUs;
-        event.accent = event.grooveBase.accent;
-        delete event.grooveBase;
+      if (isGeneratedGrooveGhost(event)) {
+        if (lane.lock.rhythm) {
+          retained.push(event);
+        }
+        continue;
       }
 
-      event.generatorTags = event.generatorTags?.filter(
-        (tag) => !tag.startsWith("groove-engine"),
-      );
+      if (event.grooveBase) {
+        if (!lane.lock.dynamics) {
+          event.velocity =
+            event.grooveBase.velocity;
+          event.accent =
+            event.grooveBase.accent;
+        }
+        if (!lane.lock.timing) {
+          event.timingOffsetUs =
+            event.grooveBase.timingOffsetUs;
+        }
+
+        if (
+          !lane.lock.dynamics &&
+          !lane.lock.timing
+        ) {
+          delete event.grooveBase;
+        }
+      }
+
+      if (
+        !lane.lock.dynamics &&
+        !lane.lock.timing
+      ) {
+        event.generatorTags =
+          event.generatorTags?.filter(
+            (tag) =>
+              !tag.startsWith("groove-engine"),
+          );
+      }
       retained.push(event);
     }
 
