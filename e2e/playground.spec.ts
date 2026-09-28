@@ -475,6 +475,7 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
 
   await bassRoll.getByRole("button", {
     name: "Add BASS C2 at step 1",
+    exact: true,
   }).click();
 
   let bassNote = bassRoll.getByRole("button", {
@@ -537,6 +538,7 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
 
   await chordRoll.getByRole("button", {
     name: "Add CHORDS C4 at step 1",
+    exact: true,
   }).click();
   await expect(
     chordRoll.locator(".playground-piano-note"),
