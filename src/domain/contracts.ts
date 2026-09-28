@@ -25,6 +25,9 @@ export type InstrumentRole =
   | "tom"
   | "cymbal"
   | "percussion"
+  | "bass"
+  | "chords"
+  | "lead"
   | "fx"
   | "custom";
 
@@ -42,6 +45,10 @@ export interface StepEvent {
   id: EntityId;
   tick: Tick;
   durationTicks?: Tick;
+  /** Optional MIDI pitch for melodic note events. */
+  pitchMidi?: number;
+  /** Optional chord pitches. When present, pitchMidi is the chord root. */
+  pitchesMidi?: number[];
   velocity: Normalized;
   probability: Normalized;
   timingOffsetUs: Microseconds;
@@ -73,6 +80,8 @@ export interface PatternLane {
   role: InstrumentRole;
   /** Rhythms target a semantic kit slot, not a concrete sound. */
   kitSlotId: EntityId;
+  /** Optional melodic instrument preset persisted with the lane. */
+  instrumentPresetId?: string;
   events: StepEvent[];
   /** Optional independent lane loop length for polymetric playback. */
   loopLengthTicks?: Tick;
