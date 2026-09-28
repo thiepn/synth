@@ -1,7 +1,9 @@
 import type {
   DrumMaterialSpec,
+  PatternLane,
   SampleSoundSpec,
   SoundSpec,
+  StepEvent,
   SynthSoundSpec,
 } from "../domain/contracts";
 import { PPQ } from "../domain/contracts";
@@ -14,8 +16,13 @@ import {
   DRUM_MATERIAL_PARAMS,
 } from "../audio/drumSoundModel";
 import {
+  MELODIC_PRESETS,
+} from "../audio/MelodicEngine";
+import {
   DRUM_PADS,
   FOUNDATION_STEP_TICKS,
+  MELODIC_LANES,
+  melodicLaneDefinitionById,
   type DrumVoiceId,
 } from "../music/foundationPattern";
 import {
@@ -31,6 +38,9 @@ import {
   getPatternHitsForAbsoluteStep,
   type PatternPlaybackHit,
 } from "../sequencer/patternPlayback";
+import {
+  eventPassesProbability,
+} from "../sequencer/playbackRules";
 import type {
   RenderAnalysis,
   RenderOccurrence,
@@ -1149,6 +1159,129 @@ function scheduleSound(
   return longest;
 }
 
+function melodicMidiToFrequency(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function scheduleOfflineMelodic(
+  graph: OfflineGraph,
+  lane: PatternLane,
+  event: StepEvent,
+  at: number,
+  durationSeconds: number,
+  velocity: number,
+): number {
+  const definition = melodicLaneDefinitionById(lane.id);
+  if (!definition) return 0;
+  const presets = MELODIC_PRESETS[definition.track];
+  const preset =
+    presets.find(
+      (entry) => entry.id === lane.instrumentPresetId,
+    ) ??
+    presets.find(
+      (entry) => entry.id === definition.defaultPresetId,
+    ) ??
+    presets[0];
+  if (!preset) return 0;
+
+  const pitches =
+    event.pitchesMidi && event.pitchesMidi.length > 0
+      ? [...event.pitchesMidi]
+      : [
+          event.pitchMidi ??
+            definition.defaultPitchMidi,
+        ];
+  const uniquePitches = [
+    ...new Set(
+      pitches.map((pitch) =>
+        Math.max(0, Math.min(127, Math.round(pitch))),
+      ),
+    ),
+  ].slice(0, 6);
+  if (uniquePitches.length === 0) return 0;
+
+  const context = graph.context;
+  const start = Math.max(0, at);
+  const duration = Math.max(0.035, durationSeconds);
+  const attack = Math.min(
+    duration * 0.35,
+    Math.max(0.002, preset.attackSeconds),
+  );
+  const release = Math.min(
+    Math.max(0.025, preset.releaseSeconds),
+    Math.max(0.025, duration * 0.45),
+  );
+  const releaseStart = Math.max(
+    start + attack,
+    start + duration - release,
+  );
+  const gain = context.createGain();
+  const filter = context.createBiquadFilter();
+  const pan = context.createStereoPanner();
+  const peak =
+    preset.gain *
+    clamp01(velocity) /
+    Math.max(1, Math.sqrt(uniquePitches.length));
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(preset.filterHz, start);
+  filter.Q.setValueAtTime(preset.resonance, start);
+  pan.pan.setValueAtTime(
+    lane.role === "chords"
+      ? -0.08
+      : lane.role === "lead"
+        ? 0.08
+        : 0,
+    start,
+  );
+
+  gain.gain.setValueAtTime(MIN_GAIN, start);
+  gain.gain.linearRampToValueAtTime(
+    peak,
+    start + attack,
+  );
+  gain.gain.setValueAtTime(peak, releaseStart);
+  gain.gain.exponentialRampToValueAtTime(
+    MIN_GAIN,
+    start + duration,
+  );
+
+  filter.connect(pan);
+  pan.connect(gain);
+  gain.connect(graph.input);
+
+  for (const pitch of uniquePitches) {
+    const frequency = melodicMidiToFrequency(pitch);
+    const primary = context.createOscillator();
+    primary.type = preset.wave;
+    primary.frequency.setValueAtTime(frequency, start);
+    primary.connect(filter);
+    primary.start(start);
+    primary.stop(start + duration + 0.02);
+
+    if (preset.secondaryWave) {
+      const secondary = context.createOscillator();
+      const secondaryGain = context.createGain();
+      secondary.type = preset.secondaryWave;
+      secondary.frequency.setValueAtTime(
+        frequency,
+        start,
+      );
+      secondary.detune.setValueAtTime(
+        preset.detuneCents ?? 0,
+        start,
+      );
+      secondaryGain.gain.value = 0.32;
+      secondary.connect(secondaryGain);
+      secondaryGain.connect(filter);
+      secondary.start(start);
+      secondary.stop(start + duration + 0.02);
+    }
+  }
+
+  return duration + release;
+}
+
 function sectionEnergy(
   occurrence: RenderOccurrence,
   tick: number,
@@ -1463,6 +1596,87 @@ export async function renderSnapshot(
               at + event.hit.flamOffsetUs / 1_000_000,
               ratchetVelocity * 0.72,
               options.stemVoice,
+            ),
+          );
+        }
+      }
+    }
+
+    if (!options.stemVoice) {
+      const soloActive =
+        occurrence.pattern.lanes.some(
+          (lane) => lane.solo,
+        );
+
+      for (const definition of MELODIC_LANES) {
+        const lane = occurrence.pattern.lanes.find(
+          (entry) => entry.id === definition.id,
+        );
+        if (!lane || lane.muted) continue;
+        if (soloActive && !lane.solo) continue;
+
+        for (const note of lane.events) {
+          const localStep = Math.round(
+            note.tick / FOUNDATION_STEP_TICKS,
+          );
+          const tick =
+            occurrence.startTick + note.tick;
+          if (
+            tick < renderStartTick ||
+            tick >= snapshot.endTick
+          ) {
+            continue;
+          }
+          if (
+            !eventPassesProbability(
+              occurrence.pattern.id,
+              lane.id,
+              note,
+              occurrence.occurrenceIndex * 1024,
+            )
+          ) {
+            continue;
+          }
+
+          const swingUs = swingOffsetUsForStep(
+            localStep,
+            snapshot.bpm,
+            occurrence.pattern.groove?.swing ?? 0,
+          );
+          const eventTime =
+            (tick - renderStartTick) *
+              secondsPerTickValue +
+            (swingUs + note.timingOffsetUs) /
+              1_000_000;
+          if (eventTime < 0) continue;
+
+          const energy = sectionEnergy(
+            occurrence,
+            tick,
+          );
+          const velocity = Math.min(
+            1,
+            note.velocity *
+              (occurrence.sectionId
+                ? 0.68 + energy * 0.42
+                : 1),
+          );
+          const durationSeconds =
+            Math.max(
+              FOUNDATION_STEP_TICKS,
+              note.durationTicks ??
+                FOUNDATION_STEP_TICKS,
+            ) * secondsPerTickValue;
+
+          longestScheduledTail = Math.max(
+            longestScheduledTail,
+            scheduleOfflineMelodic(
+              graph,
+              lane,
+              note,
+              eventTime,
+              durationSeconds,
+              velocity,
             ),
           );
         }
