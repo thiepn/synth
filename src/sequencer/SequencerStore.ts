@@ -80,6 +80,12 @@ export type SequencerStepDynamic =
   | "normal"
   | "accent";
 
+export interface SequencerStepVariation {
+  probability?: number;
+  ratchetCount?: number;
+  flamOffsetUs?: number;
+}
+
 export interface SequencerSnapshot {
   pattern: Pattern;
   lengthSteps: SequencerLengthSteps;
@@ -1691,8 +1697,8 @@ export class SequencerStore {
     laneId: string,
     stepIndex: number,
     probability: number,
-  ): void {
-    this.updateAdvancedEvent(
+  ): boolean {
+    return this.updateAdvancedEvent(
       laneId,
       stepIndex,
       "probability",
@@ -1704,8 +1710,8 @@ export class SequencerStore {
     laneId: string,
     stepIndex: number,
     count: number,
-  ): void {
-    this.updateAdvancedEvent(
+  ): boolean {
+    return this.updateAdvancedEvent(
       laneId,
       stepIndex,
       "ratchetCount",
@@ -1717,8 +1723,8 @@ export class SequencerStore {
     laneId: string,
     stepIndex: number,
     offsetUs: number,
-  ): void {
-    this.updateAdvancedEvent(
+  ): boolean {
+    return this.updateAdvancedEvent(
       laneId,
       stepIndex,
       "flamOffsetUs",
@@ -1730,13 +1736,133 @@ export class SequencerStore {
     laneId: string,
     stepIndex: number,
     offsetUs: number,
-  ): void {
-    this.updateAdvancedEvent(
+  ): boolean {
+    return this.updateAdvancedEvent(
       laneId,
       stepIndex,
       "timingOffsetUs",
       clampManualTimingOffsetUs(offsetUs),
     );
+  }
+
+  applySelectedVariation(
+    selection: readonly SequencerStepSelection[],
+    variation: SequencerStepVariation,
+  ): boolean {
+    if (selection.length === 0) return false;
+
+    const probability =
+      variation.probability === undefined
+        ? undefined
+        : Math.max(
+            0,
+            Math.min(1, variation.probability),
+          );
+    const ratchetCount =
+      variation.ratchetCount === undefined
+        ? undefined
+        : Math.max(
+            1,
+            Math.min(
+              4,
+              Math.round(variation.ratchetCount),
+            ),
+          );
+    const flamOffsetUs =
+      variation.flamOffsetUs === undefined
+        ? undefined
+        : Math.max(
+            0,
+            Math.min(
+              40_000,
+              Math.round(variation.flamOffsetUs),
+            ),
+          );
+
+    if (
+      probability === undefined &&
+      ratchetCount === undefined &&
+      flamOffsetUs === undefined
+    ) {
+      return false;
+    }
+
+    const unique = new Map<
+      string,
+      SequencerStepSelection
+    >();
+    for (const entry of selection) {
+      if (!this.isValidStep(entry.stepIndex)) {
+        continue;
+      }
+      unique.set(
+        entry.laneId + ":" + entry.stepIndex,
+        entry,
+      );
+    }
+    if (unique.size === 0) return false;
+
+    let existingCount = 0;
+    for (const entry of unique.values()) {
+      const lane = this.pattern.lanes.find(
+        (candidate) =>
+          candidate.id === entry.laneId,
+      );
+      const event = lane
+        ? eventAtStep(lane, entry.stepIndex)
+        : undefined;
+      if (!lane || !event) continue;
+      existingCount += 1;
+
+      if (
+        (probability !== undefined ||
+          ratchetCount !== undefined) &&
+        lane.lock.rhythm
+      ) {
+        return false;
+      }
+      if (
+        flamOffsetUs !== undefined &&
+        lane.lock.timing
+      ) {
+        return false;
+      }
+    }
+    if (existingCount === 0) return false;
+
+    const beforeRevision = this.revision;
+    this.commit((draft) => {
+      for (const entry of unique.values()) {
+        const lane = draft.lanes.find(
+          (candidate) =>
+            candidate.id === entry.laneId,
+        );
+        if (!lane) continue;
+        const event = eventAtStep(
+          lane,
+          entry.stepIndex,
+        );
+        if (!event) continue;
+
+        if (probability !== undefined) {
+          event.probability = probability;
+        }
+        if (ratchetCount !== undefined) {
+          event.ratchetCount =
+            ratchetCount <= 1
+              ? undefined
+              : ratchetCount;
+        }
+        if (flamOffsetUs !== undefined) {
+          event.flamOffsetUs =
+            flamOffsetUs <= 0
+              ? undefined
+              : flamOffsetUs;
+        }
+      }
+    });
+
+    return this.revision !== beforeRevision;
   }
 
   getLaneLengthSteps(laneId: string): number {
@@ -2967,40 +3093,94 @@ export class SequencerStore {
     stepIndex: number,
     key: "probability" | "ratchetCount" | "flamOffsetUs" | "timingOffsetUs",
     value: number,
-  ): void {
-    if (!this.isValidStep(stepIndex)) return;
+  ): boolean {
+    if (!this.isValidStep(stepIndex)) return false;
 
+    const sourceLane = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!sourceLane) return false;
+    const sourceEvent = eventAtStep(
+      sourceLane,
+      stepIndex,
+    );
+
+    const rhythmParameter =
+      key === "probability" ||
+      key === "ratchetCount";
+    const timingParameter =
+      key === "flamOffsetUs" ||
+      key === "timingOffsetUs";
+
+    if (
+      rhythmParameter &&
+      sourceLane.lock.rhythm
+    ) {
+      return false;
+    }
+    if (
+      timingParameter &&
+      sourceLane.lock.timing
+    ) {
+      return false;
+    }
+    if (
+      !sourceEvent &&
+      sourceLane.lock.rhythm
+    ) {
+      return false;
+    }
+
+    const beforeRevision = this.revision;
     this.commit(
       (draft) => {
-        const lane = draft.lanes.find((entry) => entry.id === laneId);
+        const lane = draft.lanes.find(
+          (entry) => entry.id === laneId,
+        );
         if (!lane) return;
-        let event = eventAtStep(lane, stepIndex);
+        let event = eventAtStep(
+          lane,
+          stepIndex,
+        );
         if (!event) {
           event = createStepEvent(
             laneId,
             stepIndex,
-            laneDefaultVelocity(laneId, stepIndex),
+            laneDefaultVelocity(
+              laneId,
+              stepIndex,
+            ),
           );
           lane.events.push(event);
-          lane.events.sort((a, b) => a.tick - b.tick);
+          lane.events.sort(
+            (a, b) => a.tick - b.tick,
+          );
         }
 
         if (key === "timingOffsetUs") {
           event.timingOffsetUs = value;
           delete event.grooveBase;
-          event.generatorTags = event.generatorTags?.filter(
-            (tag) => !tag.startsWith("groove-engine"),
-          );
+          event.generatorTags =
+            event.generatorTags?.filter(
+              (tag) =>
+                !tag.startsWith(
+                  "groove-engine",
+                ),
+            );
         } else if (key === "probability") {
           event.probability = value;
         } else if (key === "ratchetCount") {
-          event.ratchetCount = value <= 1 ? undefined : value;
+          event.ratchetCount =
+            value <= 1 ? undefined : value;
         } else {
-          event.flamOffsetUs = value <= 0 ? undefined : value;
+          event.flamOffsetUs =
+            value <= 0 ? undefined : value;
         }
       },
       key + ":" + laneId + ":" + stepIndex,
     );
+
+    return this.revision !== beforeRevision;
   }
 
   private isValidStep(stepIndex: number): boolean {
