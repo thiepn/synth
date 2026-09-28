@@ -3574,6 +3574,77 @@ export function PlaygroundSurface({
     [selectedSteps],
   );
 
+  const selectedVariation = useMemo(() => {
+    const events = selectedSteps.flatMap((entry) => {
+      const lane = sequencer.pattern.lanes.find(
+        (candidate) => candidate.id === entry.laneId,
+      );
+      const event = lane?.events.find(
+        (candidate) =>
+          Math.round(
+            candidate.tick / FOUNDATION_STEP_TICKS,
+          ) === entry.stepIndex,
+      );
+      return event ? [event] : [];
+    });
+
+    const shared = (
+      values: readonly number[],
+      fallback: number,
+    ): number | null => {
+      if (values.length === 0) return fallback;
+      const first = values[0] ?? fallback;
+      return values.every(
+        (value) =>
+          Math.abs(value - first) < 0.0001,
+      )
+        ? first
+        : null;
+    };
+
+    return {
+      probability: shared(
+        events.map(
+          (event) => event.probability ?? 1,
+        ),
+        1,
+      ),
+      ratchetCount: shared(
+        events.map(
+          (event) =>
+            Math.max(
+              1,
+              event.ratchetCount ?? 1,
+            ),
+        ),
+        1,
+      ),
+      flamOffsetUs: shared(
+        events.map(
+          (event) =>
+            Math.max(
+              0,
+              event.flamOffsetUs ?? 0,
+            ),
+        ),
+        0,
+      ),
+    };
+  }, [selectedSteps, sequencer.pattern]);
+
+  const stepEventFor = (
+    laneId: string,
+    stepIndex: number,
+  ) =>
+    sequencer.pattern.lanes
+      .find((lane) => lane.id === laneId)
+      ?.events.find(
+        (event) =>
+          Math.round(
+            event.tick / FOUNDATION_STEP_TICKS,
+          ) === stepIndex,
+      );
+
   const selectionInRectangle = (
     startLaneId: string,
     endLaneId: string,
@@ -3980,6 +4051,194 @@ export function PlaygroundSurface({
     } else {
       setNotice("Selected timing is locked");
     }
+  };
+
+  const cycleSelectedChance = () => {
+    if (!batchEditingAllowed()) return;
+    const current =
+      selectedVariation.probability;
+    const next =
+      current === null
+        ? 0.75
+        : current >= 0.99
+          ? 0.75
+          : current >= 0.74
+            ? 0.5
+            : current >= 0.49
+              ? 0.25
+              : 1;
+    if (
+      sequencerStore.applySelectedVariation(
+        selectedSteps,
+        { probability: next },
+      )
+    ) {
+      setNotice(
+        "Selection chance · " +
+          Math.round(next * 100) +
+          "%",
+      );
+    } else {
+      setNotice(
+        "Chance is blocked by a rhythm lock",
+      );
+    }
+  };
+
+  const cycleSelectedRepeat = () => {
+    if (!batchEditingAllowed()) return;
+    const current =
+      selectedVariation.ratchetCount;
+    const next =
+      current === null
+        ? 2
+        : current >= 4
+          ? 1
+          : Math.max(
+              1,
+              Math.round(current) + 1,
+            );
+    if (
+      sequencerStore.applySelectedVariation(
+        selectedSteps,
+        { ratchetCount: next },
+      )
+    ) {
+      setNotice(
+        "Selection repeat · ×" + next,
+      );
+    } else {
+      setNotice(
+        "Repeat is blocked by a rhythm lock",
+      );
+    }
+  };
+
+  const cycleSelectedFlam = () => {
+    if (!batchEditingAllowed()) return;
+    const current =
+      selectedVariation.flamOffsetUs;
+    const next =
+      current === null
+        ? 15_000
+        : current <= 0
+          ? 15_000
+          : current <= 15_000
+            ? 30_000
+            : 0;
+    if (
+      sequencerStore.applySelectedVariation(
+        selectedSteps,
+        { flamOffsetUs: next },
+      )
+    ) {
+      setNotice(
+        next > 0
+          ? "Selection flam · " +
+              Math.round(next / 1000) +
+              " ms"
+          : "Selection flam off",
+      );
+    } else {
+      setNotice(
+        "Flam is blocked by a timing lock",
+      );
+    }
+  };
+
+  const applyStepContextVariation = (
+    kind: "chance" | "repeat" | "flam",
+  ) => {
+    if (patternRecordingActive()) {
+      setStepContext(null);
+      setNotice(
+        "Stop recording to edit step variation",
+      );
+      return;
+    }
+    const context = stepContext;
+    if (!context) return;
+    const event = stepEventFor(
+      context.laneId,
+      context.stepIndex,
+    );
+    if (!event) {
+      setNotice("Add a hit before adding variation");
+      setStepContext(null);
+      return;
+    }
+
+    const selection = [{
+      laneId: context.laneId,
+      stepIndex: context.stepIndex,
+    }];
+    let changed = false;
+    let noticeText = "";
+
+    if (kind === "chance") {
+      const current = event.probability ?? 1;
+      const next =
+        current >= 0.99
+          ? 0.75
+          : current >= 0.74
+            ? 0.5
+            : current >= 0.49
+              ? 0.25
+              : 1;
+      changed =
+        sequencerStore.applySelectedVariation(
+          selection,
+          { probability: next },
+        );
+      noticeText =
+        "Chance · " +
+        Math.round(next * 100) +
+        "%";
+    } else if (kind === "repeat") {
+      const current = Math.max(
+        1,
+        event.ratchetCount ?? 1,
+      );
+      const next =
+        current >= 4 ? 1 : current + 1;
+      changed =
+        sequencerStore.applySelectedVariation(
+          selection,
+          { ratchetCount: next },
+        );
+      noticeText = "Repeat · ×" + next;
+    } else {
+      const current = Math.max(
+        0,
+        event.flamOffsetUs ?? 0,
+      );
+      const next =
+        current <= 0
+          ? 15_000
+          : current <= 15_000
+            ? 30_000
+            : 0;
+      changed =
+        sequencerStore.applySelectedVariation(
+          selection,
+          { flamOffsetUs: next },
+        );
+      noticeText =
+        next > 0
+          ? "Flam · " +
+              Math.round(next / 1000) +
+              " ms"
+          : "Flam off";
+    }
+
+    setNotice(
+      changed
+        ? noticeText
+        : kind === "flam"
+          ? "Flam is blocked by a timing lock"
+          : "Variation is blocked by a rhythm lock",
+    );
+    setStepContext(null);
   };
 
   const melodicDurationLabel = (
