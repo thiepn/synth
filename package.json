@@ -7,7 +7,7 @@
     "predev": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
     "dev": "vite",
     "prebuild": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
-    "build": "npm run check:interaction && npm run check:playground && npm run check:sound && npm run check:mix && npm run check:finish && npm run check:feel && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
+    "build": "npm run check:interaction && npm run check:playground && npm run check:sound && npm run check:mix && npm run check:finish && npm run check:feel && npm run check:variation && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:interaction": "node scripts/check-interaction-contracts.mjs",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
@@ -23,7 +23,8 @@
     "check:sound": "node scripts/check-sound-quality.mjs",
     "check:mix": "node scripts/check-playground-mix.mjs",
     "check:finish": "node scripts/check-playground-finish.mjs",
-    "check:feel": "node scripts/check-playground-feel.mjs"
+    "check:feel": "node scripts/check-playground-feel.mjs",
+    "check:variation": "node scripts/check-playground-variation.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
