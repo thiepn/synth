@@ -1002,7 +1002,7 @@ function PlaygroundMixStrip({
         <input
           type="range"
           min="-12"
-          max="3"
+          max="6"
           step="0.5"
           value={mixer.state.masterGainDb}
           onChange={(event) =>
