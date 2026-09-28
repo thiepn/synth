@@ -13752,6 +13752,7 @@ export function PlaygroundSurface({
                 <p>A/B patterns let you compare two directions.</p>
                 <p>Right-click or long-press a hit for Normal / Accent / Ghost plus Chance, Repeat and Flam.</p>
                 <p>Jam adds temporary Energy, Filter, Space, Fill, Drop, Build and Stutter while the beat plays.</p>
+                <p>Motion writes looping Filter, Space or Tone automation that saves with the project and exports with the beat.</p>
               </div>
             </div>
 
