@@ -7178,6 +7178,46 @@ export function PlaygroundSurface({
                   </span>
                   <button
                     type="button"
+                    className={
+                      selectedMelodicLane.muted
+                        ? "is-active"
+                        : ""
+                    }
+                    onClick={() =>
+                      sequencerStore.toggleMute(
+                        selectedMelodicDefinition.id,
+                      )
+                    }
+                    aria-pressed={
+                      selectedMelodicLane.muted ??
+                      false
+                    }
+                    aria-label="Mute selected melodic track"
+                  >
+                    Mute
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      selectedMelodicLane.solo
+                        ? "is-active"
+                        : ""
+                    }
+                    onClick={() =>
+                      sequencerStore.toggleSolo(
+                        selectedMelodicDefinition.id,
+                      )
+                    }
+                    aria-pressed={
+                      selectedMelodicLane.solo ??
+                      false
+                    }
+                    aria-label="Solo selected melodic track"
+                  >
+                    Solo
+                  </button>
+                  <button
+                    type="button"
                     onClick={() =>
                       changeSelectedMelodicPitch(
                         -1,
