@@ -20,6 +20,7 @@ import {
 import {
   MELODIC_PRESETS,
   melodicFilterEnvelopeVelocityScale,
+  melodicLayerCompensation,
   melodicPresetStereoWidth,
   melodicVelocityFilterMultiplier,
   melodicVelocityGain,
@@ -487,6 +488,7 @@ export class MelodicEngine {
       );
     const peak =
       preset.gain *
+      melodicLayerCompensation(preset) *
       expressiveVelocity /
       Math.max(1, Math.sqrt(pitches.length));
 
