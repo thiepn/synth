@@ -5091,6 +5091,44 @@ export function PlaygroundSurface({
     setNotice("Section removed");
   };
 
+  const selectOrQueueSongSection = (
+    sectionId: string,
+  ) => {
+    arrangementStore.selectSection(
+      sectionId,
+    );
+
+    if (
+      !arrangementPlayback.engaged ||
+      arrangementPlayback.scope !==
+        "arrangement" ||
+      arrangementPlayback.transportStatus !==
+        "running" ||
+      arrangementPlayback.currentSectionId ===
+        sectionId
+    ) {
+      return;
+    }
+
+    const target =
+      arrangementPlaybackStore.queueSection(
+        sectionId,
+      );
+    if (target === undefined) return;
+
+    const section =
+      arrangementStore
+        .getSnapshot()
+        .blueprint?.sections.find(
+          (entry) => entry.id === sectionId,
+        );
+    setNotice(
+      "Queued " +
+        (section?.label ?? "section") +
+        " · next bar",
+    );
+  };
+
   const playSong = async (
     sectionOnly = false,
   ) => {
@@ -9062,6 +9100,10 @@ export function PlaygroundSurface({
                     arrangementPlayback.engaged &&
                     arrangementPlayback.currentSectionId ===
                       section.id;
+                  const queued =
+                    arrangementPlayback.engaged &&
+                    arrangementPlayback.queuedSectionId ===
+                      section.id;
 
                   return (
                     <button
@@ -9074,6 +9116,9 @@ export function PlaygroundSurface({
                           : "",
                         active
                           ? "is-playing"
+                          : "",
+                        queued
+                          ? "is-queued"
                           : "",
                       ]
                         .filter(Boolean)
@@ -9094,15 +9139,22 @@ export function PlaygroundSurface({
                           "1px solid " +
                           (active
                             ? "rgba(99,222,244,.75)"
-                            : selected
-                              ? "rgba(165,139,255,.65)"
-                              : "rgba(255,255,255,.08)"),
+                            : queued
+                              ? "rgba(255,216,74,.72)"
+                              : selected
+                                ? "rgba(165,139,255,.65)"
+                                : "rgba(255,255,255,.08)"),
                         borderRadius: 11,
                         background: active
                           ? "rgba(99,222,244,.11)"
-                          : selected
-                            ? "rgba(165,139,255,.10)"
-                            : "rgba(255,255,255,.035)",
+                          : queued
+                            ? "rgba(255,216,74,.10)"
+                            : selected
+                              ? "rgba(165,139,255,.10)"
+                              : "rgba(255,255,255,.035)",
+                        boxShadow: queued
+                          ? "inset 0 -2px 0 rgba(255,216,74,.75)"
+                          : "none",
                         color: "var(--pg-text)",
                         textAlign: "left",
                         cursor: editRecordingLocked
@@ -9152,7 +9204,7 @@ export function PlaygroundSurface({
                         )
                       }
                       onClick={() =>
-                        arrangementStore.selectSection(
+                        selectOrQueueSongSection(
                           section.id,
                         )
                       }
@@ -9171,14 +9223,23 @@ export function PlaygroundSurface({
                           : section.role) +
                         ", " +
                         section.cycleCount +
-                        " repeats"
+                        " repeats" +
+                        (active
+                          ? ", playing"
+                          : queued
+                            ? ", queued for next bar"
+                            : "")
                       }
                     >
                       <span>
-                        {String(index + 1).padStart(
-                          2,
-                          "0",
-                        )}
+                        {active
+                          ? "▶"
+                          : queued
+                            ? "Q"
+                            : String(index + 1).padStart(
+                                2,
+                                "0",
+                              )}
                       </span>
                       <strong>
                         {sectionBank
