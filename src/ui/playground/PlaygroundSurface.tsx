@@ -75,6 +75,12 @@ import {
 } from "../../music/foundationPattern";
 import { midiStore } from "../../midi/MidiStore";
 import { useMidiSnapshot } from "../../midi/useMidi";
+import { mixerStore } from "../../mix/MixerStore";
+import { useMixerSnapshot } from "../../mix/useMixer";
+import {
+  clampLaneMix,
+  type LaneMixParameter,
+} from "../../mix/laneMix";
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
 import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
@@ -783,6 +789,237 @@ function ProjectHealthAlert({
       <span aria-hidden="true">!</span>
       <b>{projectAlert.label}</b>
     </button>
+  );
+}
+
+function PlaygroundMixStrip({
+  laneId,
+  onNotice,
+}: {
+  laneId: string;
+  onNotice: (message: string) => void;
+}) {
+  const sequencer = useSequencerSnapshot();
+  const mixer = useMixerSnapshot();
+  const lane =
+    sequencer.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    ) ?? sequencer.pattern.lanes[0];
+  if (!lane) return null;
+
+  const drumDefinition =
+    SEQUENCER_LANES.find(
+      (entry) => entry.id === lane.id,
+    );
+  const melodicDefinition =
+    MELODIC_LANES.find(
+      (entry) => entry.id === lane.id,
+    );
+  if (!drumDefinition && !melodicDefinition) {
+    return null;
+  }
+
+  const drumVoice = drumDefinition?.voice;
+  const values = drumVoice
+    ? mixer.state.channels[drumVoice]
+    : clampLaneMix(lane.mix);
+  const label = drumDefinition
+    ? displayLaneName(drumDefinition)
+    : melodicDefinition?.name ?? "TRACK";
+  const color = drumVoice
+    ? LANE_COLORS[drumVoice]
+    : melodicDefinition
+      ? MELODIC_COLORS[melodicDefinition.track]
+      : "#7867ff";
+
+  const setValue = (
+    parameter: LaneMixParameter,
+    value: number,
+  ) => {
+    if (drumVoice) {
+      mixerStore.setChannelValue(
+        drumVoice,
+        parameter,
+        value,
+      );
+    } else {
+      sequencerStore.setMelodicMixValue(
+        lane.id,
+        parameter,
+        value,
+      );
+    }
+  };
+
+  const resetTrackMix = () => {
+    if (drumVoice) {
+      mixerStore.resetChannel(drumVoice);
+    } else {
+      sequencerStore.resetMelodicMix(lane.id);
+    }
+    onNotice(label + " mix reset");
+  };
+
+  return (
+    <section
+      className="playground-mix-strip"
+      aria-label={"Mix controls for " + label}
+      style={
+        {
+          "--lane-color": color,
+        } as CSSProperties
+      }
+    >
+      <div className="playground-mix-strip__identity">
+        <span>MIX</span>
+        <strong>{label}</strong>
+        <small>
+          {drumVoice ? "DRUM" : "MELODIC"}
+        </small>
+      </div>
+
+      <label className="playground-mix-control">
+        <span>Level</span>
+        <input
+          type="range"
+          min="-18"
+          max="6"
+          step="0.5"
+          value={values.gainDb}
+          onChange={(event) =>
+            setValue(
+              "gainDb",
+              Number(event.currentTarget.value),
+            )
+          }
+          aria-label={label + " level"}
+        />
+        <output>
+          {values.gainDb > 0 ? "+" : ""}
+          {Math.round(values.gainDb * 10) / 10} dB
+        </output>
+      </label>
+
+      <label className="playground-mix-control">
+        <span>Pan</span>
+        <input
+          type="range"
+          min="-1"
+          max="1"
+          step="0.05"
+          value={values.pan}
+          onChange={(event) =>
+            setValue(
+              "pan",
+              Number(event.currentTarget.value),
+            )
+          }
+          aria-label={label + " pan"}
+        />
+        <output>
+          {Math.abs(values.pan) < 0.025
+            ? "C"
+            : values.pan < 0
+              ? "L" +
+                Math.round(
+                  Math.abs(values.pan) * 100,
+                )
+              : "R" +
+                Math.round(values.pan * 100)}
+        </output>
+      </label>
+
+      <label className="playground-mix-control">
+        <span>Space</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={values.reverbSend}
+          onChange={(event) =>
+            setValue(
+              "reverbSend",
+              Number(event.currentTarget.value),
+            )
+          }
+          aria-label={label + " space"}
+        />
+        <output>
+          {Math.round(values.reverbSend * 100)}%
+        </output>
+      </label>
+
+      <div
+        className="playground-mix-monitor"
+        aria-label={label + " monitoring"}
+      >
+        <button
+          type="button"
+          className={lane.muted ? "is-active" : ""}
+          onClick={() => {
+            sequencerStore.toggleMute(lane.id);
+            onNotice(
+              label +
+                (lane.muted
+                  ? " unmuted"
+                  : " muted"),
+            );
+          }}
+          aria-pressed={Boolean(lane.muted)}
+          aria-label={"Mute " + label}
+        >
+          M
+        </button>
+        <button
+          type="button"
+          className={lane.solo ? "is-active" : ""}
+          onClick={() => {
+            sequencerStore.toggleSolo(lane.id);
+            onNotice(
+              label +
+                (lane.solo
+                  ? " solo off"
+                  : " solo"),
+            );
+          }}
+          aria-pressed={Boolean(lane.solo)}
+          aria-label={"Solo " + label}
+        >
+          S
+        </button>
+        <button
+          type="button"
+          onClick={resetTrackMix}
+          aria-label={"Reset " + label + " mix"}
+        >
+          Reset
+        </button>
+      </div>
+
+      <label className="playground-mix-control playground-mix-control--master">
+        <span>Master</span>
+        <input
+          type="range"
+          min="-12"
+          max="3"
+          step="0.5"
+          value={mixer.state.masterGainDb}
+          onChange={(event) =>
+            mixerStore.setMasterGainDb(
+              Number(event.currentTarget.value),
+            )
+          }
+          aria-label="Playground master level"
+        />
+        <output>
+          {mixer.state.masterGainDb > 0 ? "+" : ""}
+          {Math.round(
+            mixer.state.masterGainDb * 10,
+          ) / 10} dB
+        </output>
+      </label>
+    </section>
   );
 }
 
