@@ -7499,6 +7499,10 @@ export function PlaygroundSurface({
     clearPadRepeat();
     clearPadLongPress();
     sequencerStore.clearTransientMonitoring();
+    if (jamOpen) {
+      performanceStore.setActive(false);
+      setJamOpen(false);
+    }
     setMomentaryMonitor(null);
     setSoundPickerVoice(null);
   };
