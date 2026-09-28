@@ -19,6 +19,23 @@ export type DrumVoiceId =
 
 export type LaneAccent = "phosphor" | "heat" | "ice";
 
+export type MelodicTrackId = "bass" | "chords" | "lead";
+
+export interface MelodicLaneDefinition {
+  id: string;
+  code: string;
+  name: string;
+  role: Extract<InstrumentRole, "bass" | "chords" | "lead">;
+  track: MelodicTrackId;
+  accent: LaneAccent;
+  detail: string;
+  kitSlotId: string;
+  defaultPitchMidi: number;
+  minPitchMidi: number;
+  maxPitchMidi: number;
+  defaultPresetId: string;
+}
+
 export interface SequencerLaneDefinition {
   id: string;
   code: string;
@@ -132,6 +149,52 @@ export const SEQUENCER_LANES: readonly SequencerLaneDefinition[] = [
   },
 ];
 
+
+export const MELODIC_LANES: readonly MelodicLaneDefinition[] = [
+  {
+    id: "lane-bass",
+    code: "BS",
+    name: "BASS",
+    role: "bass",
+    track: "bass",
+    accent: "heat",
+    detail: "LOW / MONO",
+    kitSlotId: "melodic-bass",
+    defaultPitchMidi: 36,
+    minPitchMidi: 24,
+    maxPitchMidi: 55,
+    defaultPresetId: "sub",
+  },
+  {
+    id: "lane-chords",
+    code: "CHD",
+    name: "CHORDS",
+    role: "chords",
+    track: "chords",
+    accent: "phosphor",
+    detail: "HARMONY",
+    kitSlotId: "melodic-chords",
+    defaultPitchMidi: 60,
+    minPitchMidi: 48,
+    maxPitchMidi: 79,
+    defaultPresetId: "warm",
+  },
+  {
+    id: "lane-lead",
+    code: "LD",
+    name: "LEAD",
+    role: "lead",
+    track: "lead",
+    accent: "ice",
+    detail: "MELODY",
+    kitSlotId: "melodic-lead",
+    defaultPitchMidi: 72,
+    minPitchMidi: 60,
+    maxPitchMidi: 91,
+    defaultPresetId: "soft",
+  },
+];
+
 export const FOUNDATION_LANES = SEQUENCER_LANES.filter((lane) =>
   ["lane-kick", "lane-snare", "lane-closed-hat", "lane-percussion"].includes(
     lane.id,
@@ -170,6 +233,25 @@ function eventForStep(
   };
 }
 
+export function createEmptyMelodicLane(
+  definition: MelodicLaneDefinition,
+): PatternLane {
+  return {
+    id: definition.id,
+    role: definition.role,
+    kitSlotId: definition.kitSlotId,
+    instrumentPresetId: definition.defaultPresetId,
+    events: [],
+    muted: false,
+    solo: false,
+    lock: { ...unlocked },
+  };
+}
+
+export function createEmptyMelodicLanes(): PatternLane[] {
+  return MELODIC_LANES.map(createEmptyMelodicLane);
+}
+
 function laneFromDefinition(definition: SequencerLaneDefinition): PatternLane {
   const events = definition.defaultValues.flatMap((velocity, stepIndex) =>
     velocity > 0
@@ -195,7 +277,10 @@ export function createFoundationPattern(): Pattern {
     meter: { numerator: 4, denominator: 4 },
     ppq: PPQ,
     lengthTicks: FOUNDATION_STEP_COUNT * FOUNDATION_STEP_TICKS,
-    lanes: SEQUENCER_LANES.map(laneFromDefinition),
+    lanes: [
+      ...SEQUENCER_LANES.map(laneFromDefinition),
+      ...createEmptyMelodicLanes(),
+    ],
     groove: {
       swing: 0,
       humanization: 0,
@@ -214,4 +299,15 @@ export function laneDefinitionByRole(
   role: InstrumentRole,
 ): SequencerLaneDefinition | undefined {
   return SEQUENCER_LANES.find((lane) => lane.role === role);
+}
+
+
+export function melodicLaneDefinitionById(
+  laneId: string,
+): MelodicLaneDefinition | undefined {
+  return MELODIC_LANES.find((lane) => lane.id === laneId);
+}
+
+export function isMelodicLaneId(laneId: string): boolean {
+  return Boolean(melodicLaneDefinitionById(laneId));
 }
