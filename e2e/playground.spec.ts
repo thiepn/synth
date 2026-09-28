@@ -879,6 +879,41 @@ test("Playground builds and edits an A B song on the canonical arrangement timel
     ),
   ).toHaveCount(0);
 
+  await song.getByRole("button", {
+    name: "Play full song",
+  }).click();
+  await expect(
+    song.locator(
+      ".playground-song-section.is-playing",
+    ),
+  ).toHaveCount(1);
+
+  const queuedTarget = song
+    .locator(".playground-song-section")
+    .nth(1);
+  await queuedTarget.click();
+  await expect(queuedTarget).toHaveClass(
+    /is-queued/,
+  );
+  await expect(queuedTarget).toHaveAttribute(
+    "aria-label",
+    /queued for next bar/i,
+  );
+
+  await song.getByRole("button", {
+    name: "Stop song playback",
+  }).click();
+  await expect(
+    song.locator(
+      ".playground-song-section.is-playing",
+    ),
+  ).toHaveCount(0);
+  await expect(
+    song.locator(
+      ".playground-song-section.is-queued",
+    ),
+  ).toHaveCount(0);
+
   const buildBox = await song.getByRole("button", {
     name: "Play full song",
   }).boundingBox();
