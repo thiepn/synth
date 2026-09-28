@@ -2290,8 +2290,14 @@ function PlaygroundMotionStrip({
   const playgroundOwned =
     lane?.id ===
     "playground-motion-" + target;
+  const playgroundActive =
+    playgroundOwned &&
+    Boolean(lane?.enabled) &&
+    (lane?.points.length ?? 0) > 0;
   const studioOwned =
-    Boolean(lane) && !playgroundOwned;
+    Boolean(lane) &&
+    (lane?.points.length ?? 0) > 0 &&
+    !playgroundOwned;
 
   const apply = () => {
     if (disabled || studioOwned) return;
@@ -2322,7 +2328,7 @@ function PlaygroundMotionStrip({
   const clear = () => {
     if (
       disabled ||
-      !playgroundOwned
+      !playgroundActive
     ) {
       return;
     }
@@ -2346,7 +2352,7 @@ function PlaygroundMotionStrip({
       <div className="playground-motion-strip__identity">
         <span>MOTION</span>
         <strong>
-          {playgroundOwned
+          {playgroundActive
             ? "Active"
             : studioOwned
               ? "Studio"
@@ -2470,7 +2476,7 @@ function PlaygroundMotionStrip({
               type="button"
               disabled={
                 disabled ||
-                !playgroundOwned
+                !playgroundActive
               }
               onClick={clear}
               aria-label="Clear selected motion automation"
