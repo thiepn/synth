@@ -956,34 +956,78 @@ function PlaygroundMixStrip({
       >
         <button
           type="button"
-          className={lane.muted ? "is-active" : ""}
+          className={
+            (
+              drumVoice
+                ? mixer.state.channels[drumVoice].muted
+                : Boolean(lane.muted)
+            )
+              ? "is-active"
+              : ""
+          }
           onClick={() => {
-            sequencerStore.toggleMute(lane.id);
+            const muted = drumVoice
+              ? mixer.state.channels[drumVoice].muted
+              : Boolean(lane.muted);
+            if (drumVoice) {
+              mixerStore.setChannelMute(
+                drumVoice,
+                !muted,
+              );
+            } else {
+              sequencerStore.toggleMute(lane.id);
+            }
             onNotice(
               label +
-                (lane.muted
+                (muted
                   ? " unmuted"
                   : " muted"),
             );
           }}
-          aria-pressed={Boolean(lane.muted)}
+          aria-pressed={
+            drumVoice
+              ? mixer.state.channels[drumVoice].muted
+              : Boolean(lane.muted)
+          }
           aria-label={"Mute " + label}
         >
           M
         </button>
         <button
           type="button"
-          className={lane.solo ? "is-active" : ""}
+          className={
+            (
+              drumVoice
+                ? mixer.state.channels[drumVoice].solo
+                : Boolean(lane.solo)
+            )
+              ? "is-active"
+              : ""
+          }
           onClick={() => {
-            sequencerStore.toggleSolo(lane.id);
+            const solo = drumVoice
+              ? mixer.state.channels[drumVoice].solo
+              : Boolean(lane.solo);
+            if (drumVoice) {
+              mixerStore.setChannelSolo(
+                drumVoice,
+                !solo,
+              );
+            } else {
+              sequencerStore.toggleSolo(lane.id);
+            }
             onNotice(
               label +
-                (lane.solo
+                (solo
                   ? " solo off"
                   : " solo"),
             );
           }}
-          aria-pressed={Boolean(lane.solo)}
+          aria-pressed={
+            drumVoice
+              ? mixer.state.channels[drumVoice].solo
+              : Boolean(lane.solo)
+          }
           aria-label={"Solo " + label}
         >
           S
