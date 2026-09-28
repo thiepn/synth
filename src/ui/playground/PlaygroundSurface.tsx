@@ -727,6 +727,10 @@ export function PlaygroundSurface({
     currentDurationSteps: number;
     gestureId: string;
   } | null>(null);
+  const patternRecordingActive = () =>
+    gridRecorder.getSnapshot().status !== "idle" ||
+    melodicMidiTakeRef.current !== null;
+
   const [stepPage, setStepPage] = useState(0);
   const [soundPickerVoice, setSoundPickerVoice] =
     useState<DrumVoiceId | null>(null);
@@ -902,7 +906,7 @@ export function PlaygroundSurface({
     x: number,
     y: number,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       return;
     }
     const definition = SEQUENCER_LANES.find(
@@ -1054,7 +1058,7 @@ export function PlaygroundSurface({
   const applyStepContextAction = (
     action: "normal" | "accent" | "ghost" | "toggle",
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setStepContext(null);
       setNotice("Stop recording to edit grid steps");
       return;
@@ -2277,7 +2281,7 @@ export function PlaygroundSurface({
     laneId: string,
     stepIndex: number,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before selecting notes");
       return;
     }
@@ -2326,7 +2330,7 @@ export function PlaygroundSurface({
   };
 
   const selectCurrentBar = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before selecting notes");
       return;
     }
@@ -2351,7 +2355,7 @@ export function PlaygroundSurface({
   };
 
   const selectCurrentTrack = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before selecting notes");
       return;
     }
@@ -2375,7 +2379,7 @@ export function PlaygroundSurface({
   };
 
   const selectAllNotes = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before selecting notes");
       return;
     }
@@ -2403,7 +2407,7 @@ export function PlaygroundSurface({
   };
 
   const batchEditingAllowed = () => {
-    if (gridRecorder.getSnapshot().status === "idle") {
+    if (!patternRecordingActive()) {
       return true;
     }
     setNotice("Stop recording before batch editing");
@@ -3447,9 +3451,7 @@ export function PlaygroundSurface({
           )
         );
       if (typingTarget) return;
-      if (
-        gridRecorder.getSnapshot().status !== "idle"
-      ) {
+      if (patternRecordingActive()) {
         return;
       }
 
@@ -3983,7 +3985,7 @@ export function PlaygroundSurface({
     laneId: string,
     stepIndex: number,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording to draw on the grid");
       return;
     }
@@ -4429,7 +4431,7 @@ export function PlaygroundSurface({
     stepIndex: number,
     dynamic?: "accent" | "ghost",
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording to edit grid steps");
       return;
     }
@@ -4508,7 +4510,7 @@ export function PlaygroundSurface({
     nodeId: string,
     noticeText: string,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before restoring history");
       return;
     }
@@ -4525,7 +4527,7 @@ export function PlaygroundSurface({
   const switchPatternBank = (
     nextBank: PatternBankId,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before switching patterns");
       return;
     }
@@ -4543,7 +4545,7 @@ export function PlaygroundSurface({
   };
 
   const duplicatePatternBank = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before duplicating patterns");
       return;
     }
@@ -4564,7 +4566,7 @@ export function PlaygroundSurface({
   };
 
   const undoLastRemix = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before restoring Remix");
       return;
     }
@@ -4580,7 +4582,7 @@ export function PlaygroundSurface({
   };
 
   const applyStyleBeat = (nextStyle: BeatStyleId) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before changing style");
       return;
     }
@@ -4627,7 +4629,7 @@ export function PlaygroundSurface({
   };
 
   const remix = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before Remix");
       return;
     }
@@ -4676,7 +4678,7 @@ export function PlaygroundSurface({
   };
 
   const remixSelectedLane = () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before lane Remix");
       return;
     }
@@ -4774,6 +4776,10 @@ export function PlaygroundSurface({
   };
 
   const addPatternBar = () => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before changing bars");
+      return;
+    }
     if (atBarLimit) {
       setNotice("Pattern limit · 8 bars");
       return;
@@ -4806,6 +4812,10 @@ export function PlaygroundSurface({
   };
 
   const duplicatePatternBar = () => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before changing bars");
+      return;
+    }
     if (!wholeBarPattern || atBarLimit) {
       setNotice(
         atBarLimit
@@ -4838,6 +4848,10 @@ export function PlaygroundSurface({
   };
 
   const clearPatternBar = () => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before changing bars");
+      return;
+    }
     if (!wholeBarPattern) {
       setNotice("Use a full-bar pattern to clear a bar");
       return;
@@ -4856,6 +4870,10 @@ export function PlaygroundSurface({
   };
 
   const deletePatternBar = () => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before changing bars");
+      return;
+    }
     if (!wholeBarPattern || pageCount <= 1) {
       setNotice("A pattern needs at least one bar");
       return;
@@ -4895,7 +4913,7 @@ export function PlaygroundSurface({
       | "fillEighth"
       | "fillSixteenth",
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before editing the lane");
       return;
     }
@@ -5124,7 +5142,7 @@ export function PlaygroundSurface({
   };
 
   const createFreshProject = async () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before creating a project");
       return;
     }
@@ -5155,7 +5173,7 @@ export function PlaygroundSurface({
   };
 
   const duplicateCurrentProject = async () => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before duplicating the project");
       return;
     }
@@ -5277,7 +5295,7 @@ export function PlaygroundSurface({
   const openRecentProject = async (
     projectId: string,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (patternRecordingActive()) {
       setNotice("Stop recording before opening another project");
       return;
     }
