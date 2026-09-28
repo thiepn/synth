@@ -3469,3 +3469,138 @@
   .playground-finish-actions>button,.playground-finish-warning{border-color:ButtonText}
   .playground-finish-range>button.is-active,.playground-finish-actions>.playground-finish-primary{background:Highlight;color:HighlightText}
 }
+
+
+/* Playground P9 — Feel, Groove & Humanization */
+.playground-feel-strip{
+  width:min(1440px,calc(100% - clamp(36px,7vw,108px)));
+  min-height:64px;margin:8px auto 0;padding:7px;
+  display:grid;
+  grid-template-columns:minmax(128px,.72fr) minmax(360px,2.1fr) minmax(180px,.9fr) auto;
+  align-items:stretch;gap:7px;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:16px;
+  background:linear-gradient(90deg,rgba(53,213,163,.045),rgba(120,103,255,.035));
+}
+.playground-feel-strip__identity,
+.playground-feel-presets,
+.playground-feel-swing,
+.playground-feel-actions{
+  min-width:0;min-height:48px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;background:rgba(255,255,255,.025)
+}
+.playground-feel-strip__identity{
+  display:grid;align-content:center;padding:5px 9px
+}
+.playground-feel-strip__identity>span{
+  color:#35d5a3;font-size:.46rem;font-weight:950;letter-spacing:.12em
+}
+.playground-feel-strip__identity>strong{
+  font-size:.7rem
+}
+.playground-feel-strip__identity>small{
+  color:var(--pg-muted);font-size:.45rem
+}
+.playground-feel-presets{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  overflow:hidden
+}
+.playground-feel-presets>button{
+  min-width:0;border:0;border-left:1px solid rgba(255,255,255,.055);
+  background:transparent;color:var(--pg-text);cursor:pointer;
+  display:grid;align-content:center;gap:2px;padding:5px 8px;text-align:left
+}
+.playground-feel-presets>button:first-child{border-left:0}
+.playground-feel-presets>button:hover:not(:disabled){
+  background:rgba(255,255,255,.05)
+}
+.playground-feel-presets>button.is-active{
+  background:rgba(53,213,163,.1);
+  box-shadow:inset 0 -2px 0 #35d5a3
+}
+.playground-feel-presets strong{font-size:.57rem}
+.playground-feel-presets small{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--pg-muted);font-size:.43rem
+}
+.playground-feel-swing{
+  display:grid;grid-template-columns:auto minmax(72px,1fr) auto;
+  align-items:center;gap:8px;padding:5px 9px
+}
+.playground-feel-swing>span{
+  color:var(--pg-muted);font-size:.51rem;font-weight:900
+}
+.playground-feel-swing input{
+  width:100%;accent-color:#35d5a3
+}
+.playground-feel-swing output{
+  min-width:31px;color:var(--pg-text);font-size:.5rem;font-weight:900;text-align:right
+}
+.playground-feel-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(58px,1fr));
+  overflow:hidden
+}
+.playground-feel-actions>button{
+  min-width:58px;border:0;border-left:1px solid rgba(255,255,255,.055);
+  background:transparent;color:var(--pg-muted);cursor:pointer;
+  font-size:.54rem;font-weight:900
+}
+.playground-feel-actions>button:first-child{border-left:0}
+.playground-feel-actions>button:hover:not(:disabled){
+  background:rgba(255,255,255,.055);color:var(--pg-text)
+}
+.playground-feel-actions>.playground-feel-apply:not(:disabled){
+  color:#7ce5c3;background:rgba(53,213,163,.07)
+}
+.playground-feel-strip button:disabled,
+.playground-feel-strip input:disabled{
+  opacity:.32;cursor:default
+}
+@media(max-width:1040px){
+  .playground-feel-strip{
+    grid-template-columns:minmax(128px,.7fr) minmax(330px,2fr) minmax(170px,1fr)
+  }
+  .playground-feel-actions{
+    grid-column:1 / -1;min-height:42px
+  }
+}
+@media(max-width:760px){
+  .playground-feel-strip{
+    width:calc(100% - 20px);display:flex;overflow-x:auto;
+    scrollbar-width:none;padding:6px;border-radius:14px
+  }
+  .playground-feel-strip::-webkit-scrollbar{display:none}
+  .playground-feel-strip__identity{min-width:116px;flex:0 0 116px}
+  .playground-feel-presets{min-width:360px;flex:0 0 360px}
+  .playground-feel-presets>button{
+    min-height:48px;text-align:center
+  }
+  .playground-feel-swing{min-width:190px;flex:0 0 190px}
+  .playground-feel-actions{min-width:150px;flex:0 0 150px}
+  .playground-feel-strip button,
+  .playground-feel-strip input{min-height:44px;touch-action:manipulation}
+}
+@media(prefers-contrast:more){
+  .playground-feel-strip,
+  .playground-feel-strip__identity,
+  .playground-feel-presets,
+  .playground-feel-swing,
+  .playground-feel-actions{
+    border-color:rgba(255,255,255,.28)
+  }
+}
+@media(forced-colors:active){
+  .playground-feel-strip,
+  .playground-feel-strip__identity,
+  .playground-feel-presets,
+  .playground-feel-swing,
+  .playground-feel-actions,
+  .playground-feel-presets>button,
+  .playground-feel-actions>button{
+    border-color:ButtonText;background:Canvas;color:CanvasText
+  }
+  .playground-feel-presets>button.is-active{
+    background:Highlight;color:HighlightText
+  }
+}
