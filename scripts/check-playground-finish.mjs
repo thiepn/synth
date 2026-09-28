@@ -39,6 +39,7 @@ const finishBundle =
 
 const required = [
   [playground, 'aria-label="Finish and export"', "P8 Finish surface is missing."],
+  [playground, "if (finishOpen) {\n      renderStore.cancel();\n      setFinishOpen(false);", "P8 must cancel hidden renders when handing off to Studio."],
   [playground, '<span aria-hidden="true">↓</span>\n            Finish', "P8 session action must remain labeled Finish."],
   [finish, 'sampleRate: 48_000', "P8 quick export must remain fixed at 48 kHz."],
   [finish, 'bitDepth: 24', "P8 quick export must remain 24-bit WAV."],
