@@ -35,6 +35,11 @@ import {
   DRUM_MATERIAL_PARAMS,
   drumSoundStore,
 } from "./drumSoundModel";
+import {
+  drumVelocityGain,
+  drumVelocityImpact,
+  drumVelocityTone,
+} from "./velocityResponse";
 import { sampleAssetStore } from "./SampleAssetStore";
 import { performanceStore } from "../performance/PerformanceStore";
 import {
@@ -148,11 +153,6 @@ const DEFAULT_MACROS: DrumMacros = {
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));
-}
-
-function velocityGain(velocity: number): number {
-  const safe = clamp01(velocity);
-  return 0.22 + safe * 0.78;
 }
 
 function dbToGain(db: number): number {
@@ -1693,10 +1693,10 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material("kick");
-    const tone = this.materialTone(spec);
-    const impact = this.materialImpact(spec);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
     const decay = this.materialDecay(spec, 0.16, 0.68);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
     const baseHz = 37 + spec.pitch * 28;
     const pitchStart = baseHz * (2.1 + impact * 2.8);
 
@@ -1798,10 +1798,10 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material("snare");
-    const tone = this.materialTone(spec);
-    const impact = this.materialImpact(spec);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
     const decay = this.materialDecay(spec, 0.09, 0.42);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
     const bodyHz = 135 + spec.pitch * 115;
 
     const body = context.createOscillator();
@@ -1915,10 +1915,10 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material("clap");
-    const tone = this.materialTone(spec);
-    const impact = this.materialImpact(spec);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
     const decay = this.materialDecay(spec, 0.09, 0.36);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
     const spread = 0.009 + spec.character * 0.015;
 
     const noise = context.createBufferSource();
@@ -1998,13 +1998,13 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material(voice);
-    const tone = this.materialTone(spec);
-    const impact = this.materialImpact(spec);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
     const isOpen = voice === "openHat";
     const decay = isOpen
       ? this.materialDecay(spec, 0.16, 0.78)
       : this.materialDecay(spec, 0.022, 0.095);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
 
     const kill = context.createGain();
     kill.connect(this.channelInput(voice));
@@ -2086,10 +2086,10 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material("tom");
-    const impact = this.materialImpact(spec);
-    const tone = this.materialTone(spec);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
     const decay = this.materialDecay(spec, 0.15, 0.62);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
     const baseHz = 66 + spec.pitch * 138;
 
     // A tom should read as a struck membrane first, not as a pitched synth.
@@ -2215,10 +2215,10 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material("percussion");
-    const tone = this.materialTone(spec);
-    const impact = this.materialImpact(spec);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
     const decay = this.materialDecay(spec, 0.045, 0.24);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
     const baseHz = 145 + spec.pitch * 455;
     const kill = context.createGain();
     kill.connect(this.channelInput("percussion"));
@@ -2322,10 +2322,10 @@ export class DrumEngine {
 
     const context = graph.context;
     const spec = this.material("crash");
-    const tone = this.materialTone(spec);
-    const impact = this.materialImpact(spec);
+    const tone = drumVelocityTone(this.materialTone(spec), velocity);
+    const impact = drumVelocityImpact(this.materialImpact(spec), velocity);
     const decay = this.materialDecay(spec, 0.45, 1.9);
-    const amp = velocityGain(velocity) * Math.max(0, levelGain);
+    const amp = drumVelocityGain(velocity) * Math.max(0, levelGain);
     const kill = context.createGain();
     kill.connect(this.channelInput("crash"));
 
