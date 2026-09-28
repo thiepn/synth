@@ -47,6 +47,7 @@ import {
   PPQ,
   type DrumMaterialSpec,
   type ScaleId,
+  type SceneRole,
 } from "../../domain/contracts";
 import {
   BEAT_STYLES,
@@ -138,6 +139,28 @@ const MELODIC_COLORS: Record<MelodicTrackId, string> = {
   chords: "#a58bff",
   lead: "#63def4",
 };
+
+const SONG_ROLE_OPTIONS: ReadonlyArray<{
+  id: SceneRole;
+  label: string;
+}> = [
+  { id: "intro", label: "Intro" },
+  { id: "verse", label: "Verse" },
+  { id: "preChorus", label: "Pre-Chorus" },
+  { id: "chorus", label: "Chorus" },
+  { id: "breakdown", label: "Breakdown" },
+  { id: "build", label: "Build" },
+  { id: "drop", label: "Drop" },
+  { id: "outro", label: "Outro" },
+];
+
+function songRoleLabel(role: SceneRole): string {
+  return (
+    SONG_ROLE_OPTIONS.find(
+      (entry) => entry.id === role,
+    )?.label ?? role
+  );
+}
 
 const SONG_PANEL_STYLE: CSSProperties = {
   width:
@@ -5034,6 +5057,25 @@ export function PlaygroundSurface({
     );
   };
 
+  const setSongSectionRole = (
+    role: SceneRole,
+  ) => {
+    if (
+      editRecordingLocked ||
+      !selectedSongSection
+    ) {
+      return;
+    }
+    arrangementStore.setSectionRole(
+      selectedSongSection.id,
+      role,
+    );
+    setNotice(
+      "Section role · " +
+        songRoleLabel(role),
+    );
+  };
+
   const changeSongSectionCycles = (
     delta: -1 | 1,
   ) => {
@@ -9222,6 +9264,10 @@ export function PlaygroundSurface({
                             sectionBank
                           : section.role) +
                         ", " +
+                        songRoleLabel(
+                          section.role,
+                        ) +
+                        ", " +
                         section.cycleCount +
                         " repeats" +
                         (active
@@ -9242,10 +9288,12 @@ export function PlaygroundSurface({
                               )}
                       </span>
                       <strong>
+                        {songRoleLabel(
+                          section.role,
+                        ).toUpperCase()}
                         {sectionBank
-                          ? "PATTERN " +
-                            sectionBank
-                          : section.label}
+                          ? " · " + sectionBank
+                          : ""}
                       </strong>
                       <small>
                         {section.cycleCount}× ·{" "}
@@ -9277,6 +9325,64 @@ export function PlaygroundSurface({
                 <strong>
                   {selectedSongSection.label}
                 </strong>
+
+                <label
+                  className="playground-song__role"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    minHeight: 44,
+                    padding: "0 8px",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    borderRadius: 9,
+                    background: "rgba(255,255,255,.035)",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "var(--pg-muted)",
+                      fontSize: ".52rem",
+                      fontWeight: 850,
+                    }}
+                  >
+                    Role
+                  </span>
+                  <select
+                    aria-label="Song section role"
+                    value={
+                      selectedSongSection.role
+                    }
+                    disabled={
+                      editRecordingLocked
+                    }
+                    onChange={(event) =>
+                      setSongSectionRole(
+                        event.currentTarget
+                          .value as SceneRole,
+                      )
+                    }
+                    style={{
+                      border: 0,
+                      background: "transparent",
+                      color: "var(--pg-text)",
+                      font: "inherit",
+                      fontSize: ".58rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {SONG_ROLE_OPTIONS.map(
+                      (option) => (
+                        <option
+                          key={option.id}
+                          value={option.id}
+                        >
+                          {option.label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
 
                 {playgroundSong ? (
                   <div
