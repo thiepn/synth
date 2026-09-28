@@ -937,12 +937,12 @@ test("Playground builds and edits an A B song on the canonical arrangement timel
   });
   await expect(
     finish.getByRole("button", {
-      name: /Song/i,
+      name: "Export full Song",
     }),
   ).toBeVisible();
   await expect(
     finish.getByRole("button", {
-      name: /Song/i,
+      name: "Export full Song",
     }),
   ).toHaveAttribute("aria-pressed", "true");
   await finish.getByRole("button", {
@@ -1338,7 +1338,7 @@ test("Playground P8 Finish exports a high quality exact WAV loop", async ({
   );
 
   const pattern = finish.getByRole("button", {
-    name: /Pattern Current beat/i,
+    name: "Export current Pattern",
   });
   await expect(pattern).toHaveAttribute(
     "aria-pressed",
