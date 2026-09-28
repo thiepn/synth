@@ -61,6 +61,8 @@ const contracts = [
   ["package.json", '"check:feel"'],
   ["package.json", '"check:variation"'],
   ["package.json", '"check:jam"'],
+  ["package.json", '"check:starter"'],
+  ["scripts/check-playground-starters.mjs", "P13 Starter contracts verified"],
   ["package.json", '"check:recovery"'],
   ["scripts/check-playground-recovery.mjs", "P12 recovery contracts verified"],
   ["scripts/check-playground-jam.mjs", "P11 Jam contracts verified"],
