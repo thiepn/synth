@@ -3532,6 +3532,7 @@ export function PlaygroundSurface({
       stepIndex,
     );
     setSelectedMelodicLaneId(laneId);
+    setMixLaneId(laneId);
     setSelectedMelodicNote({
       laneId,
       stepIndex,
@@ -7948,6 +7949,9 @@ export function PlaygroundSurface({
                             setSelectedMelodicLaneId(
                               definition.id,
                             );
+                            setMixLaneId(
+                              definition.id,
+                            );
                             cycleMelodicPreset(
                               definition,
                               1,
@@ -8085,6 +8089,9 @@ export function PlaygroundSurface({
                                 }
                                 onClick={() => {
                                   setSelectedMelodicLaneId(
+                                    definition.id,
+                                  );
+                                  setMixLaneId(
                                     definition.id,
                                   );
 
