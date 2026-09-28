@@ -1457,6 +1457,7 @@ function PlaygroundJamStrip({
 
   return (
     <section
+      id="playground-live-jam"
       className="playground-jam-strip"
       aria-label="Live jam controls"
     >
@@ -2360,6 +2361,8 @@ export function PlaygroundSurface({
     useState(false);
   const [finishOpen, setFinishOpen] =
     useState(false);
+  const [jamOpen, setJamOpen] =
+    useState(false);
   const [projectBusy, setProjectBusy] =
     useState<string | null>(null);
   const [sessionHydratedProjectId, setSessionHydratedProjectId] =
@@ -3048,6 +3051,10 @@ export function PlaygroundSurface({
       renderStore.cancel();
       setFinishOpen(false);
     }
+    if (jamOpen) {
+      performanceStore.setActive(false);
+      setJamOpen(false);
+    }
     cancelPatternPreview();
     onOpenStudio();
   };
@@ -3693,6 +3700,22 @@ export function PlaygroundSurface({
   const editRecordingLocked =
     gridRecord.status !== "idle" ||
     melodicMidiRecording;
+
+  useEffect(() => {
+    if (editRecordingLocked && jamOpen) {
+      performanceStore.setActive(false);
+      setJamOpen(false);
+      setNotice(
+        "Jam closed while recording",
+      );
+      return;
+    }
+
+    performanceStore.setActive(jamOpen);
+    return () => {
+      performanceStore.setActive(false);
+    };
+  }, [editRecordingLocked, jamOpen]);
   const playgroundSong =
     isPlaygroundSongBlueprint(
       arrangement.blueprint,
@@ -7900,8 +7923,12 @@ export function PlaygroundSurface({
               if (finishOpen) {
                 renderStore.cancel();
               }
+              if (!finishOpen && jamOpen) {
+                performanceStore.setActive(false);
+                setJamOpen(false);
+              }
               setFinishOpen((current) => !current);
-            }}
+            }
             disabled={
               Boolean(projectBusy) ||
               !project.initialized
@@ -8322,7 +8349,41 @@ export function PlaygroundSurface({
           <span>Hold repeat</span>
           <b>{repeatLabel}</b>
         </button>
+
+        <button
+          type="button"
+          className={jamOpen ? "is-active" : ""}
+          disabled={editRecordingLocked}
+          onClick={() => {
+            if (!jamOpen && finishOpen) {
+              renderStore.cancel();
+              setFinishOpen(false);
+            }
+            setJamOpen((current) => !current);
+            pulseHaptic(6);
+            setNotice(
+              jamOpen
+                ? "Jam mode off"
+                : "Jam mode ready",
+            );
+          }}
+          aria-pressed={jamOpen}
+          aria-expanded={jamOpen}
+          aria-controls="playground-live-jam"
+          aria-label="Toggle live jam controls"
+        >
+          <span>Jam</span>
+          <b>{jamOpen ? "Live FX" : "Off"}</b>
+        </button>
       </section>
+
+      {jamOpen ? (
+        <PlaygroundJamStrip
+          playing={playing}
+          disabled={editRecordingLocked}
+          onNotice={setNotice}
+        />
+      ) : null}
 
       <section
         className={[
