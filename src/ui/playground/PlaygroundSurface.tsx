@@ -3450,31 +3450,19 @@ export function PlaygroundSurface({
     }
   };
 
-  const cycleMelodicPreset = (
+  const chooseMelodicPreset = (
     definition: MelodicLaneDefinition,
-    direction: -1 | 1,
+    presetId: string,
   ) => {
     if (melodicMidiRecording) {
       setNotice("Stop recording before changing the instrument");
       return;
     }
-    const lane = sequencer.pattern.lanes.find(
-      (entry) => entry.id === definition.id,
-    );
-    if (!lane) return;
-    const presets =
-      MELODIC_PRESETS[definition.track];
-    const currentIndex = Math.max(
-      0,
-      presets.findIndex(
-        (preset) =>
-          preset.id === lane.instrumentPresetId,
-      ),
-    );
-    const nextIndex =
-      (currentIndex + direction + presets.length) %
-      presets.length;
-    const next = presets[nextIndex];
+
+    const next =
+      MELODIC_PRESETS[definition.track].find(
+        (preset) => preset.id === presetId,
+      );
     if (!next) return;
 
     if (
@@ -3505,6 +3493,37 @@ export function PlaygroundSurface({
         definition.name + " sound · " + next.label,
       );
     }
+  };
+
+  const cycleMelodicPreset = (
+    definition: MelodicLaneDefinition,
+    direction: -1 | 1,
+  ) => {
+    const lane = sequencer.pattern.lanes.find(
+      (entry) => entry.id === definition.id,
+    );
+    if (!lane) return;
+
+    const presets =
+      MELODIC_PRESETS[definition.track];
+    const currentIndex = Math.max(
+      0,
+      presets.findIndex(
+        (preset) =>
+          preset.id === lane.instrumentPresetId,
+      ),
+    );
+    const next =
+      presets[
+        (currentIndex + direction + presets.length) %
+          presets.length
+      ];
+    if (!next) return;
+
+    chooseMelodicPreset(
+      definition,
+      next.id,
+    );
   };
 
   const setMelodicHarmony = (
@@ -7949,6 +7968,34 @@ export function PlaygroundSurface({
                       ›
                     </button>
                   </div>
+
+                  <label className="playground-piano__select">
+                    <span>Sound</span>
+                    <select
+                      aria-label="Choose melodic instrument"
+                      disabled={melodicMidiRecording}
+                      value={
+                        selectedMelodicPreset?.id ?? ""
+                      }
+                      onChange={(event) =>
+                        chooseMelodicPreset(
+                          selectedMelodicDefinition,
+                          event.currentTarget.value,
+                        )
+                      }
+                    >
+                      {MELODIC_PRESETS[
+                        selectedMelodicDefinition.track
+                      ].map((preset) => (
+                        <option
+                          key={preset.id}
+                          value={preset.id}
+                        >
+                          {preset.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
                   <button
                     type="button"
