@@ -17,7 +17,7 @@ import {
 } from "../audio/drumSoundModel";
 import {
   MELODIC_PRESETS,
-} from "../audio/MelodicEngine";
+} from "../audio/melodicSoundModel";
 import {
   DRUM_PADS,
   FOUNDATION_STEP_TICKS,
