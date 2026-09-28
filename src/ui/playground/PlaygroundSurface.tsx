@@ -1580,6 +1580,9 @@ function PlaygroundFeelStrip({
             aria-pressed={
               feel === entry.id
             }
+            aria-label={
+              entry.label + " feel"
+            }
             title={entry.description}
           >
             <strong>{entry.label}</strong>
@@ -1620,6 +1623,7 @@ function PlaygroundFeelStrip({
             appliedMatchesDraft
           }
           onClick={applyFeel}
+          aria-label="Apply selected feel"
         >
           Apply
         </button>
@@ -1630,6 +1634,7 @@ function PlaygroundFeelStrip({
             !hasAppliedFeel
           }
           onClick={resetFeel}
+          aria-label="Reset feel to straight"
         >
           Reset
         </button>
