@@ -9014,6 +9014,39 @@ export function PlaygroundSurface({
                               definition.id,
                               stepIndex,
                             );
+                          const stepEvent =
+                            lane.events.find(
+                              (event) =>
+                                Math.round(
+                                  event.tick /
+                                    FOUNDATION_STEP_TICKS,
+                                ) === stepIndex,
+                            );
+                          const stepProbability =
+                            stepEvent?.probability ?? 1;
+                          const stepRatchet = Math.max(
+                            1,
+                            stepEvent?.ratchetCount ?? 1,
+                          );
+                          const stepFlamUs = Math.max(
+                            0,
+                            stepEvent?.flamOffsetUs ?? 0,
+                          );
+                          const variationLabel = [
+                            stepProbability < 0.995
+                              ? Math.round(
+                                  stepProbability * 100,
+                                ) + "%"
+                              : "",
+                            stepRatchet > 1
+                              ? "×" + stepRatchet
+                              : "",
+                            stepFlamUs > 0
+                              ? "F"
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
                           const on = velocity !== undefined;
                           const current =
                             visualStep === stepIndex;
@@ -9049,6 +9082,9 @@ export function PlaygroundSurface({
                                     stepIndex,
                                 )
                                   ? "is-selected"
+                                  : "",
+                                variationLabel
+                                  ? "has-variation"
                                   : "",
                               ]
                                 .filter(Boolean)
@@ -9088,6 +9124,25 @@ export function PlaygroundSurface({
                                       (velocity ?? 0) * 100,
                                     ) +
                                     " percent" +
+                                    (stepProbability < 0.995
+                                      ? ", chance " +
+                                        Math.round(
+                                          stepProbability * 100,
+                                        ) +
+                                        " percent"
+                                      : "") +
+                                    (stepRatchet > 1
+                                      ? ", repeat " +
+                                        stepRatchet +
+                                        " times"
+                                      : "") +
+                                    (stepFlamUs > 0
+                                      ? ", flam " +
+                                        Math.round(
+                                          stepFlamUs / 1000,
+                                        ) +
+                                        " milliseconds"
+                                      : "") +
                                     (selectedStepKeys.has(
                                       definition.id +
                                         ":" +
@@ -9137,6 +9192,14 @@ export function PlaygroundSurface({
                               }}
                             >
                               <span aria-hidden="true" />
+                              {variationLabel ? (
+                                <small
+                                  className="playground-step__variation"
+                                  aria-hidden="true"
+                                >
+                                  {variationLabel}
+                                </small>
+                              ) : null}
                             </button>
                           );
                         },
