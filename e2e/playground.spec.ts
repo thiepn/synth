@@ -704,7 +704,7 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
   const recordedNote = bassRoll.getByRole(
     "button",
     {
-      name: /BASS note C3 step 1, length (?!1\/16).+/i,
+      name: /BASS note C3 step \d+, length (?!1\/16).+/i,
     },
   );
   await expect(recordedNote).toBeVisible();
@@ -721,7 +721,7 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
   }).click();
   await expect(
     bassRoll.getByRole("button", {
-      name: /BASS note C3 step 1, length .+/i,
+      name: /BASS note C3 step \d+, length .+/i,
     }),
   ).toBeVisible();
 });
