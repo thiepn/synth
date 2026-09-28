@@ -12,39 +12,6 @@
   padding: 0;
 }
 
-.playground-loading {
-  min-height: 100svh;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 14px;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(255, 85, 119, 0.16), transparent 28rem),
-    radial-gradient(circle at 80% 25%, rgba(99, 222, 244, 0.12), transparent 28rem),
-    #090a13;
-}
-
-.playground-loading strong {
-  font: 900 1.1rem/1 var(--font-ui);
-  letter-spacing: 0.22em;
-}
-
-.playground-loading__pulse {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #ffd84a;
-  box-shadow: 0 0 32px rgba(255, 216, 74, 0.42);
-  animation: playground-loader 900ms ease-in-out infinite alternate;
-}
-
-@keyframes playground-loader {
-  to {
-    transform: scale(1.45);
-    opacity: 0.55;
-  }
-}
-
 .playground-surface {
   --pg-text: #f7f7fb;
   --pg-muted: rgba(247, 247, 251, 0.58);
@@ -552,45 +519,6 @@
 .playground-project-name input:focus {
   border-color: rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.045);
-}
-
-.playground-save-state {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--pg-muted);
-  font-size: 0.57rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.playground-save-state > i {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 7px;
-  border-radius: 50%;
-  background: #35d5a3;
-  box-shadow: 0 0 10px rgba(53, 213, 163, 0.28);
-}
-
-.playground-save-state--dirty > i,
-.playground-save-state--saving > i {
-  background: #ffd84a;
-  box-shadow: 0 0 10px rgba(255, 216, 74, 0.25);
-}
-
-.playground-save-state--conflict > i,
-.playground-save-state--error > i {
-  background: #ff5577;
-  box-shadow: 0 0 10px rgba(255, 85, 119, 0.3);
-}
-
-.playground-save-state--unsupported > i,
-.playground-save-state--loading > i,
-.playground-save-state--uninitialized > i {
-  background: rgba(255, 255, 255, 0.38);
-  box-shadow: none;
 }
 
 .playground-session-actions {
@@ -2811,7 +2739,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .playground-pad__pulse,
-  .playground-loading__pulse,
   .playground-mini-pattern i,
   .playground-surface::before,
   .playground-surface::after,
@@ -2825,7 +2752,6 @@
     animation: none;
   }
 
-  .playground-playhead,
   .playground-mobile-dock {
     transition: none;
   }
