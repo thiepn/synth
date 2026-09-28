@@ -51,6 +51,8 @@ const required = [
   ["src/arrange/ArrangementStore.ts", "setSectionPattern(", "P5 section A/B switching must remain in ArrangementStore."],
   ["src/arrange/ArrangementStore.ts", "upsertPattern(", "P5 active bank edits must sync into arrangement playback."],
   ["src/arrange/ArrangementPlaybackStore.ts", "queueSection(", "P5 live section queuing must remain canonical."],
+  ["src/arrange/ArrangementStore.ts", "setSectionRole(", "P5 semantic section roles must remain canonical."],
+  [playground, 'aria-label="Song section role"', "P5 section role editing must remain available."],
   [playground, "selectOrQueueSongSection", "P5 song timeline clicks must queue sections during playback."],
   ["src/render/offlineRenderer.ts", "scheduleOfflineMelodic(", "P4 melodic notes must remain in master exports."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
