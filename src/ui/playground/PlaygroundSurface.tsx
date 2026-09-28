@@ -198,6 +198,8 @@ function PlaygroundFinishPanel({
   const sequencer = useSequencerSnapshot();
   const mixer = useMixerSnapshot();
   const arrangement = useArrangementSnapshot();
+  const drumSounds = useDrumSoundSnapshot();
+  const transport = useTransportSnapshot();
   const [range, setRange] =
     useState<PlaygroundFinishRange>(
       songAvailable ? "song" : "pattern",
@@ -236,6 +238,10 @@ function PlaygroundFinishPanel({
     mixer.revision,
     mastering.revision,
     arrangement.revision,
+    drumSounds.revision,
+    transport.bpm,
+    transport.meter.numerator,
+    transport.meter.denominator,
   ].join(":");
   const shareReady =
     Boolean(readyArtifact) &&
@@ -371,7 +377,11 @@ function PlaygroundFinishPanel({
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            renderStore.cancel();
+            setAction(null);
+            onClose();
+          }}
           aria-label="Close finish panel"
         >
           ×
@@ -6846,6 +6856,9 @@ export function PlaygroundSurface({
             className="playground-help-button"
             onClick={() => {
               setProjectMenuOpen(false);
+              if (finishOpen) {
+                renderStore.cancel();
+              }
               setFinishOpen(false);
               setStepContext(null);
               setSoundPickerVoice(null);
@@ -7005,6 +7018,9 @@ export function PlaygroundSurface({
             }
             onClick={() => {
               setProjectMenuOpen(false);
+              if (finishOpen) {
+                renderStore.cancel();
+              }
               setFinishOpen((current) => !current);
             }}
             disabled={
@@ -7023,6 +7039,9 @@ export function PlaygroundSurface({
               projectMenuOpen ? "is-active" : ""
             }
             onClick={() => {
+              if (finishOpen) {
+                renderStore.cancel();
+              }
               setFinishOpen(false);
               setProjectMenuOpen((current) => !current);
             }
