@@ -84,6 +84,10 @@ import {
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
 import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
+import { masteringStore } from "../../master/MasteringStore";
+import { useMasteringSnapshot } from "../../master/useMastering";
+import { renderStore, type RenderArtifact } from "../../render/RenderStore";
+import { useRenderTaskSnapshot } from "../../render/useRenderTask";
 import { triggerBlobDownload } from "../../render/wavEncoder";
 import {
   SEQUENCER_MAX_STEPS,
@@ -105,6 +109,444 @@ import { getStyleDNA } from "../../style/styleDNA";
 interface PlaygroundSurfaceProps {
   onOpenStudio: () => void;
 }
+
+type PlaygroundFinishRange = "pattern" | "song";
+
+function peakDb(value: number | undefined): string {
+  if (!Number.isFinite(value) || !value || value <= 0) {
+    return "−∞ dBFS";
+  }
+  return (
+    (20 * Math.log10(value)).toFixed(1) +
+    " dBFS"
+  );
+}
+
+async function shareAudioArtifact(
+  artifact: RenderArtifact,
+  title: string,
+): Promise<"shared" | "downloaded" | "cancelled"> {
+  const file = new File(
+    [artifact.blob],
+    artifact.filename,
+    {
+      type:
+        artifact.blob.type || "audio/wav",
+    },
+  );
+  const shareData: ShareData = {
+    title,
+    files: [file],
+  };
+
+  let supported =
+    typeof navigator.share === "function";
+  if (
+    supported &&
+    typeof navigator.canShare === "function"
+  ) {
+    try {
+      supported =
+        navigator.canShare(shareData);
+    } catch {
+      supported = false;
+    }
+  }
+
+  if (supported) {
+    try {
+      await navigator.share(shareData);
+      return "shared";
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        error.name === "AbortError"
+      ) {
+        return "cancelled";
+      }
+    }
+  }
+
+  triggerBlobDownload(
+    artifact.blob,
+    artifact.filename,
+  );
+  return "downloaded";
+}
+
+function PlaygroundFinishPanel({
+  projectName,
+  songAvailable,
+  songName,
+  onClose,
+  onNotice,
+  onProjectBackup,
+}: {
+  projectName: string;
+  songAvailable: boolean;
+  songName?: string;
+  onClose: () => void;
+  onNotice: (message: string) => void;
+  onProjectBackup: () => Promise<void>;
+}) {
+  const renderTask = useRenderTaskSnapshot();
+  const mastering = useMasteringSnapshot();
+  const [range, setRange] =
+    useState<PlaygroundFinishRange>(
+      songAvailable ? "song" : "pattern",
+    );
+  const [exactLoop, setExactLoop] =
+    useState(false);
+  const [action, setAction] =
+    useState<"download" | "share" | "backup" | null>(
+      null,
+    );
+
+  const busy =
+    renderTask.status === "preparing" ||
+    renderTask.status === "rendering" ||
+    renderTask.status === "encoding" ||
+    renderTask.status === "packaging" ||
+    action === "backup";
+  const previewLocked = Boolean(mastering.preview);
+  const actualRange =
+    range === "song" && songAvailable
+      ? "song"
+      : "pattern";
+
+  const renderAudio = async (
+    intent: "download" | "share",
+  ) => {
+    if (busy || previewLocked) return;
+    setAction(intent);
+
+    try {
+      const isPattern =
+        actualRange === "pattern";
+      const loop =
+        isPattern && exactLoop;
+      const artifact =
+        await renderStore.renderWav({
+          range:
+            actualRange === "song"
+              ? { kind: "arrangement" }
+              : { kind: "pattern" },
+          render: {
+            sampleRate: 48_000,
+            includeMastering: true,
+            includeSafetyLimiter: true,
+            tailMode: loop ? "none" : "auto",
+          },
+          wav: {
+            bitDepth: 24,
+            dither: true,
+          },
+          filename:
+            projectName +
+            (actualRange === "song"
+              ? " - Song"
+              : loop
+                ? " - Loop"
+                : " - Pattern"),
+        });
+
+      if (!artifact) {
+        onNotice(
+          renderStore.getSnapshot().lastError ??
+            "Audio export failed",
+        );
+        return;
+      }
+
+      if (intent === "share") {
+        const result =
+          await shareAudioArtifact(
+            artifact,
+            projectName,
+          );
+        onNotice(
+          result === "shared"
+            ? "Audio shared"
+            : result === "cancelled"
+              ? "Share cancelled"
+              : "WAV downloaded",
+        );
+      } else {
+        triggerBlobDownload(
+          artifact.blob,
+          artifact.filename,
+        );
+        onNotice("WAV downloaded");
+      }
+    } finally {
+      setAction(null);
+    }
+  };
+
+  const exportBackup = async () => {
+    if (busy) return;
+    setAction("backup");
+    try {
+      await onProjectBackup();
+    } finally {
+      setAction(null);
+    }
+  };
+
+  const analysis =
+    renderTask.lastAnalysis;
+
+  return (
+    <section
+      className="playground-finish-panel"
+      role="dialog"
+      aria-label="Finish and export"
+    >
+      <header className="playground-finish-panel__header">
+        <div>
+          <span>FINISH</span>
+          <strong>Take your beat with you.</strong>
+          <small>
+            48 kHz · 24-bit WAV · current mix
+          </small>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close finish panel"
+        >
+          ×
+        </button>
+      </header>
+
+      <div
+        className="playground-finish-range"
+        aria-label="Audio export range"
+      >
+        <button
+          type="button"
+          className={
+            actualRange === "pattern"
+              ? "is-active"
+              : ""
+          }
+          disabled={busy}
+          onClick={() => {
+            setRange("pattern");
+            setExactLoop(false);
+          }}
+          aria-pressed={
+            actualRange === "pattern"
+          }
+        >
+          <strong>Pattern</strong>
+          <span>Current beat</span>
+        </button>
+        {songAvailable ? (
+          <button
+            type="button"
+            className={
+              actualRange === "song"
+                ? "is-active"
+                : ""
+            }
+            disabled={busy}
+            onClick={() => {
+              setRange("song");
+              setExactLoop(false);
+            }}
+            aria-pressed={
+              actualRange === "song"
+            }
+          >
+            <strong>Song</strong>
+            <span>
+              {songName || "Full timeline"}
+            </span>
+          </button>
+        ) : null}
+      </div>
+
+      {actualRange === "pattern" ? (
+        <label className="playground-finish-loop">
+          <input
+            type="checkbox"
+            checked={exactLoop}
+            disabled={busy}
+            onChange={(event) =>
+              setExactLoop(
+                event.currentTarget.checked,
+              )
+            }
+          />
+          <span>
+            <strong>Exact loop</strong>
+            <small>
+              No reverb/sample tail after the pattern
+            </small>
+          </span>
+        </label>
+      ) : null}
+
+      {previewLocked ? (
+        <div
+          className="playground-finish-warning"
+          role="status"
+        >
+          <strong>Master preview open</strong>
+          <span>
+            Commit or cancel the preview before exporting so the WAV matches a saved production state.
+          </span>
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                masteringStore.commitPreview();
+                onNotice("Master committed");
+              }}
+            >
+              Use master
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                masteringStore.clearPreview();
+                onNotice("Master preview cancelled");
+              }}
+            >
+              Keep original
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="playground-finish-actions">
+        <button
+          type="button"
+          className="playground-finish-primary"
+          disabled={busy || previewLocked}
+          onClick={() =>
+            void renderAudio("download")
+          }
+        >
+          <span aria-hidden="true">↓</span>
+          <span>
+            <strong>
+              {action === "download"
+                ? renderTask.phaseLabel
+                : "Download WAV"}
+            </strong>
+            <small>
+              {actualRange === "song"
+                ? "Full song"
+                : exactLoop
+                  ? "Exact pattern loop"
+                  : "Current pattern"}
+            </small>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={busy || previewLocked}
+          onClick={() =>
+            void renderAudio("share")
+          }
+        >
+          <span aria-hidden="true">↗</span>
+          <span>
+            <strong>
+              {action === "share"
+                ? renderTask.phaseLabel
+                : "Share audio"}
+            </strong>
+            <small>
+              Uses system share when supported
+            </small>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() =>
+            void exportBackup()
+          }
+        >
+          <span aria-hidden="true">◇</span>
+          <span>
+            <strong>
+              {action === "backup"
+                ? "Preparing project…"
+                : "Project file"}
+            </strong>
+            <small>
+              Editable Synth backup
+            </small>
+          </span>
+        </button>
+      </div>
+
+      {busy && action !== "backup" ? (
+        <div
+          className="playground-finish-progress"
+          role="status"
+          aria-live="polite"
+        >
+          <span>{renderTask.phaseLabel}</span>
+          <button
+            type="button"
+            onClick={() => {
+              renderStore.cancel();
+              setAction(null);
+              onNotice("Export cancelled");
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+
+      {renderTask.lastError ? (
+        <p
+          className="playground-finish-error"
+          role="alert"
+        >
+          {renderTask.lastError}
+        </p>
+      ) : null}
+
+      {analysis &&
+      renderTask.status === "completed" ? (
+        <footer className="playground-finish-result">
+          <span>
+            {analysis.durationSeconds.toFixed(1)} s
+          </span>
+          <span>
+            Peak {peakDb(analysis.peak)}
+          </span>
+          <span>
+            {analysis.clippedSampleCount > 0
+              ? analysis.clippedSampleCount +
+                " clipped samples"
+              : "No clipped samples"}
+          </span>
+        </footer>
+      ) : null}
+
+      <p className="playground-finish-advanced">
+        Need stems, custom bars, alternate bit depths or detailed mastering?{" "}
+        <button
+          type="button"
+          onClick={onClose}
+        >
+          Use Studio
+        </button>
+      </p>
+    </section>
+  );
+}
+
 
 interface SoundPreset {
   label: string;
