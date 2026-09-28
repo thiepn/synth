@@ -7585,6 +7585,89 @@ export function PlaygroundSurface({
     }
   };
 
+  const restoreRecoveryCheckpoint = async (
+    versionId: string,
+    versionName: string,
+  ) => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before restoring a checkpoint");
+      return;
+    }
+    if (projectBusy) return;
+    setProjectBusy("restore");
+
+    try {
+      prepareProjectSwitch();
+
+      const safetyLabel =
+        "Before restore " +
+        new Intl.DateTimeFormat(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date());
+      const safety =
+        await projectStore.createVersion(
+          safetyLabel,
+        );
+      if (!safety) {
+        setNotice(
+          projectStore.getSnapshot().lastError ??
+            "Could not protect the current state before restore",
+        );
+        return;
+      }
+
+      const restored =
+        await projectStore.restoreVersion(
+          versionId,
+        );
+      if (restored) {
+        setSelectedSteps([]);
+        setSelectedMelodicNote(null);
+        setStepContext(null);
+        setSoundPickerVoice(null);
+        setStepPage(0);
+        setProjectMenuOpen(false);
+        setNotice(
+          "Restored " +
+            versionName +
+            " · current state kept as " +
+            safety.name,
+        );
+      } else {
+        setNotice(
+          projectStore.getSnapshot().lastError ??
+            "Checkpoint could not be restored",
+        );
+      }
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
+  const protectProjectStorage = async () => {
+    if (
+      projectBusy ||
+      !project.supported ||
+      project.storage.persisted
+    ) {
+      return;
+    }
+    setProjectBusy("storage");
+
+    try {
+      const persisted =
+        await projectStore.requestPersistentStorage();
+      setNotice(
+        persisted
+          ? "Local project storage is protected"
+          : "Browser kept project storage in best-effort mode",
+      );
+    } finally {
+      setProjectBusy(null);
+    }
+  };
+
   const shareOrExportProject = async () => {
     if (projectBusy) return;
     setProjectBusy("share");
