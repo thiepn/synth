@@ -42,6 +42,8 @@ const required = [
   ["src/music/foundationPattern.ts", "MELODIC_LANES", "P4 bass, chords and lead lanes must remain canonical."],
   ["src/sequencer/SequencerStore.ts", "setMelodicNote(", "P4 melodic notes must write through SequencerStore."],
   ["src/audio/MelodicEngine.ts", "MELODIC_PRESETS", "P4 melodic playback engine must remain available."],
+  ["src/midi/MidiStore.ts", "subscribeNoteEvents", "P4 raw MIDI note capture must remain available."],
+  [playground, "toggleMelodicMidiRecording", "P4 melodic MIDI recording must remain directly available."],
   ["src/render/offlineRenderer.ts", "scheduleOfflineMelodic(", "P4 melodic notes must remain in master exports."],
   ["src/sequencer/GridRecorder.ts", "recordRealtimeStep(", "P2 recorder must write through canonical SequencerStore state."],
   ["src/input/InputActionRouter.ts", "gridRecorder.recordHit(", "P2 MIDI/external pad input must feed grid recording."],
