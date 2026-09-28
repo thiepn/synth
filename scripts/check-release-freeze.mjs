@@ -63,6 +63,8 @@ const contracts = [
   ["package.json", '"check:jam"'],
   ["package.json", '"check:starter"'],
   ["scripts/check-playground-starters.mjs", "P13 Starter contracts verified"],
+  ["package.json", '"check:song-drafts"'],
+  ["scripts/check-playground-song-drafts.mjs", "P14 song draft contracts verified"],
   ["package.json", '"check:recovery"'],
   ["scripts/check-playground-recovery.mjs", "P12 recovery contracts verified"],
   ["scripts/check-playground-jam.mjs", "P11 Jam contracts verified"],
