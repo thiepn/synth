@@ -180,8 +180,12 @@ export class AudioTransport {
     this.activationInFlight = true;
 
     try {
-      const context = this.ensureContext();
+      // Claim playback intent before creating/resuming the AudioContext.
+      // ensureContext() publishes when it creates a context; downstream
+      // playback owners must never observe that transient publish as an
+      // idle user stop while a start() transaction is in progress.
       this.desiredPlaying = true;
+      const context = this.ensureContext();
 
       // Anchor before resume so an eager statechange event can never observe
       // an uninitialized transport origin.
