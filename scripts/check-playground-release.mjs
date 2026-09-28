@@ -79,6 +79,7 @@ const required = [
   ["e2e/playground.spec.ts", "Playground records pad performance live into the selected bar and can erase it", "P2 performance recording must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground selection batch edits move duplicate delete and undo notes", "P3 selection and batch editing must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground melodic tracks edit pitch duration chords scale and survive drum regeneration", "P4 melodic editing must remain browser-certified."],
+  ["e2e/playground.spec.ts", "Playground records held melodic MIDI notes as one undoable take", "P4 melodic MIDI recording must remain browser-certified."],
   ["e2e/playground.spec.ts", "Playground count in restart repeat and momentary monitoring stay responsive", "Q5 flow behavior must remain browser-certified."],
 ];
 
