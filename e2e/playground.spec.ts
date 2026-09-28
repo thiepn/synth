@@ -1206,6 +1206,99 @@ test("Playground P6 presets expose hybrid drums and direct melodic sound choice"
   expect(errors).toEqual([]);
 });
 
+test("Playground P7 mix strip controls drum melodic and master balance", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const kickMix = page.getByRole("region", {
+    name: "Mix controls for KICK",
+  });
+  await expect(kickMix).toBeVisible();
+
+  const kickLevel = kickMix.getByLabel("KICK level");
+  await expect(kickLevel).toHaveValue("0");
+  await kickLevel.press("ArrowLeft");
+  await expect(kickLevel).toHaveValue("-0.5");
+
+  const kickSpace = kickMix.getByLabel("KICK space");
+  await expect(kickSpace).toHaveValue("0.1");
+  await kickSpace.press("ArrowRight");
+  await expect(kickSpace).toHaveValue("0.15");
+
+  const muteKick = kickMix.getByRole("button", {
+    name: "Mute KICK",
+  });
+  await muteKick.click();
+  await expect(muteKick).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await muteKick.click();
+  await expect(muteKick).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  const master = kickMix.getByLabel(
+    "Playground master level",
+  );
+  await expect(master).toHaveValue("0");
+  await master.press("ArrowLeft");
+  await expect(master).toHaveValue("-0.5");
+
+  await page.getByRole("button", {
+    name: "Open BASS piano roll",
+  }).click();
+
+  const bassMix = page.getByRole("region", {
+    name: "Mix controls for BASS",
+  });
+  await expect(bassMix).toBeVisible();
+
+  const bassLevel = bassMix.getByLabel("BASS level");
+  const bassPan = bassMix.getByLabel("BASS pan");
+  const bassSpace = bassMix.getByLabel("BASS space");
+
+  await bassLevel.press("ArrowLeft");
+  await bassPan.press("ArrowRight");
+  await bassSpace.press("ArrowRight");
+
+  await expect(bassLevel).toHaveValue("-0.5");
+  await expect(bassPan).toHaveValue("0.05");
+  await expect(bassSpace).toHaveValue("0.05");
+
+  await page.getByLabel("Beat style").selectOption(
+    "house",
+  );
+
+  await expect(
+    page.getByRole("region", {
+      name: "Mix controls for BASS",
+    }).getByLabel("BASS level"),
+  ).toHaveValue("-0.5");
+  await expect(
+    page.getByRole("region", {
+      name: "Mix controls for BASS",
+    }).getByLabel("BASS pan"),
+  ).toHaveValue("0.05");
+  await expect(
+    page.getByRole("region", {
+      name: "Mix controls for BASS",
+    }).getByLabel("BASS space"),
+  ).toHaveValue("0.05");
+
+  await bassMix.getByRole("button", {
+    name: "Reset BASS mix",
+  }).click();
+  await expect(bassLevel).toHaveValue("0");
+  await expect(bassPan).toHaveValue("0");
+  await expect(bassSpace).toHaveValue("0");
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground sound favorites and recents remain fast", async ({
   page,
 }) => {
