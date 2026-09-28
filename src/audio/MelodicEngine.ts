@@ -3,6 +3,7 @@ import {
   TRANSPORT_SCHEDULER_CONFIG,
   type ScheduledTransportPulse,
 } from "./AudioTransport";
+import { drumEngine } from "./DrumEngine";
 import type {
   Pattern,
   PatternLane,
@@ -162,6 +163,7 @@ interface ActiveMelodicVoice {
   endTime: number;
   oscillators: OscillatorNode[];
   gain: GainNode;
+  liveKey?: string;
 }
 
 function midiToFrequency(midi: number): number {
@@ -261,6 +263,93 @@ export class MelodicEngine {
       velocity,
       null,
     );
+  }
+
+  async noteOn(
+    laneId: string,
+    pitch: number,
+    velocity = 0.76,
+  ): Promise<void> {
+    const context =
+      await audioTransport.unlockAudio();
+    const lane = sequencerStore
+      .getSnapshot()
+      .pattern.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+    const definition =
+      melodicLaneDefinitionById(laneId);
+    if (!lane || !definition) return;
+
+    const preset = presetForLane(lane);
+    if (!preset) return;
+
+    const safePitch = Math.max(
+      0,
+      Math.min(127, Math.round(pitch)),
+    );
+    const liveKey =
+      laneId + ":" + safePitch;
+    this.noteOff(
+      laneId,
+      safePitch,
+      true,
+    );
+
+    this.scheduleChord(
+      context,
+      lane,
+      preset,
+      [safePitch],
+      context.currentTime + 0.004,
+      60,
+      velocity,
+      null,
+      liveKey,
+    );
+  }
+
+  noteOff(
+    laneId: string,
+    pitch: number,
+    immediate = false,
+  ): void {
+    const context =
+      audioTransport.getAudioContext();
+    if (!context) return;
+
+    const liveKey =
+      laneId +
+      ":" +
+      Math.max(
+        0,
+        Math.min(127, Math.round(pitch)),
+      );
+    const now = context.currentTime;
+
+    for (const voice of this.activeVoices) {
+      if (voice.liveKey !== liveKey) continue;
+
+      try {
+        voice.gain.gain.cancelScheduledValues(
+          now,
+        );
+        voice.gain.gain.setTargetAtTime(
+          0.0001,
+          now,
+          immediate ? 0.004 : 0.025,
+        );
+        for (const oscillator of voice.oscillators) {
+          oscillator.stop(
+            now + (immediate ? 0.02 : 0.09),
+          );
+        }
+      } catch {
+        // Voice may already have ended.
+      }
+      voice.endTime =
+        now + (immediate ? 0.025 : 0.1);
+    }
   }
 
   private handlePulse(
@@ -446,6 +535,7 @@ export class MelodicEngine {
     durationSeconds: number,
     velocity: number,
     epoch: number | null,
+    liveKey?: string,
   ): void {
     if (pitches.length === 0) return;
 
@@ -514,7 +604,10 @@ export class MelodicEngine {
 
     filter.connect(pan);
     pan.connect(voiceGain);
-    voiceGain.connect(context.destination);
+    drumEngine.connectExternalAudio(
+      voiceGain,
+      context,
+    );
 
     const oscillators: OscillatorNode[] = [];
     pitches.forEach((pitch, pitchIndex) => {
@@ -567,6 +660,7 @@ export class MelodicEngine {
       endTime: start + duration + 0.03,
       oscillators,
       gain: voiceGain,
+      liveKey,
     });
   }
 
