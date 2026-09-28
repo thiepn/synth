@@ -1810,7 +1810,9 @@
   position: fixed;
   z-index: 70;
   width: 210px;
-  overflow: hidden;
+  max-height: calc(100dvh - 16px);
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 16px;
   background: rgba(18, 19, 31, 0.98);
