@@ -30,10 +30,11 @@ const feel =
 
 const required = [
   [playground, 'aria-label="Feel and groove"', "P9 Feel surface is missing."],
-  [playground, '"Straight feel"', "P9 Straight preset is missing."],
-  [playground, '"Tight feel"', "P9 Tight preset is missing."],
-  [playground, '"Laid-back feel"', "P9 Laid-back preset is missing."],
-  [playground, '"Human feel"', "P9 Human preset is missing."],
+  [playground, 'label: "Straight"', "P9 Straight preset is missing."],
+  [playground, 'label: "Tight"', "P9 Tight preset is missing."],
+  [playground, 'label: "Laid-back"', "P9 Laid-back preset is missing."],
+  [playground, 'label: "Human"', "P9 Human preset is missing."],
+  [feel, 'entry.label + " feel"', "P9 Feel presets need explicit accessible names."],
   [feel, 'aria-label="Feel swing"', "P9 Swing control is missing."],
   [feel, 'max="50"', "P9 Playground Swing must stay in the simple 0–50% range."],
   [feel, "applyGroove({", "P9 must reuse the canonical groove engine."],
