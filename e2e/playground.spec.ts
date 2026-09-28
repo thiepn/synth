@@ -1496,6 +1496,27 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
     name: "Close help",
   }).click();
 
+  await page.getByRole("button", {
+    name: "Finish",
+  }).click();
+  const mobileFinish = page.getByRole("dialog", {
+    name: "Finish and export",
+  });
+  await expect(mobileFinish).toBeVisible();
+  const mobileDownload =
+    mobileFinish.getByRole("button", {
+      name: /Download WAV/i,
+    });
+  const mobileDownloadBox =
+    await mobileDownload.boundingBox();
+  expect(mobileDownloadBox).not.toBeNull();
+  expect(
+    mobileDownloadBox!.height,
+  ).toBeGreaterThanOrEqual(58);
+  await mobileFinish.getByRole("button", {
+    name: "Close finish panel",
+  }).click();
+
   const overflow = await page.evaluate(() => ({
     width: document.documentElement.clientWidth,
     scroll: document.documentElement.scrollWidth,
