@@ -17,6 +17,10 @@ import {
 } from "../audio/drumSoundModel";
 import {
   MELODIC_PRESETS,
+  melodicFilterEnvelopeVelocityScale,
+  melodicPresetStereoWidth,
+  melodicVelocityFilterMultiplier,
+  melodicVelocityGain,
 } from "../audio/melodicSoundModel";
 import {
   DRUM_PADS,
@@ -1248,20 +1252,32 @@ function scheduleOfflineMelodic(
   const gain = context.createGain();
   const filter = context.createBiquadFilter();
   const pan = context.createStereoPanner();
+  const expressiveVelocity =
+    melodicVelocityGain(
+      preset,
+      clamp01(velocity),
+    );
   const peak =
     preset.gain *
-    clamp01(velocity) /
+    expressiveVelocity /
     Math.max(1, Math.sqrt(uniquePitches.length));
   const baseFilterHz = clampOfflineMelodicFilterHz(
     context,
-    preset.filterHz,
+    preset.filterHz *
+      melodicVelocityFilterMultiplier(
+        preset,
+        velocity,
+      ),
   );
   const filterEnvelopeOctaves =
     Math.max(
       0,
       Math.min(
         4,
-        preset.filterEnvelopeOctaves ?? 0,
+        (preset.filterEnvelopeOctaves ?? 0) *
+          melodicFilterEnvelopeVelocityScale(
+            velocity,
+          ),
       ),
     );
   const filterStartHz = clampOfflineMelodicFilterHz(
@@ -1356,12 +1372,15 @@ function scheduleOfflineMelodic(
   );
   const subOctave =
     preset.subOctave === 2 ? 2 : 1;
+  const stereoWidth =
+    melodicPresetStereoWidth(preset);
 
   const startOscillator = (
     wave: OscillatorType,
     frequency: number,
     detune: number,
     gainValue = 1,
+    panOffset = 0,
   ) => {
     const oscillator = context.createOscillator();
     oscillator.type = wave;
@@ -1374,18 +1393,33 @@ function scheduleOfflineMelodic(
       start,
     );
 
-    if (gainValue >= 0.999) {
-      oscillator.connect(filter);
-    } else {
+    let output: AudioNode = oscillator;
+    if (gainValue < 0.999) {
       const layerGain = context.createGain();
       layerGain.gain.value = Math.max(
         0,
         Math.min(1, gainValue),
       );
-      oscillator.connect(layerGain);
-      layerGain.connect(filter);
+      output.connect(layerGain);
+      output = layerGain;
     }
 
+    const safePan = Math.max(
+      -0.82,
+      Math.min(0.82, panOffset),
+    );
+    if (Math.abs(safePan) > 0.001) {
+      const layerPan =
+        context.createStereoPanner();
+      layerPan.pan.setValueAtTime(
+        safePan,
+        start,
+      );
+      output.connect(layerPan);
+      output = layerPan;
+    }
+
+    output.connect(filter);
     oscillator.start(start);
     oscillator.stop(start + duration + 0.02);
   };
@@ -1397,27 +1431,48 @@ function scheduleOfflineMelodic(
       (pitchIndex -
         (uniquePitches.length - 1) / 2) *
       1.8;
-    const primaryDetune =
-      chordDetune -
-      (unisonGain > 0.001
-        ? unisonDetune * 0.5
-        : 0);
+    const chordSpread =
+      uniquePitches.length > 1
+        ? (
+            pitchIndex /
+              Math.max(
+                1,
+                uniquePitches.length - 1,
+              ) *
+              2 -
+            1
+          ) *
+          stereoWidth *
+          0.45
+        : 0;
 
     startOscillator(
       preset.wave,
       baseFrequency,
-      primaryDetune,
+      chordDetune,
+      1,
+      chordSpread,
     );
 
     if (
       unisonGain > 0.001 &&
       unisonDetune > 0.001
     ) {
+      const sideGain =
+        unisonGain * 0.64;
       startOscillator(
         preset.wave,
         baseFrequency,
-        chordDetune + unisonDetune * 0.5,
-        unisonGain,
+        chordDetune - unisonDetune,
+        sideGain,
+        chordSpread - stereoWidth * 0.5,
+      );
+      startOscillator(
+        preset.wave,
+        baseFrequency,
+        chordDetune + unisonDetune,
+        sideGain,
+        chordSpread + stereoWidth * 0.5,
       );
     }
 
@@ -1425,11 +1480,17 @@ function scheduleOfflineMelodic(
       preset.secondaryWave &&
       secondaryGainValue > 0.001
     ) {
+      const secondaryDetune =
+        preset.detuneCents ?? 0;
       startOscillator(
         preset.secondaryWave,
         baseFrequency,
-        chordDetune + (preset.detuneCents ?? 0),
+        chordDetune + secondaryDetune,
         secondaryGainValue,
+        chordSpread +
+          Math.sign(secondaryDetune || 1) *
+            stereoWidth *
+            0.3,
       );
     }
 
@@ -1442,6 +1503,7 @@ function scheduleOfflineMelodic(
         baseFrequency / Math.pow(2, subOctave),
         chordDetune * 0.5,
         subGainValue,
+        0,
       );
     }
   });
