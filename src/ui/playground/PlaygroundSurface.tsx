@@ -57,6 +57,11 @@ import {
 } from "../../generation/beatGenerator";
 import { rerollBeat } from "../../generation/beatVariation";
 import {
+  applyGroove,
+  resetGroove,
+  type GroovePersonalityId,
+} from "../../groove/grooveEngine";
+import {
   generationHistoryStore,
   type PatternBankId,
 } from "../../history/GenerationHistoryStore";
@@ -1319,6 +1324,309 @@ function ProjectHealthAlert({
       <span aria-hidden="true">!</span>
       <b>{projectAlert.label}</b>
     </button>
+  );
+}
+
+type PlaygroundFeelId =
+  | "straight"
+  | "tight"
+  | "laidBack"
+  | "human";
+
+interface PlaygroundFeelPreset {
+  id: PlaygroundFeelId;
+  label: string;
+  personality: GroovePersonalityId;
+  humanization: number;
+  ghostNoteAmount: number;
+  description: string;
+}
+
+const PLAYGROUND_FEELS: readonly PlaygroundFeelPreset[] = [
+  {
+    id: "straight",
+    label: "Straight",
+    personality: "mechanical",
+    humanization: 0,
+    ghostNoteAmount: 0,
+    description: "Exact grid",
+  },
+  {
+    id: "tight",
+    label: "Tight",
+    personality: "tight",
+    humanization: 0.34,
+    ghostNoteAmount: 0.08,
+    description: "Controlled pocket",
+  },
+  {
+    id: "laidBack",
+    label: "Laid-back",
+    personality: "laidBack",
+    humanization: 0.5,
+    ghostNoteAmount: 0.16,
+    description: "Behind the beat",
+  },
+  {
+    id: "human",
+    label: "Human",
+    personality: "human",
+    humanization: 0.58,
+    ghostNoteAmount: 0.22,
+    description: "Natural movement",
+  },
+];
+
+function playgroundFeelFromPattern(
+  personality: GroovePersonalityId | undefined,
+  humanization: number,
+): PlaygroundFeelId {
+  if (humanization <= 0.015) {
+    return "straight";
+  }
+  if (personality === "tight") {
+    return "tight";
+  }
+  if (personality === "laidBack") {
+    return "laidBack";
+  }
+  return "human";
+}
+
+function PlaygroundFeelStrip({
+  disabled,
+  onNotice,
+}: {
+  disabled: boolean;
+  onNotice: (message: string) => void;
+}) {
+  const sequencer = useSequencerSnapshot();
+  const groove = sequencer.pattern.groove;
+  const appliedHumanization =
+    groove?.humanization ?? 0;
+  const appliedSwing =
+    groove?.swing ?? 0;
+  const appliedFeel =
+    playgroundFeelFromPattern(
+      groove?.personality,
+      appliedHumanization,
+    );
+
+  const [feel, setFeel] =
+    useState<PlaygroundFeelId>(
+      appliedFeel,
+    );
+  const [swing, setSwing] =
+    useState(
+      Math.round(
+        Math.max(
+          0,
+          Math.min(0.5, appliedSwing),
+        ) * 100,
+      ),
+    );
+
+  const grooveKey = [
+    groove?.personality ?? "mechanical",
+    appliedHumanization,
+    groove?.ghostNoteAmount ?? 0,
+    appliedSwing,
+    groove?.seed ?? "",
+  ].join(":");
+
+  useEffect(() => {
+    setFeel(appliedFeel);
+    setSwing(
+      Math.round(
+        Math.max(
+          0,
+          Math.min(0.5, appliedSwing),
+        ) * 100,
+      ),
+    );
+  }, [
+    grooveKey,
+    appliedFeel,
+    appliedSwing,
+  ]);
+
+  const preset =
+    PLAYGROUND_FEELS.find(
+      (entry) => entry.id === feel,
+    ) ?? PLAYGROUND_FEELS[0];
+
+  const appliedMatchesDraft =
+    groove?.personality ===
+      preset.personality &&
+    Math.abs(
+      appliedHumanization -
+        preset.humanization,
+    ) < 0.005 &&
+    Math.abs(
+      (groove?.ghostNoteAmount ?? 0) -
+        preset.ghostNoteAmount,
+    ) < 0.005 &&
+    Math.abs(
+      appliedSwing - swing / 100,
+    ) < 0.005;
+
+  const hasAppliedFeel =
+    Math.abs(appliedHumanization) >
+      0.005 ||
+    Math.abs(
+      groove?.ghostNoteAmount ?? 0,
+    ) > 0.005 ||
+    Math.abs(appliedSwing) > 0.005 ||
+    groove?.personality ===
+      "mechanical";
+
+  const applyFeel = () => {
+    if (disabled) return;
+    const source =
+      sequencerStore.getSnapshot().pattern;
+    const seed =
+      source.groove?.seed ??
+      [
+        "playground-feel",
+        source.id,
+        source.provenance?.seed ??
+          "manual",
+      ].join(":");
+
+    const result = applyGroove({
+      source,
+      seed,
+      personality: preset.personality,
+      humanization:
+        preset.humanization,
+      ghostNoteAmount:
+        preset.ghostNoteAmount,
+      swing: swing / 100,
+    });
+    sequencerStore.applyPatternTransform(
+      result.pattern,
+    );
+    onNotice(
+      preset.label +
+        " feel applied" +
+        (swing > 0
+          ? " · Swing " + swing + "%"
+          : ""),
+    );
+  };
+
+  const resetFeel = () => {
+    if (disabled) return;
+    const source =
+      sequencerStore.getSnapshot().pattern;
+    sequencerStore.applyPatternTransform(
+      resetGroove(source),
+    );
+    onNotice("Feel reset to straight");
+  };
+
+  const currentLabel =
+    groove?.personality
+      ? groove.personality
+          .replace("laidBack", "Laid-back")
+          .replace(/^./, (value) =>
+            value.toUpperCase(),
+          )
+      : "Straight";
+
+  return (
+    <section
+      className="playground-feel-strip"
+      aria-label="Feel and groove"
+    >
+      <div className="playground-feel-strip__identity">
+        <span>FEEL</span>
+        <strong>{currentLabel}</strong>
+        <small>
+          {Math.round(
+            appliedHumanization * 100,
+          )}
+          % human ·{" "}
+          {Math.round(appliedSwing * 100)}
+          % swing
+        </small>
+      </div>
+
+      <div
+        className="playground-feel-presets"
+        aria-label="Feel preset"
+      >
+        {PLAYGROUND_FEELS.map((entry) => (
+          <button
+            type="button"
+            key={entry.id}
+            className={
+              feel === entry.id
+                ? "is-active"
+                : ""
+            }
+            disabled={disabled}
+            onClick={() =>
+              setFeel(entry.id)
+            }
+            aria-pressed={
+              feel === entry.id
+            }
+            title={entry.description}
+          >
+            <strong>{entry.label}</strong>
+            <small>
+              {entry.description}
+            </small>
+          </button>
+        ))}
+      </div>
+
+      <label className="playground-feel-swing">
+        <span>Swing</span>
+        <input
+          type="range"
+          min="0"
+          max="50"
+          step="1"
+          value={swing}
+          disabled={disabled}
+          onChange={(event) =>
+            setSwing(
+              Number(
+                event.currentTarget.value,
+              ),
+            )
+          }
+          aria-label="Feel swing"
+        />
+        <output>{swing}%</output>
+      </label>
+
+      <div className="playground-feel-actions">
+        <button
+          type="button"
+          className="playground-feel-apply"
+          disabled={
+            disabled ||
+            appliedMatchesDraft
+          }
+          onClick={applyFeel}
+        >
+          Apply
+        </button>
+        <button
+          type="button"
+          disabled={
+            disabled ||
+            !hasAppliedFeel
+          }
+          onClick={resetFeel}
+        >
+          Reset
+        </button>
+      </div>
+    </section>
   );
 }
 
