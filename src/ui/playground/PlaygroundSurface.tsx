@@ -12274,16 +12274,56 @@ export function PlaygroundSurface({
           </div>
 
           {!arrangement.blueprint ? (
-            <button
-              type="button"
-              className="playground-song__build"
-              style={SONG_BUTTON_STYLE}
-              onClick={buildPlaygroundSong}
-              disabled={editRecordingLocked}
-              aria-label="Build song from Pattern A and B"
+            <div
+              className="playground-song__draft-actions"
+              aria-label="Song draft options"
             >
-              Build A/B Song
-            </button>
+              <button
+                type="button"
+                className="playground-song__build"
+                style={SONG_BUTTON_STYLE}
+                onClick={buildPlaygroundSong}
+                disabled={
+                  editRecordingLocked ||
+                  Boolean(projectBusy)
+                }
+                aria-label="Build song from Pattern A and B"
+                title="Simple A ×4 → B ×4 arrangement"
+              >
+                Basic A/B
+              </button>
+              {PLAYGROUND_SONG_DRAFTS.map(
+                (draft) => (
+                  <button
+                    type="button"
+                    key={draft.id}
+                    className="playground-song-draft"
+                    disabled={
+                      editRecordingLocked ||
+                      Boolean(projectBusy)
+                    }
+                    onClick={() =>
+                      void buildPlaygroundSongDraft(
+                        draft,
+                      )
+                    }
+                    aria-label={
+                      "Build " +
+                      draft.label +
+                      " song draft"
+                    }
+                    title={draft.description}
+                  >
+                    <strong>
+                      {draft.label}
+                    </strong>
+                    <small>
+                      {draft.sections.length} sections
+                    </small>
+                  </button>
+                ),
+              )}
+            </div>
           ) : (
             <div
               className="playground-song__transport"
