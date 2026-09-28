@@ -3604,3 +3604,35 @@
     background:Highlight;color:HighlightText
   }
 }
+
+
+/* Playground P10 — micro-variation visibility */
+.playground-step__variation{
+  position:absolute;z-index:4;right:3px;bottom:2px;
+  max-width:calc(100% - 5px);overflow:hidden;text-overflow:clip;
+  color:rgba(255,255,255,.92);font-size:.36rem;font-weight:950;
+  line-height:1;letter-spacing:-.02em;white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,.55);pointer-events:none
+}
+.playground-step.has-variation{
+  box-shadow:
+    0 5px 18px color-mix(in srgb,var(--lane-color) 24%,transparent),
+    inset 0 -2px 0 rgba(255,255,255,.42),
+    inset 0 1px 0 rgba(255,255,255,.28)
+}
+.playground-selection-actions>.playground-selection-variation{
+  color:#9ddfd0;background:rgba(53,213,163,.045)
+}
+.playground-step-context__divider{
+  height:1px;background:rgba(255,255,255,.1)
+}
+@media(max-width:760px){
+  .playground-step__variation{right:2px;bottom:2px;font-size:.34rem}
+  .playground-selection-actions>.playground-selection-variation{min-width:76px}
+}
+@media(forced-colors:active){
+  .playground-step__variation{color:HighlightText;text-shadow:none}
+  .playground-step.has-variation{outline:2px dotted Highlight}
+  .playground-selection-actions>.playground-selection-variation{color:CanvasText;background:Canvas}
+  .playground-step-context__divider{background:ButtonText}
+}
