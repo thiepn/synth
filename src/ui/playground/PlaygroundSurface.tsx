@@ -3716,6 +3716,12 @@ export function PlaygroundSurface({
       performanceStore.setActive(false);
     };
   }, [editRecordingLocked, jamOpen]);
+
+  useEffect(() => {
+    if (!jamOpen) return;
+    performanceStore.setActive(false);
+    setJamOpen(false);
+  }, [project.projectId]);
   const playgroundSong =
     isPlaygroundSongBlueprint(
       arrangement.blueprint,
@@ -11908,6 +11914,7 @@ export function PlaygroundSurface({
                 <p>Remix is reversible and keeps recent versions.</p>
                 <p>A/B patterns let you compare two directions.</p>
                 <p>Right-click or long-press a hit for Normal / Accent / Ghost plus Chance, Repeat and Flam.</p>
+                <p>Jam adds temporary Energy, Filter, Space, Fill, Drop, Build and Stutter while the beat plays.</p>
               </div>
             </div>
 
