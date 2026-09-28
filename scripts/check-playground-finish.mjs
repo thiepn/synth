@@ -39,7 +39,7 @@ const finishBundle =
 
 const required = [
   [playground, 'aria-label="Finish and export"', "P8 Finish surface is missing."],
-  [playground, '>Finish\n', "P8 session action must remain labeled Finish."],
+  [playground, '<span aria-hidden="true">↓</span>\n            Finish', "P8 session action must remain labeled Finish."],
   [finish, 'sampleRate: 48_000', "P8 quick export must remain fixed at 48 kHz."],
   [finish, 'bitDepth: 24', "P8 quick export must remain 24-bit WAV."],
   [finish, 'dither: true', "P8 quick integer WAV export must retain dither."],
