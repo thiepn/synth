@@ -6,6 +6,7 @@ import {
   type PatternLane,
   type StepEvent,
 } from "../domain/contracts";
+import { DEFAULT_LANE_MIX } from "../mix/laneMix";
 
 export type DrumVoiceId =
   | "kick"
@@ -241,6 +242,7 @@ export function createEmptyMelodicLane(
     role: definition.role,
     kitSlotId: definition.kitSlotId,
     instrumentPresetId: definition.defaultPresetId,
+    mix: { ...DEFAULT_LANE_MIX },
     events: [],
     muted: false,
     solo: false,
