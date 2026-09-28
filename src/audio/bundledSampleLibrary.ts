@@ -33,32 +33,34 @@ export interface BundledSample {
   file: string;
   license: "CC0-1.0";
   source: string;
+  /** Gain trim measured from the pinned source WAV to target a -3 dBFS peak. */
+  gainDb: number;
 }
 
 const SAMPLE_SOURCE = "tidalcycles/sounds-tr808-fischer";
 
 export const BUNDLED_SAMPLES: readonly BundledSample[] = [
-  { id: "tr808-kick-short", voice: "kick", label: "808 Short", file: "generated/tr808/kick-short.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-kick", voice: "kick", label: "808 Classic", file: "generated/tr808/kick.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-kick-long", voice: "kick", label: "808 Long", file: "generated/tr808/kick-long.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-snare-dry", voice: "snare", label: "808 Dry", file: "generated/tr808/snare-dry.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-snare", voice: "snare", label: "808 Snare", file: "generated/tr808/snare.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-snare-snap", voice: "snare", label: "808 Snap", file: "generated/tr808/snare-snap.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-clap", voice: "clap", label: "808 Clap", file: "generated/tr808/clap.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-closed-hat", voice: "closedHat", label: "808 Hat", file: "generated/tr808/closed-hat.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-open-hat-short", voice: "openHat", label: "808 Open Short", file: "generated/tr808/open-hat-short.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-open-hat", voice: "openHat", label: "808 Open", file: "generated/tr808/open-hat.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-open-hat-long", voice: "openHat", label: "808 Open Long", file: "generated/tr808/open-hat-long.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-tom-low", voice: "tom", label: "808 Tom Low", file: "generated/tr808/tom-low.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-tom", voice: "tom", label: "808 Tom", file: "generated/tr808/tom.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-tom-high", voice: "tom", label: "808 Tom High", file: "generated/tr808/tom-high.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-percussion", voice: "percussion", label: "808 Rim", file: "generated/tr808/percussion.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-percussion-claves", voice: "percussion", label: "808 Claves", file: "generated/tr808/claves.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-percussion-cowbell", voice: "percussion", label: "808 Cowbell", file: "generated/tr808/cowbell.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-percussion-maracas", voice: "percussion", label: "808 Maracas", file: "generated/tr808/maracas.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-crash-short", voice: "crash", label: "808 Cymbal Short", file: "generated/tr808/crash-short.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-crash", voice: "crash", label: "808 Cymbal", file: "generated/tr808/crash.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
-  { id: "tr808-crash-long", voice: "crash", label: "808 Cymbal Long", file: "generated/tr808/crash-long.wav", license: "CC0-1.0", source: SAMPLE_SOURCE },
+  { id: "tr808-kick-short", voice: "kick", label: "808 Short", file: "generated/tr808/kick-short.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 1.68 },
+  { id: "tr808-kick", voice: "kick", label: "808 Classic", file: "generated/tr808/kick.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.24 },
+  { id: "tr808-kick-long", voice: "kick", label: "808 Long", file: "generated/tr808/kick-long.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.41 },
+  { id: "tr808-snare-dry", voice: "snare", label: "808 Dry", file: "generated/tr808/snare-dry.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 5.2 },
+  { id: "tr808-snare", voice: "snare", label: "808 Snare", file: "generated/tr808/snare.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 0.99 },
+  { id: "tr808-snare-snap", voice: "snare", label: "808 Snap", file: "generated/tr808/snare-snap.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.49 },
+  { id: "tr808-clap", voice: "clap", label: "808 Clap", file: "generated/tr808/clap.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.05 },
+  { id: "tr808-closed-hat", voice: "closedHat", label: "808 Hat", file: "generated/tr808/closed-hat.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 2.04 },
+  { id: "tr808-open-hat-short", voice: "openHat", label: "808 Open Short", file: "generated/tr808/open-hat-short.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.55 },
+  { id: "tr808-open-hat", voice: "openHat", label: "808 Open", file: "generated/tr808/open-hat.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 0.32 },
+  { id: "tr808-open-hat-long", voice: "openHat", label: "808 Open Long", file: "generated/tr808/open-hat-long.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 0.58 },
+  { id: "tr808-tom-low", voice: "tom", label: "808 Tom Low", file: "generated/tr808/tom-low.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 1.68 },
+  { id: "tr808-tom", voice: "tom", label: "808 Tom", file: "generated/tr808/tom.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 0.15 },
+  { id: "tr808-tom-high", voice: "tom", label: "808 Tom High", file: "generated/tr808/tom-high.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.19 },
+  { id: "tr808-percussion", voice: "percussion", label: "808 Rim", file: "generated/tr808/percussion.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.52 },
+  { id: "tr808-percussion-claves", voice: "percussion", label: "808 Claves", file: "generated/tr808/claves.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 1.54 },
+  { id: "tr808-percussion-cowbell", voice: "percussion", label: "808 Cowbell", file: "generated/tr808/cowbell.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 0.05 },
+  { id: "tr808-percussion-maracas", voice: "percussion", label: "808 Maracas", file: "generated/tr808/maracas.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.54 },
+  { id: "tr808-crash-short", voice: "crash", label: "808 Cymbal Short", file: "generated/tr808/crash-short.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: 0.12 },
+  { id: "tr808-crash", voice: "crash", label: "808 Cymbal", file: "generated/tr808/crash.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.54 },
+  { id: "tr808-crash-long", voice: "crash", label: "808 Cymbal Long", file: "generated/tr808/crash-long.wav", license: "CC0-1.0", source: SAMPLE_SOURCE, gainDb: -0.25 },
 ] as const;
 
 export function bundledSampleById(
@@ -112,5 +114,9 @@ export async function applyBundledSample(
     sample.voice,
     state.reference.id,
     prepared?.reference.durationSeconds,
+  );
+  drumSoundStore.setSampleGainDb(
+    sample.voice,
+    sample.gainDb,
   );
 }
