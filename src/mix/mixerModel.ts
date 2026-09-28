@@ -33,7 +33,21 @@ export const MIXER_GAIN_MAX_DB = 6;
 export const MIXER_EQ_MIN_DB = -12;
 export const MIXER_EQ_MAX_DB = 12;
 
-function channel(
+const DEFAULT_REVERB_SEND: Record<
+  DrumVoiceId,
+  number
+> = {
+  kick: 0.08,
+  snare: 0.5,
+  clap: 0.58,
+  closedHat: 0.18,
+  openHat: 0.34,
+  tom: 0.32,
+  percussion: 0.4,
+  crash: 0.62,
+};
+
+export function defaultMixerChannel(
   voice: DrumVoiceId,
 ): MixerChannelState {
   return {
@@ -45,7 +59,7 @@ function channel(
     highDb: 0,
     compression: 0,
     saturation: 0,
-    reverbSend: 1,
+    reverbSend: DEFAULT_REVERB_SEND[voice],
     sidechain: 0,
     muted: false,
     solo: false,
@@ -55,7 +69,7 @@ function channel(
 export function createDefaultMixerState(): MixerState {
   const entries = DRUM_PADS.map((pad) => [
     pad.voice,
-    channel(pad.voice),
+    defaultMixerChannel(pad.voice),
   ]) as Array<[DrumVoiceId, MixerChannelState]>;
 
   return {
