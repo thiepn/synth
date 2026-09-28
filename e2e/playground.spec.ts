@@ -603,6 +603,129 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
   ).toHaveValue("2");
 });
 
+test("Playground records held melodic MIDI notes as one undoable take", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const input = {
+      id: "qa-midi-input",
+      name: "QA MIDI Keys",
+      manufacturer: "Synth QA",
+      state: "connected",
+      connection: "open",
+      onmidimessage: null as
+        | ((event: { data: Uint8Array }) => void)
+        | null,
+      open: async () => undefined,
+      close: async () => undefined,
+    };
+    const access = {
+      inputs: new Map([[input.id, input]]),
+      outputs: new Map(),
+      sysexEnabled: false,
+      onstatechange: null,
+    };
+
+    Object.defineProperty(
+      navigator,
+      "requestMIDIAccess",
+      {
+        configurable: true,
+        value: async () => access,
+      },
+    );
+
+    (
+      window as unknown as {
+        __qaMidiInput: typeof input;
+      }
+    ).__qaMidiInput = input;
+  });
+
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Open BASS piano roll",
+  }).click();
+  const bassRoll = page.getByRole("region", {
+    name: "BASS piano roll",
+  });
+
+  await bassRoll.getByRole("button", {
+    name: "Start melodic MIDI recording",
+  }).click();
+  await expect(
+    bassRoll.getByRole("button", {
+      name: "Stop melodic MIDI recording",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.waitForTimeout(60);
+  await page.evaluate(() => {
+    const input = (
+      window as unknown as {
+        __qaMidiInput: {
+          onmidimessage:
+            | ((event: {
+                data: Uint8Array;
+              }) => void)
+            | null;
+        };
+      }
+    ).__qaMidiInput;
+    input.onmidimessage?.({
+      data: new Uint8Array([0x90, 48, 112]),
+    });
+  });
+
+  await page.waitForTimeout(300);
+
+  await page.evaluate(() => {
+    const input = (
+      window as unknown as {
+        __qaMidiInput: {
+          onmidimessage:
+            | ((event: {
+                data: Uint8Array;
+              }) => void)
+            | null;
+        };
+      }
+    ).__qaMidiInput;
+    input.onmidimessage?.({
+      data: new Uint8Array([0x80, 48, 0]),
+    });
+  });
+
+  await bassRoll.getByRole("button", {
+    name: "Stop melodic MIDI recording",
+  }).click();
+
+  const recordedNote = bassRoll.getByRole(
+    "button",
+    {
+      name: /BASS note C3 step 1, length (?!1\/16).+/i,
+    },
+  );
+  await expect(recordedNote).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).click();
+  await expect(recordedNote).toHaveCount(0);
+
+  await page.getByRole("button", {
+    name: "Redo",
+    exact: true,
+  }).click();
+  await expect(
+    bassRoll.getByRole("button", {
+      name: /BASS note C3 step 1, length .+/i,
+    }),
+  ).toBeVisible();
+});
+
 test("Playground lane transforms are deterministic and undoable", async ({
   page,
 }) => {
