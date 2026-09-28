@@ -191,6 +191,59 @@ export class ArrangementStore {
     return pattern ? clonePattern(pattern) : undefined;
   }
 
+  upsertPattern(pattern: Pattern): void {
+    const next = clonePattern(pattern);
+    const previous = this.patternCatalog.get(next.id);
+    if (
+      previous &&
+      JSON.stringify(previous) === JSON.stringify(next)
+    ) {
+      return;
+    }
+
+    this.patternCatalog.set(next.id, next);
+    this.musicalRevision += 1;
+    this.recalculate();
+    this.publish();
+  }
+
+  setSectionPattern(
+    sectionId: string,
+    patternId: string,
+  ): void {
+    if (!this.blueprint) return;
+    const section = this.findSection(sectionId);
+    if (!section || !this.patternCatalog.has(patternId)) {
+      return;
+    }
+
+    const scene = this.blueprint.scenes.find(
+      (entry) =>
+        entry.patternIds.includes(patternId),
+    );
+    if (!scene) return;
+
+    const already =
+      section.sceneId === scene.id &&
+      section.patternSequence.every(
+        (entry) => entry === patternId,
+      );
+    if (already) return;
+
+    this.captureUndo();
+    section.sceneId = scene.id;
+    section.role = scene.role ?? section.role;
+    section.patternSequence = Array.from(
+      { length: Math.max(1, section.cycleCount) },
+      () => patternId,
+    );
+    section.fillPatternId = undefined;
+    section.fillPlacement = "off";
+    section.transitionPatternId = undefined;
+    section.transitionPlacement = "off";
+    this.markEditedAndPublish();
+  }
+
   selectSection(sectionId: string): void {
     if (!this.blueprint?.sections.some((section) => section.id === sectionId)) {
       return;
