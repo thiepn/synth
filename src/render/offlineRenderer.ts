@@ -1163,6 +1163,36 @@ function melodicMidiToFrequency(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
+function clampOfflineMelodicFilterHz(
+  context: BaseAudioContext,
+  value: number,
+): number {
+  return Math.max(
+    36,
+    Math.min(context.sampleRate * 0.45, value),
+  );
+}
+
+function offlineMelodicDriveCurve(
+  amount: number,
+): Float32Array {
+  const safe = Math.max(0, Math.min(1, amount));
+  const curve = new Float32Array(257);
+  const strength = 1 + safe * 6;
+  const normalizer = Math.tanh(strength);
+
+  for (let index = 0; index < curve.length; index += 1) {
+    const x =
+      (index / (curve.length - 1)) * 2 - 1;
+    curve[index] =
+      safe <= 0.001
+        ? x
+        : Math.tanh(x * strength) / normalizer;
+  }
+
+  return curve;
+}
+
 function scheduleOfflineMelodic(
   graph: OfflineGraph,
   lane: PatternLane,
@@ -1222,10 +1252,49 @@ function scheduleOfflineMelodic(
     preset.gain *
     clamp01(velocity) /
     Math.max(1, Math.sqrt(uniquePitches.length));
+  const baseFilterHz = clampOfflineMelodicFilterHz(
+    context,
+    preset.filterHz,
+  );
+  const filterEnvelopeOctaves =
+    Math.max(
+      0,
+      Math.min(
+        4,
+        preset.filterEnvelopeOctaves ?? 0,
+      ),
+    );
+  const filterStartHz = clampOfflineMelodicFilterHz(
+    context,
+    baseFilterHz *
+      Math.pow(2, filterEnvelopeOctaves),
+  );
 
   filter.type = "lowpass";
-  filter.frequency.setValueAtTime(preset.filterHz, start);
-  filter.Q.setValueAtTime(preset.resonance, start);
+  filter.frequency.setValueAtTime(
+    filterStartHz,
+    start,
+  );
+  if (
+    filterEnvelopeOctaves > 0.001 &&
+    Math.abs(filterStartHz - baseFilterHz) > 1
+  ) {
+    filter.frequency.exponentialRampToValueAtTime(
+      baseFilterHz,
+      start +
+        Math.min(
+          Math.max(
+            0.015,
+            preset.filterDecaySeconds ?? 0.18,
+          ),
+          Math.max(0.02, duration * 0.8),
+        ),
+    );
+  }
+  filter.Q.setValueAtTime(
+    Math.max(0.0001, preset.resonance),
+    start,
+  );
   pan.pan.setValueAtTime(
     lane.role === "chords"
       ? -0.08
@@ -1246,38 +1315,136 @@ function scheduleOfflineMelodic(
     start + duration,
   );
 
-  filter.connect(pan);
+  const drive = Math.max(
+    0,
+    Math.min(1, preset.drive ?? 0),
+  );
+  if (drive > 0.001) {
+    const shaper = context.createWaveShaper();
+    const trim = context.createGain();
+    shaper.curve =
+      offlineMelodicDriveCurve(drive);
+    shaper.oversample = "2x";
+    trim.gain.value = 1 / (1 + drive * 0.7);
+    filter.connect(shaper);
+    shaper.connect(trim);
+    trim.connect(pan);
+  } else {
+    filter.connect(pan);
+  }
   pan.connect(gain);
   gain.connect(graph.input);
 
-  for (const pitch of uniquePitches) {
-    const frequency = melodicMidiToFrequency(pitch);
-    const primary = context.createOscillator();
-    primary.type = preset.wave;
-    primary.frequency.setValueAtTime(frequency, start);
-    primary.connect(filter);
-    primary.start(start);
-    primary.stop(start + duration + 0.02);
+  const unisonDetune = Math.max(
+    0,
+    preset.unisonDetuneCents ?? 0,
+  );
+  const unisonGain = Math.max(
+    0,
+    Math.min(0.5, preset.unisonGain ?? 0),
+  );
+  const secondaryGainValue = Math.max(
+    0,
+    Math.min(
+      0.65,
+      preset.secondaryGain ?? 0.32,
+    ),
+  );
+  const subGainValue = Math.max(
+    0,
+    Math.min(0.5, preset.subGain ?? 0),
+  );
+  const subOctave =
+    preset.subOctave === 2 ? 2 : 1;
 
-    if (preset.secondaryWave) {
-      const secondary = context.createOscillator();
-      const secondaryGain = context.createGain();
-      secondary.type = preset.secondaryWave;
-      secondary.frequency.setValueAtTime(
-        frequency,
-        start,
+  const startOscillator = (
+    wave: OscillatorType,
+    frequency: number,
+    detune: number,
+    gainValue = 1,
+  ) => {
+    const oscillator = context.createOscillator();
+    oscillator.type = wave;
+    oscillator.frequency.setValueAtTime(
+      Math.max(12, frequency),
+      start,
+    );
+    oscillator.detune.setValueAtTime(
+      detune,
+      start,
+    );
+
+    if (gainValue >= 0.999) {
+      oscillator.connect(filter);
+    } else {
+      const layerGain = context.createGain();
+      layerGain.gain.value = Math.max(
+        0,
+        Math.min(1, gainValue),
       );
-      secondary.detune.setValueAtTime(
-        preset.detuneCents ?? 0,
-        start,
-      );
-      secondaryGain.gain.value = 0.32;
-      secondary.connect(secondaryGain);
-      secondaryGain.connect(filter);
-      secondary.start(start);
-      secondary.stop(start + duration + 0.02);
+      oscillator.connect(layerGain);
+      layerGain.connect(filter);
     }
-  }
+
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+  };
+
+  uniquePitches.forEach((pitch, pitchIndex) => {
+    const baseFrequency =
+      melodicMidiToFrequency(pitch);
+    const chordDetune =
+      (pitchIndex -
+        (uniquePitches.length - 1) / 2) *
+      1.8;
+    const primaryDetune =
+      chordDetune -
+      (unisonGain > 0.001
+        ? unisonDetune * 0.5
+        : 0);
+
+    startOscillator(
+      preset.wave,
+      baseFrequency,
+      primaryDetune,
+    );
+
+    if (
+      unisonGain > 0.001 &&
+      unisonDetune > 0.001
+    ) {
+      startOscillator(
+        preset.wave,
+        baseFrequency,
+        chordDetune + unisonDetune * 0.5,
+        unisonGain,
+      );
+    }
+
+    if (
+      preset.secondaryWave &&
+      secondaryGainValue > 0.001
+    ) {
+      startOscillator(
+        preset.secondaryWave,
+        baseFrequency,
+        chordDetune + (preset.detuneCents ?? 0),
+        secondaryGainValue,
+      );
+    }
+
+    if (
+      preset.subWave &&
+      subGainValue > 0.001
+    ) {
+      startOscillator(
+        preset.subWave,
+        baseFrequency / Math.pow(2, subOctave),
+        chordDetune * 0.5,
+        subGainValue,
+      );
+    }
+  });
 
   return duration + release;
 }
