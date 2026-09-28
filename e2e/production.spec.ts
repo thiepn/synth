@@ -809,10 +809,12 @@ test("explicit user import survives bundled-sample identity collision", async ({
   ).toContainText("SAVED");
 
   await page.reload();
-  await enterStudio(page);
+  const restoredProject = await waitForProjectReady(page);
+  await expect(restoredProject).toContainText("SAVED");
   await page.getByRole("button", {
     name: "Mode 03: SOUND",
   }).click();
+  await expect(page.locator(".sound-surface")).toBeVisible();
 
   await expect(
     page.locator(".sample-library__row").filter({
