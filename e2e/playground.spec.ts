@@ -478,7 +478,7 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
   }).click();
 
   let bassNote = bassRoll.getByRole("button", {
-    name: /BASS note C2 step 1, length 1/4/i,
+    name: /BASS note C2 step 1, length 1\/4/i,
   });
   await expect(bassNote).toBeVisible();
 
@@ -500,7 +500,7 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
   ).toHaveAttribute("aria-pressed", "true");
 
   bassNote = bassRoll.getByRole("button", {
-    name: /BASS note D2 step 1, length 1/4/i,
+    name: /BASS note C2 step 1, length 1\/4/i,
   });
   await expect(bassNote).toBeVisible();
 
@@ -523,7 +523,7 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
 
   await expect(
     bassRoll.getByRole("button", {
-      name: /BASS note D2 step 1, length 1/2/i,
+      name: /BASS note C2 step 1, length 1\/2/i,
     }),
   ).toBeVisible();
 
@@ -572,7 +572,7 @@ test("Playground melodic tracks edit pitch duration chords scale and survive dru
 
   await expect(
     page.getByRole("button", {
-      name: /BASS D2 at step 1\. Open piano roll/i,
+      name: /BASS C2 at step 1\. Open piano roll/i,
     }),
   ).toBeVisible();
   await expect(
