@@ -149,6 +149,19 @@ export interface GenerationProvenance {
   intent: IntentVector;
 }
 
+export type ScaleId =
+  | "chromatic"
+  | "major"
+  | "minor"
+  | "majorPentatonic"
+  | "minorPentatonic";
+
+export interface HarmonicContext {
+  rootPitchClass: number;
+  scaleId: ScaleId;
+  lockToScale: boolean;
+}
+
 export interface Pattern {
   id: EntityId;
   name: string;
@@ -156,6 +169,7 @@ export interface Pattern {
   ppq: typeof PPQ;
   lengthTicks: Tick;
   lanes: PatternLane[];
+  harmonicContext?: HarmonicContext;
   groove?: GrooveProfile;
   provenance?: GenerationProvenance;
 }
