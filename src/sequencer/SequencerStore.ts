@@ -501,6 +501,7 @@ export class SequencerStore {
     durationSteps = DEFAULT_MELODIC_DURATION_STEPS,
     pitchesMidi?: readonly number[],
     gestureId?: string,
+    velocityInput?: number,
   ): boolean {
     const definition = melodicLaneDefinitionById(laneId);
     if (!definition || !this.isValidStep(stepIndex)) return false;
@@ -582,6 +583,11 @@ export class SequencerStore {
         tick: stepIndex * FOUNDATION_STEP_TICKS,
         pitchMidi: pitch,
         pitchesMidi: chord,
+        velocity: normalizeVelocity(
+          velocityInput ??
+            existing?.velocity ??
+            DEFAULT_STEP_VELOCITY,
+        ),
         durationTicks:
           safeDurationSteps * FOUNDATION_STEP_TICKS,
         generatorTags: [
