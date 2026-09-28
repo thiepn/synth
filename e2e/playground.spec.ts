@@ -697,6 +697,41 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
     });
   });
 
+  await page.waitForTimeout(80);
+  await page.evaluate(() => {
+    const input = (
+      window as unknown as {
+        __qaMidiInput: {
+          onmidimessage:
+            | ((event: {
+                data: Uint8Array;
+              }) => void)
+            | null;
+        };
+      }
+    ).__qaMidiInput;
+    input.onmidimessage?.({
+      data: new Uint8Array([0x90, 50, 96]),
+    });
+  });
+  await page.waitForTimeout(180);
+  await page.evaluate(() => {
+    const input = (
+      window as unknown as {
+        __qaMidiInput: {
+          onmidimessage:
+            | ((event: {
+                data: Uint8Array;
+              }) => void)
+            | null;
+        };
+      }
+    ).__qaMidiInput;
+    input.onmidimessage?.({
+      data: new Uint8Array([0x80, 50, 0]),
+    });
+  });
+
   await bassRoll.getByRole("button", {
     name: "Stop melodic MIDI recording",
   }).click();
@@ -707,13 +742,21 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
       name: /BASS note C3 step \d+, length (?!1\/16).+/i,
     },
   );
+  const secondRecordedNote = bassRoll.getByRole(
+    "button",
+    {
+      name: /BASS note D3 step \d+, length .+/i,
+    },
+  );
   await expect(recordedNote).toBeVisible();
+  await expect(secondRecordedNote).toBeVisible();
 
   await page.getByRole("button", {
     name: "Undo",
     exact: true,
   }).click();
   await expect(recordedNote).toHaveCount(0);
+  await expect(secondRecordedNote).toHaveCount(0);
 
   await page.getByRole("button", {
     name: "Redo",
@@ -722,6 +765,11 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
   await expect(
     bassRoll.getByRole("button", {
       name: /BASS note C3 step \d+, length .+/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    bassRoll.getByRole("button", {
+      name: /BASS note D3 step \d+, length .+/i,
     }),
   ).toBeVisible();
 });
