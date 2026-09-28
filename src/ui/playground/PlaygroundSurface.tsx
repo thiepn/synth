@@ -1455,16 +1455,15 @@ function PlaygroundFeelStrip({
       (entry) => entry.id === feel,
     ) ?? PLAYGROUND_FEELS[0];
 
-  const effectivelyStraight =
+  const straightBase =
     appliedHumanization <= 0.005 &&
     Math.abs(
       groove?.ghostNoteAmount ?? 0,
-    ) <= 0.005 &&
-    appliedSwing <= 0.005;
+    ) <= 0.005;
   const appliedMatchesDraft =
     (
       preset.id === "straight"
-        ? effectivelyStraight
+        ? straightBase
         : groove?.personality ===
             preset.personality &&
           Math.abs(
@@ -1481,7 +1480,8 @@ function PlaygroundFeelStrip({
     ) < 0.005;
 
   const hasAppliedFeel =
-    !effectivelyStraight;
+    !straightBase ||
+    appliedSwing > 0.005;
 
   const applyFeel = () => {
     if (disabled) return;
@@ -1529,7 +1529,7 @@ function PlaygroundFeelStrip({
   };
 
   const currentLabel =
-    effectivelyStraight
+    straightBase
       ? "Straight"
       : groove?.personality
         ? groove.personality
