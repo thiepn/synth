@@ -8785,6 +8785,450 @@ export function PlaygroundSurface({
         ) : null}
       </div>
 
+      <section
+        className="playground-song"
+        aria-label="Song arrangement"
+      >
+        <header className="playground-song__header">
+          <div>
+            <span>SONG</span>
+            <strong>
+              {arrangement.blueprint
+                ? arrangement.blueprint.name
+                : "Turn A/B into a song"}
+            </strong>
+            <small>
+              {arrangement.blueprint
+                ? Math.max(
+                    1,
+                    Math.round(songTotalBars * 10) /
+                      10,
+                  ) + " bars"
+                : "Arrange sections without leaving Playground"}
+            </small>
+          </div>
+
+          {!arrangement.blueprint ? (
+            <button
+              type="button"
+              className="playground-song__build"
+              onClick={buildPlaygroundSong}
+              disabled={editRecordingLocked}
+              aria-label="Build song from Pattern A and B"
+            >
+              Build A/B Song
+            </button>
+          ) : (
+            <div className="playground-song__transport">
+              <button
+                type="button"
+                onClick={() => void playSong(false)}
+                disabled={
+                  editRecordingLocked ||
+                  arrangement.occurrences.length === 0
+                }
+                aria-label="Play full song"
+              >
+                ▶ Song
+              </button>
+              <button
+                type="button"
+                onClick={() => void playSong(true)}
+                disabled={
+                  editRecordingLocked ||
+                  !selectedSongSection
+                }
+                aria-label="Play selected song section"
+              >
+                ▶ Section
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void arrangementPlaybackStore.toggle()
+                }
+                disabled={
+                  !arrangementPlayback.engaged
+                }
+                aria-label={
+                  arrangementPlayback.transportStatus ===
+                  "running"
+                    ? "Pause song playback"
+                    : "Resume song playback"
+                }
+              >
+                {arrangementPlayback.transportStatus ===
+                "running"
+                  ? "Ⅱ"
+                  : "▶"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  arrangementPlaybackStore.stop()
+                }
+                disabled={
+                  !arrangementPlayback.engaged
+                }
+                aria-label="Stop song playback"
+              >
+                ■
+              </button>
+            </div>
+          )}
+
+          {arrangement.blueprint &&
+          playgroundSong ? (
+            <div className="playground-song__add">
+              <button
+                type="button"
+                onClick={() =>
+                  addSongSection("A")
+                }
+                disabled={editRecordingLocked}
+                aria-label="Add Pattern A song section"
+              >
+                ＋ A
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  addSongSection("B")
+                }
+                disabled={editRecordingLocked}
+                aria-label="Add Pattern B song section"
+              >
+                ＋ B
+              </button>
+            </div>
+          ) : null}
+        </header>
+
+        {arrangement.blueprint ? (
+          <>
+            <div className="playground-song__timeline">
+              {arrangementPlayback.engaged ? (
+                <i
+                  className="playground-song__playhead"
+                  aria-hidden="true"
+                  style={{
+                    left:
+                      songProgress * 100 +
+                      "%",
+                  }}
+                />
+              ) : null}
+
+              {arrangement.blueprint.sections.map(
+                (section, index) => {
+                  const sectionBank =
+                    playgroundSong
+                      ? playgroundSongBankForPatternId(
+                          section
+                            .patternSequence[0],
+                        )
+                      : undefined;
+                  const selected =
+                    section.id ===
+                    arrangement.selectedSectionId;
+                  const active =
+                    arrangementPlayback.engaged &&
+                    arrangementPlayback.currentSectionId ===
+                      section.id;
+
+                  return (
+                    <button
+                      type="button"
+                      key={section.id}
+                      className={[
+                        "playground-song-section",
+                        selected
+                          ? "is-selected"
+                          : "",
+                        active
+                          ? "is-playing"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      style={{
+                        flexGrow: Math.max(
+                          1,
+                          section.lengthTicks,
+                        ),
+                      }}
+                      draggable={
+                        !editRecordingLocked
+                      }
+                      onDragStart={(event) => {
+                        setSongDraggingSectionId(
+                          section.id,
+                        );
+                        event.dataTransfer.effectAllowed =
+                          "move";
+                      }}
+                      onDragOver={(event) => {
+                        if (
+                          songDraggingSectionId &&
+                          songDraggingSectionId !==
+                            section.id
+                        ) {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect =
+                            "move";
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        if (
+                          songDraggingSectionId &&
+                          songDraggingSectionId !==
+                            section.id
+                        ) {
+                          arrangementStore.moveSectionTo(
+                            songDraggingSectionId,
+                            section.id,
+                          );
+                        }
+                        setSongDraggingSectionId(
+                          null,
+                        );
+                      }}
+                      onDragEnd={() =>
+                        setSongDraggingSectionId(
+                          null,
+                        )
+                      }
+                      onClick={() =>
+                        arrangementStore.selectSection(
+                          section.id,
+                        )
+                      }
+                      aria-pressed={selected}
+                      aria-label={
+                        section.label +
+                        ", section " +
+                        (index + 1) +
+                        " of " +
+                        arrangement.blueprint!
+                          .sections.length +
+                        ", " +
+                        (sectionBank
+                          ? "Pattern " +
+                            sectionBank
+                          : section.role) +
+                        ", " +
+                        section.cycleCount +
+                        " repeats"
+                      }
+                    >
+                      <span>
+                        {String(index + 1).padStart(
+                          2,
+                          "0",
+                        )}
+                      </span>
+                      <strong>
+                        {sectionBank
+                          ? "PATTERN " +
+                            sectionBank
+                          : section.label}
+                      </strong>
+                      <small>
+                        {section.cycleCount}× ·{" "}
+                        {Math.max(
+                          1,
+                          Math.round(
+                            (section.lengthTicks /
+                              Math.max(
+                                1,
+                                songBarTicks,
+                              )) *
+                              10,
+                          ) / 10,
+                        )}{" "}
+                        bars
+                      </small>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            {selectedSongSection ? (
+              <div
+                className="playground-song__editor"
+                aria-label="Selected song section controls"
+              >
+                <strong>
+                  {selectedSongSection.label}
+                </strong>
+
+                {playgroundSong ? (
+                  <div
+                    className="playground-song__banks"
+                    aria-label="Section pattern"
+                  >
+                    {(["A", "B"] as const).map(
+                      (bank) => (
+                        <button
+                          type="button"
+                          key={bank}
+                          className={
+                            selectedSongBank ===
+                            bank
+                              ? "is-active"
+                              : ""
+                          }
+                          onClick={() =>
+                            setSongSectionBank(
+                              bank,
+                            )
+                          }
+                          disabled={
+                            editRecordingLocked
+                          }
+                          aria-pressed={
+                            selectedSongBank ===
+                            bank
+                          }
+                          aria-label={
+                            "Use Pattern " +
+                            bank +
+                            " in selected section"
+                          }
+                        >
+                          {bank}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                ) : null}
+
+                <div className="playground-song__cycles">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      changeSongSectionCycles(-1)
+                    }
+                    disabled={
+                      editRecordingLocked ||
+                      selectedSongSection.cycleCount <=
+                        1
+                    }
+                    aria-label="Decrease section repeats"
+                  >
+                    −
+                  </button>
+                  <span>
+                    {selectedSongSection.cycleCount}×
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      changeSongSectionCycles(1)
+                    }
+                    disabled={
+                      editRecordingLocked ||
+                      selectedSongSection.cycleCount >=
+                        16
+                    }
+                    aria-label="Increase section repeats"
+                  >
+                    ＋
+                  </button>
+                </div>
+
+                <div className="playground-song__moves">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      moveSongSection(-1)
+                    }
+                    disabled={
+                      editRecordingLocked ||
+                      arrangement.blueprint.sections[0]
+                        ?.id ===
+                        selectedSongSection.id
+                    }
+                    aria-label="Move song section left"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      moveSongSection(1)
+                    }
+                    disabled={
+                      editRecordingLocked ||
+                      arrangement.blueprint.sections.at(
+                        -1,
+                      )?.id ===
+                        selectedSongSection.id
+                    }
+                    aria-label="Move song section right"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={
+                      duplicateSongSection
+                    }
+                    disabled={editRecordingLocked}
+                    aria-label="Duplicate selected song section"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={removeSongSection}
+                    disabled={
+                      editRecordingLocked ||
+                      arrangement.blueprint.sections
+                        .length <= 1
+                    }
+                    aria-label="Delete selected song section"
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                <div className="playground-song__history">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      arrangementStore.undo()
+                    }
+                    disabled={
+                      editRecordingLocked ||
+                      !arrangement.canUndo
+                    }
+                    aria-label="Undo song arrangement edit"
+                  >
+                    ↶
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      arrangementStore.redo()
+                    }
+                    disabled={
+                      editRecordingLocked ||
+                      !arrangement.canRedo
+                    }
+                    aria-label="Redo song arrangement edit"
+                  >
+                    ↷
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </section>
+
       {stepContext ? (
         <>
           <button
