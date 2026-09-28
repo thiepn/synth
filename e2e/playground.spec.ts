@@ -774,6 +774,104 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
   ).toBeVisible();
 });
 
+test("Playground builds and edits an A B song on the canonical arrangement timeline", async ({
+  page,
+}) => {
+  await waitForPlayground(page);
+
+  const song = page.getByRole("region", {
+    name: "Song arrangement",
+  });
+  await expect(song).toBeVisible();
+
+  await song.getByRole("button", {
+    name: "Build song from Pattern A and B",
+  }).click();
+
+  const sectionOne = song.getByRole("button", {
+    name: /SECTION 1, section 1 of 2, Pattern A, 4 repeats/i,
+  });
+  const sectionTwo = song.getByRole("button", {
+    name: /SECTION 2, section 2 of 2, Pattern B, 4 repeats/i,
+  });
+  await expect(sectionOne).toBeVisible();
+  await expect(sectionTwo).toBeVisible();
+
+  await sectionTwo.click();
+  await song.getByRole("button", {
+    name: "Use Pattern A in selected section",
+  }).click();
+  await expect(
+    song.getByRole("button", {
+      name: /SECTION 2, section 2 of 2, Pattern A, 4 repeats/i,
+    }),
+  ).toBeVisible();
+
+  await song.getByRole("button", {
+    name: "Increase section repeats",
+  }).click();
+  await expect(
+    song.getByRole("button", {
+      name: /SECTION 2, section 2 of 2, Pattern A, 5 repeats/i,
+    }),
+  ).toBeVisible();
+
+  await song.getByRole("button", {
+    name: "Duplicate selected song section",
+  }).click();
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(3);
+
+  await song.getByRole("button", {
+    name: "Move song section left",
+  }).click();
+
+  await song.getByRole("button", {
+    name: "Undo song arrangement edit",
+  }).click();
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(3);
+
+  await song.getByRole("button", {
+    name: "Add Pattern B song section",
+  }).click();
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(4);
+
+  await song.getByRole("button", {
+    name: "Play selected song section",
+  }).click();
+  await expect(
+    song.getByRole("button", {
+      name: "Stop song playback",
+    }),
+  ).toBeEnabled();
+
+  await expect(
+    song.locator(
+      ".playground-song-section.is-playing",
+    ),
+  ).toHaveCount(1);
+
+  await song.getByRole("button", {
+    name: "Stop song playback",
+  }).click();
+  await expect(
+    song.locator(
+      ".playground-song-section.is-playing",
+    ),
+  ).toHaveCount(0);
+
+  const buildBox = await song.getByRole("button", {
+    name: "Play full song",
+  }).boundingBox();
+  expect(buildBox).not.toBeNull();
+  expect(buildBox!.height).toBeGreaterThanOrEqual(44);
+});
+
 test("Playground lane transforms are deterministic and undoable", async ({
   page,
 }) => {
