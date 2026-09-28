@@ -35,6 +35,10 @@ import { freezeStore } from "../resample/FreezeStore";
 import { performanceStore } from "../performance/PerformanceStore";
 import { eventPassesProbability } from "../sequencer/playbackRules";
 import { swingOffsetUsForStep } from "../groove/grooveEngine";
+import {
+  clampLaneMix,
+  dbToLaneGain,
+} from "../mix/laneMix";
 
 interface ActiveMelodicVoice {
   epoch: number | null;
@@ -511,10 +515,12 @@ export class MelodicEngine {
         preset,
         clampVelocity(velocity),
       );
+    const laneMix = clampLaneMix(lane.mix);
     const peak =
       preset.gain *
       melodicLayerCompensation(preset) *
-      expressiveVelocity /
+      expressiveVelocity *
+      dbToLaneGain(laneMix.gainDb) /
       Math.max(1, Math.sqrt(pitches.length));
 
     const baseFilterHz = clampMelodicFilterHz(
@@ -568,11 +574,7 @@ export class MelodicEngine {
       start,
     );
     pan.pan.setValueAtTime(
-      lane.role === "chords"
-        ? -0.08
-        : lane.role === "lead"
-          ? 0.08
-          : 0,
+      laneMix.pan,
       start,
     );
 
@@ -613,6 +615,9 @@ export class MelodicEngine {
     drumEngine.connectExternalAudio(
       voiceGain,
       context,
+      {
+        reverbSend: laneMix.reverbSend,
+      },
     );
 
     const oscillators: OscillatorNode[] = [];
