@@ -182,6 +182,7 @@ function PlaygroundFinishPanel({
   onNotice,
   onProjectBackup,
   onOpenStudio,
+  projectBackupAvailable,
 }: {
   projectName: string;
   songAvailable: boolean;
@@ -190,6 +191,7 @@ function PlaygroundFinishPanel({
   onNotice: (message: string) => void;
   onProjectBackup: () => Promise<void>;
   onOpenStudio: () => void;
+  projectBackupAvailable: boolean;
 }) {
   const renderTask = useRenderTaskSnapshot();
   const mastering = useMasteringSnapshot();
@@ -205,11 +207,11 @@ function PlaygroundFinishPanel({
     );
 
   const busy =
+    action !== null ||
     renderTask.status === "preparing" ||
     renderTask.status === "rendering" ||
     renderTask.status === "encoding" ||
-    renderTask.status === "packaging" ||
-    action === "backup";
+    renderTask.status === "packaging";
   const previewLocked = Boolean(mastering.preview);
   const actualRange =
     range === "song" && songAvailable
@@ -470,7 +472,9 @@ function PlaygroundFinishPanel({
 
         <button
           type="button"
-          disabled={busy}
+          disabled={
+            busy || !projectBackupAvailable
+          }
           onClick={() =>
             void exportBackup()
           }
@@ -483,7 +487,9 @@ function PlaygroundFinishPanel({
                 : "Project file"}
             </strong>
             <small>
-              Editable Synth backup
+              {projectBackupAvailable
+                ? "Editable Synth backup"
+                : "Requires local project storage"}
             </small>
           </span>
         </button>
@@ -7095,6 +7101,10 @@ export function PlaygroundSurface({
           onNotice={setNotice}
           onProjectBackup={shareOrExportProject}
           onOpenStudio={openStudio}
+          projectBackupAvailable={Boolean(
+            project.supported &&
+              project.projectId
+          )}
         />
       ) : null}
 
