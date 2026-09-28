@@ -384,6 +384,7 @@ function PlaygroundFinishPanel({
       >
         <button
           type="button"
+          aria-label="Export current Pattern"
           className={
             actualRange === "pattern"
               ? "is-active"
@@ -404,6 +405,7 @@ function PlaygroundFinishPanel({
         {songAvailable ? (
           <button
             type="button"
+            aria-label="Export full Song"
             className={
               actualRange === "song"
                 ? "is-active"
