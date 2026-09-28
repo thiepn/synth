@@ -37,14 +37,14 @@ const DEFAULT_REVERB_SEND: Record<
   DrumVoiceId,
   number
 > = {
-  kick: 0.08,
+  kick: 0.1,
   snare: 0.5,
-  clap: 0.58,
-  closedHat: 0.18,
-  openHat: 0.34,
-  tom: 0.32,
+  clap: 0.6,
+  closedHat: 0.2,
+  openHat: 0.35,
+  tom: 0.3,
   percussion: 0.4,
-  crash: 0.62,
+  crash: 0.6,
 };
 
 export function defaultMixerChannel(
