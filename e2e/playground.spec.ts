@@ -928,6 +928,26 @@ test("Playground builds and edits an A B song on the canonical arrangement timel
   }).boundingBox();
   expect(buildBox).not.toBeNull();
   expect(buildBox!.height).toBeGreaterThanOrEqual(44);
+
+  await page.getByRole("button", {
+    name: "Finish",
+  }).click();
+  const finish = page.getByRole("dialog", {
+    name: "Finish and export",
+  });
+  await expect(
+    finish.getByRole("button", {
+      name: /Song/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    finish.getByRole("button", {
+      name: /Song/i,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await finish.getByRole("button", {
+    name: "Close finish panel",
+  }).click();
 });
 
 test("Playground lane transforms are deterministic and undoable", async ({
@@ -1295,6 +1315,68 @@ test("Playground P7 mix strip controls drum melodic and master balance", async (
   await expect(bassLevel).toHaveValue("0");
   await expect(bassPan).toHaveValue("0");
   await expect(bassSpace).toHaveValue("0");
+
+  expect(errors).toEqual([]);
+});
+
+test("Playground P8 Finish exports a high quality exact WAV loop", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Finish",
+  }).click();
+
+  const finish = page.getByRole("dialog", {
+    name: "Finish and export",
+  });
+  await expect(finish).toBeVisible();
+  await expect(finish).toContainText(
+    "48 kHz · 24-bit WAV · current mix",
+  );
+
+  const pattern = finish.getByRole("button", {
+    name: /Pattern Current beat/i,
+  });
+  await expect(pattern).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  const exactLoop = finish.getByRole(
+    "checkbox",
+  );
+  await exactLoop.check();
+
+  const downloadPromise =
+    page.waitForEvent("download");
+  await finish.getByRole("button", {
+    name: /Download WAV Exact pattern loop/i,
+  }).click();
+  const download = await downloadPromise;
+
+  expect(
+    download.suggestedFilename(),
+  ).toMatch(/ - Loop\.wav$/);
+
+  await expect(
+    finish.locator(".playground-finish-result"),
+  ).toContainText("Peak");
+  await expect(
+    finish.getByRole("button", {
+      name: /Share ready WAV/i,
+    }),
+  ).toBeVisible();
+
+  const overflow = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(overflow.scroll).toBeLessThanOrEqual(
+    overflow.width + 1,
+  );
 
   expect(errors).toEqual([]);
 });
