@@ -2299,6 +2299,54 @@ function PlaygroundMotionStrip({
     (lane?.points.length ?? 0) > 0 &&
     !playgroundOwned;
 
+  useEffect(() => {
+    if (!playgroundActive || !lane) return;
+
+    const inferredShape: PlaygroundMotionShape =
+      lane.points.length >= 8
+        ? "wobble"
+        : lane.points.length === 5 &&
+            lane.points[0]?.curve === "hold"
+          ? "pulse"
+          : lane.points.length === 5
+            ? "breathe"
+            : "sweep";
+    setShape(inferredShape);
+
+    const values = lane.points.map(
+      (point) => point.value,
+    );
+    const low = Math.min(...values);
+    const high = Math.max(...values);
+    const base = motionBaseValue(target);
+    const inferred =
+      target === "filter"
+        ? (1 - low) / 0.82
+        : target === "space"
+          ? Math.max(
+              (high - base) / 0.58,
+              (base - low) / 0.2,
+            )
+          : Math.max(
+              Math.abs(high - base),
+              Math.abs(base - low),
+            ) / 0.36;
+
+    setAmount(
+      Math.max(
+        10,
+        Math.min(
+          100,
+          Math.round(inferred * 100),
+        ),
+      ),
+    );
+  }, [
+    lane,
+    playgroundActive,
+    target,
+  ]);
+
   const apply = () => {
     if (disabled || studioOwned) return;
 
