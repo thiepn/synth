@@ -789,21 +789,30 @@ test("Playground builds and edits an A B song on the canonical arrangement timel
   }).click();
 
   const sectionOne = song.getByRole("button", {
-    name: /SECTION 1, section 1 of 2, Pattern A, 4 repeats/i,
+    name: /SECTION 1, section 1 of 2, Pattern A, Verse, 4 repeats/i,
   });
   const sectionTwo = song.getByRole("button", {
-    name: /SECTION 2, section 2 of 2, Pattern B, 4 repeats/i,
+    name: /SECTION 2, section 2 of 2, Pattern B, Chorus, 4 repeats/i,
   });
   await expect(sectionOne).toBeVisible();
   await expect(sectionTwo).toBeVisible();
 
   await sectionTwo.click();
+  await song.getByLabel(
+    "Song section role",
+  ).selectOption("intro");
+  await expect(
+    song.getByRole("button", {
+      name: /SECTION 2, section 2 of 2, Pattern B, Intro, 4 repeats/i,
+    }),
+  ).toBeVisible();
+
   await song.getByRole("button", {
     name: "Use Pattern A in selected section",
   }).click();
   await expect(
     song.getByRole("button", {
-      name: /SECTION 2, section 2 of 2, Pattern A, 4 repeats/i,
+      name: /SECTION 2, section 2 of 2, Pattern A, Intro, 4 repeats/i,
     }),
   ).toBeVisible();
 
@@ -812,7 +821,7 @@ test("Playground builds and edits an A B song on the canonical arrangement timel
   }).click();
   await expect(
     song.getByRole("button", {
-      name: /SECTION 2, section 2 of 2, Pattern A, 5 repeats/i,
+      name: /SECTION 2, section 2 of 2, Pattern A, Intro, 5 repeats/i,
     }),
   ).toBeVisible();
 
