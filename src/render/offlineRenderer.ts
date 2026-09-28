@@ -13,6 +13,10 @@ import {
   type MixerChannelState,
 } from "../mix/mixerModel";
 import {
+  clampLaneMix,
+  dbToLaneGain,
+} from "../mix/laneMix";
+import {
   DRUM_MATERIAL_PARAMS,
 } from "../audio/drumSoundModel";
 import {
@@ -1259,10 +1263,12 @@ function scheduleOfflineMelodic(
       preset,
       clamp01(velocity),
     );
+  const laneMix = clampLaneMix(lane.mix);
   const peak =
     preset.gain *
     melodicLayerCompensation(preset) *
-    expressiveVelocity /
+    expressiveVelocity *
+    dbToLaneGain(laneMix.gainDb) /
     Math.max(1, Math.sqrt(uniquePitches.length));
   const baseFilterHz = clampOfflineMelodicFilterHz(
     context,
@@ -1315,11 +1321,7 @@ function scheduleOfflineMelodic(
     start,
   );
   pan.pan.setValueAtTime(
-    lane.role === "chords"
-      ? -0.08
-      : lane.role === "lead"
-        ? 0.08
-        : 0,
+    laneMix.pan,
     start,
   );
 
@@ -1353,6 +1355,16 @@ function scheduleOfflineMelodic(
   }
   pan.connect(gain);
   gain.connect(graph.input);
+
+  if (laneMix.reverbSend > 0.0001) {
+    const send = context.createGain();
+    send.gain.setValueAtTime(
+      laneMix.reverbSend,
+      start,
+    );
+    gain.connect(send);
+    send.connect(graph.convolver);
+  }
 
   const unisonDetune = Math.max(
     0,
