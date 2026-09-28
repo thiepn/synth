@@ -2435,6 +2435,10 @@ export function PlaygroundSurface({
     if (melodicMidiRecording) {
       stopMelodicMidiRecording();
     }
+    if (finishOpen) {
+      renderStore.cancel();
+      setFinishOpen(false);
+    }
     cancelPatternPreview();
     onOpenStudio();
   };
