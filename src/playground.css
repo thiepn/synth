@@ -3353,396 +3353,61 @@
 }
 
 
-/* Playground P2 — fast performance to grid recording */
-.playground-record-bar {
-  width: min(1440px, calc(100% - clamp(36px, 7vw, 108px)));
-  min-height: 54px;
-  margin: -6px auto 14px;
-  display: flex;
-  align-items: stretch;
-  gap: 7px;
+/* Playground P2–P4 — performance, selection, melodic editing */
+.playground-record-bar,.playground-selection-bar,.playground-piano__toolbar,
+.playground-piano__chords,.playground-piano__note-tools{display:flex;align-items:stretch;gap:5px}
+.playground-record-bar,.playground-selection-bar{width:100%;overflow-x:auto;scrollbar-width:none}
+.playground-record-bar{width:min(1440px,calc(100% - clamp(36px,7vw,108px)));min-height:52px;margin:-6px auto 14px}
+.playground-record-bar::-webkit-scrollbar,.playground-selection-bar::-webkit-scrollbar{display:none}
+
+.playground-record-button,.playground-record-modes,.playground-record-quantize,.playground-record-midi,.playground-record-status,
+.playground-selection-status,.playground-selection-scope,.playground-selection-actions{
+  min-height:42px;flex:0 0 auto;border:1px solid rgba(255,255,255,.075);border-radius:12px;background:rgba(255,255,255,.035)
 }
-
-.playground-record-button,
-.playground-record-modes,
-.playground-record-quantize,
-.playground-record-status {
-  min-height: 48px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+.playground-record-button{min-width:108px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--pg-text);font-weight:900}
+.playground-record-button>span,.playground-record-bar.is-recording .playground-record-status strong{color:var(--heat)}
+.playground-record-bar.is-recording .playground-record-button,.playground-record-bar.is-armed .playground-record-button{border-color:var(--heat)}
+.playground-record-modes,.playground-record-quantize{display:flex}
+.playground-record-modes>button,.playground-record-quantize>button,.playground-selection-scope>button,.playground-selection-actions>button{
+  min-width:44px;padding:0 9px;border:0;border-left:1px solid rgba(255,255,255,.055);background:transparent;color:var(--pg-muted);cursor:pointer;font-size:.55rem;font-weight:850
 }
+.playground-record-modes>button:first-child,.playground-selection-scope>button:first-child,.playground-selection-actions>button:first-child{border-left:0}
+.playground-record-modes>button.is-active,.playground-record-quantize>button.is-active{color:var(--pg-text);box-shadow:inset 0 -2px 0 #63def4}
+.playground-record-quantize>span{display:grid;place-items:center;padding:0 9px;color:var(--pg-muted);font-size:.48rem;font-weight:900}
+.playground-record-midi{min-width:74px;display:grid;place-content:center;padding:0 9px;color:var(--pg-muted);font-size:.5rem}
+.playground-record-midi b{color:var(--pg-text)}
+.playground-record-status{min-width:118px;margin-left:auto;display:grid;align-content:center;gap:2px;padding:5px 10px;font-size:.52rem}
+.playground-record-status span{color:var(--pg-muted)}
 
-.playground-record-button {
-  min-width: 112px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 0 14px;
-  color: var(--pg-text);
-  cursor: pointer;
-  font-weight: 900;
-}
+.playground-selection-bar{min-height:42px;margin-bottom:8px}
+.playground-selection-status{min-width:108px;display:grid;align-content:center;padding:4px 10px}
+.playground-selection-status span{color:var(--pg-muted);font-size:.46rem;font-weight:900}
+.playground-selection-status strong{font-size:.61rem}
+.playground-selection-hint{align-self:center;padding:0 7px;color:var(--pg-muted);font-size:.51rem;white-space:nowrap}
+.playground-selection-bar.has-selection .playground-selection-status{border-color:#63def466}
+.playground-selection-scope,.playground-selection-actions{display:flex;overflow:hidden}
+.playground-selection-scope>button:disabled,.playground-selection-actions>button:disabled,.playground-record-bar button:disabled{opacity:.28}
+.playground-steps--lane .playground-step.is-selected{outline:2px solid #fff;outline-offset:1px;box-shadow:inset 0 0 0 2px var(--lane-color)}
 
-.playground-record-button > span {
-  color: var(--heat);
-  font-size: 0.82rem;
-}
-
-.playground-record-bar.is-recording .playground-record-button,
-.playground-record-bar.is-armed .playground-record-button {
-  border-color: color-mix(in srgb, var(--heat) 55%, rgba(255,255,255,0.08));
-  background: color-mix(in srgb, var(--heat) 13%, rgba(255,255,255,0.04));
-}
-
-.playground-record-bar.is-recording .playground-record-button > span {
-  animation: playground-record-pulse 900ms ease-in-out infinite alternate;
-}
-
-@keyframes playground-record-pulse {
-  from { opacity: 0.45; }
-  to { opacity: 1; }
-}
-
-.playground-record-modes,
-.playground-record-quantize {
-  display: flex;
-  align-items: stretch;
-}
-
-.playground-record-modes > button,
-.playground-record-quantize > button {
-  min-width: 66px;
-  padding: 0 10px;
-  border: 0;
-  border-left: 1px solid rgba(255,255,255,0.065);
-  background: transparent;
-  color: var(--pg-muted);
-  cursor: pointer;
-  font-size: 0.59rem;
-  font-weight: 850;
-}
-
-.playground-record-modes > button:first-child {
-  border-left: 0;
-}
-
-.playground-record-modes > button.is-active,
-.playground-record-quantize > button.is-active {
-  background: rgba(99, 222, 244, 0.09);
-  color: var(--pg-text);
-  box-shadow: inset 0 -2px 0 rgba(99, 222, 244, 0.72);
-}
-
-.playground-record-modes > button:disabled,
-.playground-record-quantize > button:disabled {
-  opacity: 0.32;
-  cursor: default;
-}
-
-.playground-record-quantize > span {
-  display: grid;
-  place-items: center;
-  padding: 0 11px;
-  color: var(--pg-muted);
-  font-size: 0.5rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.playground-record-midi {
-  min-width: 78px;
-  display: grid;
-  place-content: center;
-  gap: 2px;
-  padding: 0 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.04);
-  color: var(--pg-muted);
-  cursor: pointer;
-}
-
-.playground-record-midi span {
-  font-size: 0.48rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.playground-record-midi b {
-  color: var(--pg-text);
-  font-size: 0.58rem;
-}
-
-.playground-record-midi.is-active {
-  border-color: rgba(99,222,244,0.35);
-  background: rgba(99,222,244,0.08);
-}
-
-.playground-record-midi:disabled {
-  cursor: default;
-}
-
-.playground-record-status {
-  min-width: 124px;
-  margin-left: auto;
-  display: grid;
-  align-content: center;
-  gap: 3px;
-  padding: 6px 12px;
-}
-
-.playground-record-status strong {
-  color: var(--pg-text);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
-}
-
-.playground-record-bar.is-recording .playground-record-status strong {
-  color: var(--heat);
-}
-
-.playground-record-status span {
-  color: var(--pg-muted);
-  font-size: 0.52rem;
-  font-weight: 750;
-}
-
-@media (max-width: 900px) {
-  .playground-record-bar {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .playground-record-bar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .playground-record-button,
-  .playground-record-modes,
-  .playground-record-quantize,
-  .playground-record-midi,
-  .playground-record-status {
-    flex: 0 0 auto;
-  }
-}
-
-@media (max-width: 760px) {
-  .playground-record-bar {
-    width: calc(100% - 20px);
-    margin-top: -4px;
-    gap: 6px;
-  }
-
-  .playground-record-button,
-  .playground-record-modes > button,
-  .playground-record-quantize > button,
-  .playground-record-midi {
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-
-  .playground-record-status {
-    min-width: 112px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .playground-record-bar.is-recording .playground-record-button > span,
-  .playground-steps--lane .playground-step.is-recorded-now {
-    animation: none;
-  }
-}
-
-@media (forced-colors: active) {
-  .playground-record-button,
-  .playground-record-modes,
-  .playground-record-quantize,
-  .playground-record-midi,
-  .playground-record-status,
-  .playground-record-modes > button,
-  .playground-record-quantize > button {
-    border-color: ButtonText;
-    background: Canvas;
-    color: CanvasText;
-  }
-
-  .playground-record-modes > button.is-active,
-  .playground-record-quantize > button.is-active {
-    background: Highlight;
-    color: HighlightText;
-  }
-}
-
-
-/* Playground P3 — selection and batch editing */
-.playground-selection-bar {
-  width: 100%;
-  min-height: 42px;
-  margin-bottom: 9px;
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.playground-selection-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.playground-selection-status,
-.playground-selection-scope,
-.playground-selection-actions {
-  min-height: 42px;
-  display: flex;
-  align-items: stretch;
-  flex: 0 0 auto;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.075);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.032);
-}
-
-.playground-selection-status {
-  min-width: 112px;
-  display: grid;
-  align-content: center;
-  gap: 2px;
-  padding: 5px 11px;
-}
-
-.playground-selection-status span {
-  color: var(--pg-muted);
-  font-size: 0.48rem;
-  font-weight: 900;
-  letter-spacing: 0.09em;
-}
-
-.playground-selection-status strong {
-  font-size: 0.62rem;
-}
-
-.playground-selection-hint {
-  align-self: center;
-  padding: 0 8px;
-  color: var(--pg-muted);
-  font-size: 0.52rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.playground-selection-bar.has-selection
-.playground-selection-status {
-  border-color: rgba(99,222,244,0.34);
-  background: rgba(99,222,244,0.07);
-}
-
-.playground-selection-scope > button,
-.playground-selection-actions > button {
-  min-width: 44px;
-  padding: 0 9px;
-  border: 0;
-  border-left: 1px solid rgba(255,255,255,0.055);
-  background: transparent;
-  color: var(--pg-muted);
-  cursor: pointer;
-  font-size: 0.54rem;
-  font-weight: 850;
-}
-
-.playground-selection-scope > button:first-child,
-.playground-selection-actions > button:first-child {
-  border-left: 0;
-}
-
-.playground-selection-scope > button:hover:not(:disabled),
-.playground-selection-actions > button:hover:not(:disabled) {
-  background: rgba(255,255,255,0.07);
-  color: var(--pg-text);
-}
-
-.playground-selection-scope > button:disabled,
-.playground-selection-actions > button:disabled {
-  opacity: 0.28;
-  cursor: default;
-}
-
-.playground-steps--lane
-.playground-step.is-selected {
-  outline: 2px solid #fff;
-  outline-offset: 1px;
-  box-shadow:
-    inset 0 0 0 2px var(--lane-color),
-    0 0 0 1px rgba(99,222,244,0.34);
-}
-
-@media (max-width: 760px) {
-  .playground-selection-bar {
-    gap: 5px;
-  }
-
-  .playground-selection-status,
-  .playground-selection-scope,
-  .playground-selection-actions {
-    min-height: 44px;
-  }
-
-  .playground-selection-scope > button,
-  .playground-selection-actions > button {
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-}
-
-@media (forced-colors: active) {
-  .playground-selection-status,
-  .playground-selection-scope,
-  .playground-selection-actions,
-  .playground-steps--lane
-  .playground-step.is-selected {
-    border-color: Highlight;
-    outline-color: Highlight;
-  }
-}
-
-
-/* Playground P4 — melodic tracks and piano roll */
 .playground-track-row--melodic{background:color-mix(in srgb,var(--lane-color) 4%,transparent)}
 .playground-step--melodic{display:grid;place-items:center;overflow:hidden}
 .playground-step--melodic>span{font-size:.46rem;font-weight:900}
 .playground-step--melodic.is-held{background:color-mix(in srgb,var(--lane-color) 12%,transparent)}
-
-.playground-piano{
-  margin:4px 0 12px;overflow:hidden;
-  border:1px solid color-mix(in srgb,var(--lane-color) 24%,rgba(255,255,255,.08));
-  border-radius:14px;background:rgba(5,7,14,.72)
+.playground-piano{margin:4px 0 12px;overflow:hidden;border:1px solid color-mix(in srgb,var(--lane-color) 24%,rgba(255,255,255,.08));border-radius:14px;background:rgba(5,7,14,.72)}
+.playground-piano__toolbar,.playground-piano__chords,.playground-piano__note-tools{min-height:40px;padding:5px 6px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06);scrollbar-width:none}
+.playground-piano__identity,.playground-piano__preset,.playground-piano__duration,.playground-piano__octave,.playground-piano__select,.playground-piano__scale-lock{
+  min-height:36px;display:flex;align-items:center;flex:0 0 auto;border:1px solid rgba(255,255,255,.07);border-radius:9px;background:rgba(255,255,255,.035)
 }
-.playground-piano__toolbar,.playground-piano__chords,.playground-piano__note-tools{
-  min-height:40px;display:flex;align-items:stretch;gap:4px;padding:5px 6px;
-  overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06);scrollbar-width:none
-}
-.playground-piano__identity,.playground-piano__preset,.playground-piano__duration,
-.playground-piano__octave,.playground-piano__select,.playground-piano__scale-lock{
-  min-height:36px;display:flex;align-items:center;flex:0 0 auto;
-  border:1px solid rgba(255,255,255,.07);border-radius:9px;background:rgba(255,255,255,.035)
-}
-.playground-piano__identity{min-width:86px;display:grid;align-content:center;padding:2px 9px}
+.playground-piano__identity{min-width:84px;display:grid;align-content:center;padding:2px 8px}
 .playground-piano__identity span,.playground-piano__select span{color:var(--pg-muted);font-size:.45rem;font-weight:900}
-.playground-piano__identity strong{color:var(--lane-color);font-size:.65rem}
-.playground-piano__preset b{min-width:54px;text-align:center;font-size:.56rem}
-.playground-piano__preset button,.playground-piano__duration button,.playground-piano__octave button,
-.playground-piano__scale-lock,.playground-piano__chords button,.playground-piano__note-tools button{
-  min-width:40px;border:0;background:transparent;color:var(--pg-muted);cursor:pointer;font-size:.54rem;font-weight:850
-}
-.playground-piano__select{gap:5px;padding:0 7px}
-.playground-piano__select select{border:0;background:transparent;color:var(--pg-text);font:inherit;font-size:.56rem}
-.playground-piano__duration button.is-active,.playground-piano__scale-lock.is-active,
-.playground-piano__chords button.is-active{color:var(--pg-text);box-shadow:inset 0 -2px 0 var(--lane-color)}
-.playground-piano__note-tools>span{min-width:150px;margin-right:auto;align-self:center;padding:0 6px;color:var(--pg-muted);font-size:.55rem}
+.playground-piano__identity strong{color:var(--lane-color);font-size:.64rem}
+.playground-piano__preset b{min-width:52px;text-align:center;font-size:.55rem}
+.playground-piano__preset button,.playground-piano__duration button,.playground-piano__octave button,.playground-piano__scale-lock,
+.playground-piano__chords button,.playground-piano__note-tools button{min-width:40px;border:0;background:transparent;color:var(--pg-muted);cursor:pointer;font-size:.53rem;font-weight:850}
+.playground-piano__select{gap:4px;padding:0 6px}
+.playground-piano__select select{border:0;background:transparent;color:var(--pg-text);font:inherit;font-size:.55rem}
+.playground-piano__duration button.is-active,.playground-piano__scale-lock.is-active,.playground-piano__chords button.is-active{color:var(--pg-text);box-shadow:inset 0 -2px 0 var(--lane-color)}
+.playground-piano__note-tools>span{min-width:145px;margin-right:auto;align-self:center;padding:0 5px;color:var(--pg-muted);font-size:.54rem}
 .playground-piano__note-tools button:disabled{opacity:.28}
 .playground-piano__viewport{max-height:500px;overflow:auto;padding:5px}
 .playground-piano__ruler{position:sticky;top:0;z-index:5;min-width:680px;display:grid;grid-template-columns:60px repeat(16,minmax(36px,1fr));background:#090b13}
@@ -3754,26 +3419,22 @@
 .playground-piano-grid{position:relative;min-width:616px;min-height:36px;display:grid;gap:2px}
 .playground-piano-cell{min-width:36px;min-height:36px;border:1px solid rgba(255,255,255,.045);border-radius:5px;background:rgba(255,255,255,.018)}
 .playground-piano-cell.is-beat{border-left-color:rgba(255,255,255,.14)}
-.playground-piano-note{
-  position:absolute;z-index:2;top:3px;bottom:3px;min-width:8px;display:flex;align-items:center;
-  padding:0 7px;border:1px solid var(--lane-color);border-radius:6px;background:color-mix(in srgb,var(--lane-color) 68%,#111525);
-  color:#fff;overflow:visible;cursor:pointer
-}
+.playground-piano-note{position:absolute;z-index:2;top:3px;bottom:3px;min-width:8px;display:flex;align-items:center;padding:0 7px;border:1px solid var(--lane-color);border-radius:6px;background:color-mix(in srgb,var(--lane-color) 68%,#111525);color:#fff;overflow:visible;cursor:pointer}
 .playground-piano-note.is-selected{outline:2px solid #fff;outline-offset:1px}
 .playground-piano-note>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.5rem;font-weight:900}
 .playground-piano-note:not(.is-root-note){opacity:.7}
 .playground-piano-note__resize{position:absolute;top:-2px;right:-4px;bottom:-2px;width:10px;border-radius:4px;background:rgba(255,255,255,.78);cursor:ew-resize;touch-action:none}
 
+@media(max-width:900px){.playground-record-bar>*{flex:0 0 auto}}
 @media(max-width:760px){
+  .playground-record-bar{width:calc(100% - 20px)}
+  .playground-record-bar button,.playground-selection-bar button,.playground-piano button,.playground-piano-key,.playground-piano-cell{min-height:44px;touch-action:manipulation}
   .playground-piano{margin-inline:-4px}
-  .playground-piano__preset button,.playground-piano__duration button,.playground-piano__octave button,
-  .playground-piano__scale-lock,.playground-piano__chords button,.playground-piano__note-tools button,
-  .playground-piano-key,.playground-piano-cell{min-height:44px;touch-action:manipulation}
   .playground-piano__ruler,.playground-piano-row{min-width:820px}
   .playground-piano-grid{min-width:756px;min-height:44px}
 }
 @media(forced-colors:active){
-  .playground-piano,.playground-piano-key,.playground-piano-cell,.playground-piano-note{border-color:ButtonText}
+  .playground-record-button,.playground-selection-status,.playground-piano,.playground-piano-key,.playground-piano-cell,.playground-piano-note{border-color:ButtonText}
   .playground-piano-note,.playground-piano__scale-lock.is-active{background:Highlight;color:HighlightText}
 }
 
