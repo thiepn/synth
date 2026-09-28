@@ -682,6 +682,24 @@ export function PlaygroundSurface({
     useState<string | null>(null);
   const [selectedMelodicNote, setSelectedMelodicNote] =
     useState<{ laneId: string; stepIndex: number } | null>(null);
+  const [melodicMidiRecording, setMelodicMidiRecording] =
+    useState(false);
+  const melodicMidiTakeCounterRef = useRef(0);
+  const melodicMidiTakeRef = useRef<{
+    gestureId: string;
+    laneId: string;
+  } | null>(null);
+  const melodicMidiActiveNotesRef = useRef(
+    new Map<
+      number,
+      {
+        laneId: string;
+        startTick: number;
+        stepIndex: number;
+        velocity: number;
+      }
+    >(),
+  );
   const [melodicDurationSteps, setMelodicDurationSteps] =
     useState(4);
   const [melodicPitchCursor, setMelodicPitchCursor] =
@@ -2615,9 +2633,340 @@ export function PlaygroundSurface({
     );
   };
 
+  const commitMelodicMidiNote = (
+    note: number,
+    active: {
+      laneId: string;
+      startTick: number;
+      stepIndex: number;
+      velocity: number;
+    },
+    endTick: number,
+    gestureId: string,
+  ) => {
+    const definition = MELODIC_LANES.find(
+      (entry) => entry.id === active.laneId,
+    );
+    if (!definition) return false;
+
+    const durationSteps = Math.max(
+      1,
+      Math.round(
+        Math.max(
+          FOUNDATION_STEP_TICKS,
+          endTick - active.startTick,
+        ) / FOUNDATION_STEP_TICKS,
+      ),
+    );
+    const existing =
+      sequencerStore.getMelodicEvent(
+        active.laneId,
+        active.stepIndex,
+      );
+    const chordPitches =
+      definition.track === "chords"
+        ? [
+            ...new Set([
+              ...(existing?.pitchesMidi ??
+                (existing?.pitchMidi !== undefined
+                  ? [existing.pitchMidi]
+                  : [])),
+              note,
+            ]),
+          ]
+        : undefined;
+    const rootPitch =
+      definition.track === "chords"
+        ? existing?.pitchMidi ?? note
+        : note;
+    const existingDuration =
+      existing?.durationTicks
+        ? Math.max(
+            1,
+            Math.round(
+              existing.durationTicks /
+                FOUNDATION_STEP_TICKS,
+            ),
+          )
+        : 1;
+
+    return sequencerStore.setMelodicNote(
+      active.laneId,
+      active.stepIndex,
+      rootPitch,
+      definition.track === "chords"
+        ? Math.max(
+            existingDuration,
+            durationSteps,
+          )
+        : durationSteps,
+      chordPitches,
+      gestureId,
+    );
+  };
+
+  const stopMelodicMidiRecording = () => {
+    const take = melodicMidiTakeRef.current;
+    if (!take) {
+      midiStore.setMelodicNoteCaptureActive(false);
+      setMelodicMidiRecording(false);
+      return;
+    }
+
+    const endTick =
+      audioTransport.getCurrentAbsoluteTick();
+    let committed = 0;
+    for (const [note, active] of
+      melodicMidiActiveNotesRef.current) {
+      if (
+        commitMelodicMidiNote(
+          note,
+          active,
+          endTick,
+          take.gestureId,
+        )
+      ) {
+        committed += 1;
+      }
+    }
+
+    melodicMidiActiveNotesRef.current.clear();
+    sequencerStore.endPaintGesture(
+      take.gestureId,
+    );
+    melodicMidiTakeRef.current = null;
+    midiStore.setMelodicNoteCaptureActive(false);
+    setMelodicMidiRecording(false);
+    pulseHaptic(8);
+    setNotice(
+      committed > 0
+        ? "Melodic take saved · Undo restores the take"
+        : "Melodic recording stopped",
+    );
+  };
+
+  const toggleMelodicMidiRecording =
+    async () => {
+      if (melodicMidiRecording) {
+        stopMelodicMidiRecording();
+        return;
+      }
+
+      if (!selectedMelodicDefinition) {
+        setNotice("Open a melodic track first");
+        return;
+      }
+
+      if (!midi.supported) {
+        setNotice(
+          "Web MIDI is unavailable in this browser",
+        );
+        return;
+      }
+
+      if (gridRecord.status !== "idle") {
+        setNotice(
+          "Stop drum recording before melodic recording",
+        );
+        return;
+      }
+
+      if (midi.status !== "ready") {
+        await midiStore.enable();
+      }
+      if (
+        midiStore.getSnapshot().status !== "ready"
+      ) {
+        setNotice(
+          midiStore.getSnapshot().lastError ??
+            "MIDI could not be enabled",
+        );
+        return;
+      }
+
+      if (midiStore.getSnapshot().recording) {
+        midiStore.stopRecording();
+      }
+
+      const gestureId =
+        "melodic-midi-" +
+        String(
+          ++melodicMidiTakeCounterRef.current,
+        ).padStart(6, "0");
+      sequencerStore.beginPaintGesture(
+        gestureId,
+      );
+      melodicMidiTakeRef.current = {
+        gestureId,
+        laneId: selectedMelodicDefinition.id,
+      };
+      melodicMidiActiveNotesRef.current.clear();
+      midiStore.setMelodicNoteCaptureActive(true);
+
+      if (!playing) {
+        audioTransport.seekToAbsoluteTick(
+          pageStart *
+            TRANSPORT_SCHEDULER_CONFIG.pulseTicks,
+        );
+        await audioTransport.start();
+      }
+
+      if (
+        audioTransport.getSnapshot().status !==
+        "running"
+      ) {
+        sequencerStore.endPaintGesture(
+          gestureId,
+        );
+        melodicMidiTakeRef.current = null;
+        midiStore.setMelodicNoteCaptureActive(false);
+        setNotice("Audio could not start");
+        return;
+      }
+
+      setMelodicMidiRecording(true);
+      pulseHaptic([8, 22, 8]);
+      setNotice(
+        "Melodic REC · play your MIDI keyboard",
+      );
+    };
+
+  useEffect(() => {
+    return midiStore.subscribeNoteEvents(
+      (event) => {
+        const take =
+          melodicMidiTakeRef.current;
+        if (
+          !melodicMidiRecording ||
+          !take
+        ) {
+          return;
+        }
+
+        const definition = MELODIC_LANES.find(
+          (entry) => entry.id === take.laneId,
+        );
+        if (!definition) return;
+
+        if (event.type === "noteOn") {
+          if (
+            melodicMidiActiveNotesRef.current.has(
+              event.note,
+            )
+          ) {
+            return;
+          }
+
+          const absoluteTick =
+            audioTransport.getCurrentAbsoluteTick();
+          const pattern =
+            sequencerStore.getSnapshot().pattern;
+          const patternLengthTicks =
+            Math.max(
+              FOUNDATION_STEP_TICKS,
+              pattern.lengthTicks,
+            );
+          const localTick =
+            ((absoluteTick %
+              patternLengthTicks) +
+              patternLengthTicks) %
+            patternLengthTicks;
+          const stepIndex = Math.max(
+            0,
+            Math.min(
+              sequencerStore.getSnapshot()
+                .lengthSteps - 1,
+              Math.round(
+                localTick /
+                  FOUNDATION_STEP_TICKS,
+              ),
+            ),
+          );
+
+          melodicMidiActiveNotesRef.current.set(
+            event.note,
+            {
+              laneId: take.laneId,
+              startTick: absoluteTick,
+              stepIndex,
+              velocity: Math.max(
+                0.05,
+                event.velocity,
+              ),
+            },
+          );
+          setMelodicPitchCursor(
+            (current) => ({
+              ...current,
+              [definition.track]:
+                event.note,
+            }),
+          );
+          void melodicEngine.triggerNow(
+            take.laneId,
+            [event.note],
+            0.28,
+            Math.max(
+              0.05,
+              event.velocity,
+            ),
+          );
+          return;
+        }
+
+        const active =
+          melodicMidiActiveNotesRef.current.get(
+            event.note,
+          );
+        if (!active) return;
+        const endTick =
+          audioTransport.getCurrentAbsoluteTick();
+
+        if (
+          commitMelodicMidiNote(
+            event.note,
+            active,
+            endTick,
+            take.gestureId,
+          )
+        ) {
+          setSelectedMelodicNote({
+            laneId: active.laneId,
+            stepIndex: active.stepIndex,
+          });
+        }
+        melodicMidiActiveNotesRef.current.delete(
+          event.note,
+        );
+      },
+    );
+  }, [
+    melodicMidiRecording,
+    sequencer.lengthSteps,
+  ]);
+
+  useEffect(
+    () => () => {
+      midiStore.setMelodicNoteCaptureActive(
+        false,
+      );
+      const take =
+        melodicMidiTakeRef.current;
+      if (take) {
+        sequencerStore.endPaintGesture(
+          take.gestureId,
+        );
+      }
+    },
+    [],
+  );
+
   const selectMelodicTrack = (
     laneId: string,
   ) => {
+    if (melodicMidiRecording) {
+      stopMelodicMidiRecording();
+    }
     const definition = MELODIC_LANES.find(
       (entry) => entry.id === laneId,
     );
@@ -6960,10 +7309,43 @@ export function PlaygroundSurface({
                     </button>
                   </div>
 
+                  <button
+                    type="button"
+                    className={[
+                      "playground-piano__midi-record",
+                      melodicMidiRecording
+                        ? "is-active"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() =>
+                      void toggleMelodicMidiRecording()
+                    }
+                    aria-pressed={
+                      melodicMidiRecording
+                    }
+                    aria-label={
+                      melodicMidiRecording
+                        ? "Stop melodic MIDI recording"
+                        : "Start melodic MIDI recording"
+                    }
+                    title={
+                      midi.status === "ready"
+                        ? "Record notes and held lengths from MIDI"
+                        : "Enable MIDI and record this melodic track"
+                    }
+                  >
+                    {melodicMidiRecording
+                      ? "■ MIDI REC"
+                      : "● MIDI REC"}
+                  </button>
+
                   <label className="playground-piano__select">
                     <span>Key</span>
                     <select
                       aria-label="Melodic key"
+                      disabled={melodicMidiRecording}
                       value={
                         harmonicContext.rootPitchClass
                       }
@@ -6994,6 +7376,7 @@ export function PlaygroundSurface({
                     <span>Scale</span>
                     <select
                       aria-label="Melodic scale"
+                      disabled={melodicMidiRecording}
                       value={
                         harmonicContext.scaleId
                       }
@@ -7037,6 +7420,7 @@ export function PlaygroundSurface({
                     aria-pressed={
                       harmonicContext.lockToScale
                     }
+                    disabled={melodicMidiRecording}
                     aria-label="Lock melodic notes to scale"
                   >
                     Scale Lock
