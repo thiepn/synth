@@ -2739,6 +2739,10 @@ export function PlaygroundSurface({
     let committed = 0;
     for (const [note, active] of
       melodicMidiActiveNotesRef.current) {
+      melodicEngine.noteOff(
+        active.laneId,
+        note,
+      );
       if (
         commitMelodicMidiNote(
           note,
@@ -2923,10 +2927,9 @@ export function PlaygroundSurface({
                 event.note,
             }),
           );
-          void melodicEngine.triggerNow(
+          void melodicEngine.noteOn(
             take.laneId,
-            [event.note],
-            0.28,
+            event.note,
             Math.max(
               0.05,
               event.velocity,
@@ -2942,6 +2945,11 @@ export function PlaygroundSurface({
         if (!active) return;
         const endTick =
           audioTransport.getCurrentAbsoluteTick();
+
+        melodicEngine.noteOff(
+          active.laneId,
+          event.note,
+        );
 
         if (
           commitMelodicMidiNote(
@@ -2973,6 +2981,15 @@ export function PlaygroundSurface({
       );
       const take =
         melodicMidiTakeRef.current;
+      for (const [note, active] of
+        melodicMidiActiveNotesRef.current) {
+        melodicEngine.noteOff(
+          active.laneId,
+          note,
+          true,
+        );
+      }
+      melodicMidiActiveNotesRef.current.clear();
       if (take) {
         sequencerStore.endPaintGesture(
           take.gestureId,
