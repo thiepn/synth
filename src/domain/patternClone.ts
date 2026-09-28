@@ -53,6 +53,9 @@ export function clonePattern(
   return {
     ...pattern,
     meter: { ...pattern.meter },
+    harmonicContext: pattern.harmonicContext
+      ? { ...pattern.harmonicContext }
+      : undefined,
     lanes: pattern.lanes.map(clonePatternLane),
     groove: pattern.groove
       ? {
