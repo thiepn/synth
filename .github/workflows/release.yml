@@ -82,9 +82,13 @@ jobs:
             exit 0
           fi
 
-          existing_tag_sha="$(
-            gh api "repos/${{ github.repository }}/git/ref/tags/$tag" --jq .object.sha 2>/dev/null || true
-          )"
+          existing_tag_sha=""
+          if resolved_tag_sha="$(
+            gh api "repos/${{ github.repository }}/git/ref/tags/$tag" --jq .object.sha 2>/dev/null
+          )"; then
+            existing_tag_sha="$resolved_tag_sha"
+          fi
+
           if [ -n "$existing_tag_sha" ] && [ "$existing_tag_sha" != "$RELEASE_SHA" ]; then
             echo "::error title=Release tag mismatch::$tag already points to $existing_tag_sha instead of certified $RELEASE_SHA."
             exit 1
