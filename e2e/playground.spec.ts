@@ -984,6 +984,91 @@ test("Playground records held melodic MIDI notes as one undoable take", async ({
   ).toBeVisible();
 });
 
+test("Playground P14 drafts a structured editable song from A B in one tap", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const song = page.getByRole("region", {
+    name: "Song arrangement",
+  });
+
+  const standard = song.getByRole("button", {
+    name: "Build Standard song draft",
+  });
+  await expect(standard).toBeVisible();
+  const standardBox = await standard.boundingBox();
+  expect(standardBox).not.toBeNull();
+  expect(standardBox!.height).toBeGreaterThanOrEqual(44);
+
+  await standard.click();
+
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(6);
+
+  await expect(
+    song.getByRole("button", {
+      name: /INTRO, section 1 of 6, Pattern A, Intro, 2 repeats/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    song.getByRole("button", {
+      name: /VERSE, section 2 of 6, Pattern A, Verse, 4 repeats/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    song.getByRole("button", {
+      name: /CHORUS, section 3 of 6, Pattern B, Chorus, 4 repeats/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    song.getByRole("button", {
+      name: /OUTRO, section 6 of 6, Pattern A, Outro, 2 repeats/i,
+    }),
+  ).toBeVisible();
+
+  await expect(
+    song.getByRole("button", {
+      name: "Stop song playback",
+    }),
+  ).toBeEnabled();
+  await expect(
+    song.locator(
+      ".playground-song-section.is-playing",
+    ),
+  ).toHaveCount(1);
+
+  await song.getByRole("button", {
+    name: "Stop song playback",
+  }).click();
+
+  const second = song
+    .locator(".playground-song-section")
+    .nth(1);
+  await second.click();
+  await song.getByRole("button", {
+    name: "Increase section repeats",
+  }).click();
+  await expect(second).toHaveAttribute(
+    "aria-label",
+    /5 repeats/i,
+  );
+
+  await page.getByRole("button", {
+    name: /^Projects$/i,
+  }).click();
+  const projects = page.getByRole("dialog", {
+    name: "Recent projects",
+  });
+  await expect(projects).toContainText(
+    "Before song draft · Standard",
+  );
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground builds and edits an A B song on the canonical arrangement timeline", async ({
   page,
 }) => {
