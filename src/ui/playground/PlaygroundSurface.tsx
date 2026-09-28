@@ -7368,6 +7368,7 @@ export function PlaygroundSurface({
                   >
                     <button
                       type="button"
+                      disabled={melodicMidiRecording}
                       onClick={() =>
                         cycleMelodicPreset(
                           selectedMelodicDefinition,
@@ -7384,6 +7385,7 @@ export function PlaygroundSurface({
                     </b>
                     <button
                       type="button"
+                      disabled={melodicMidiRecording}
                       onClick={() =>
                         cycleMelodicPreset(
                           selectedMelodicDefinition,
@@ -7528,7 +7530,11 @@ export function PlaygroundSurface({
                               ? "is-active"
                               : ""
                           }
+                          disabled={melodicMidiRecording}
                           onClick={() => {
+                            if (melodicMidiRecording) {
+                              return;
+                            }
                             setMelodicDurationSteps(
                               steps,
                             );
@@ -7654,11 +7660,16 @@ export function PlaygroundSurface({
                         ? "is-active"
                         : ""
                     }
-                    onClick={() =>
+                    onClick={() => {
+                      if (melodicMidiRecording) {
+                        setNotice("Stop recording before changing mute");
+                        return;
+                      }
                       sequencerStore.toggleMute(
                         selectedMelodicDefinition.id,
-                      )
-                    }
+                      );
+                    }}
+                    disabled={melodicMidiRecording}
                     aria-pressed={
                       selectedMelodicLane.muted ??
                       false
@@ -7674,11 +7685,16 @@ export function PlaygroundSurface({
                         ? "is-active"
                         : ""
                     }
-                    onClick={() =>
+                    onClick={() => {
+                      if (melodicMidiRecording) {
+                        setNotice("Stop recording before changing solo");
+                        return;
+                      }
                       sequencerStore.toggleSolo(
                         selectedMelodicDefinition.id,
-                      )
-                    }
+                      );
+                    }}
+                    disabled={melodicMidiRecording}
                     aria-pressed={
                       selectedMelodicLane.solo ??
                       false
