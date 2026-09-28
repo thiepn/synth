@@ -2077,6 +2077,9 @@ export function PlaygroundSurface({
   const atBarLimit =
     sequencer.lengthSteps + pageSize >
     SEQUENCER_MAX_STEPS;
+  const editRecordingLocked =
+    gridRecord.status !== "idle" ||
+    melodicMidiRecording;
   const selectedDefinition =
     SEQUENCER_LANES.find(
       (definition) => definition.voice === selectedVoice,
@@ -5340,7 +5343,7 @@ export function PlaygroundSurface({
             <span>Style</span>
             <select
               value={style}
-              disabled={gridRecord.status !== "idle"}
+              disabled={editRecordingLocked}
               aria-label="Beat style"
               onChange={(event) => {
                 const nextStyle = event.currentTarget.value as BeatStyleId;
@@ -5424,7 +5427,7 @@ export function PlaygroundSurface({
             onClick={undoPattern}
             disabled={
               !sequencer.canUndo ||
-              gridRecord.status !== "idle"
+              editRecordingLocked
             }
             aria-label="Undo"
             title="Undo · Ctrl/Cmd-Z"
@@ -5438,7 +5441,7 @@ export function PlaygroundSurface({
             onClick={redoPattern}
             disabled={
               !sequencer.canRedo ||
-              gridRecord.status !== "idle"
+              editRecordingLocked
             }
             aria-label="Redo"
             title="Redo · Ctrl/Cmd-Shift-Z"
@@ -5798,7 +5801,7 @@ export function PlaygroundSurface({
             type="button"
             className="playground-remix"
             onClick={remix}
-            disabled={gridRecord.status !== "idle"}
+            disabled={editRecordingLocked}
           >
             <span aria-hidden="true">✦</span>
             Remix
@@ -5846,7 +5849,7 @@ export function PlaygroundSurface({
                   : ""
               }
               onClick={() => switchPatternBank(bank)}
-              disabled={gridRecord.status !== "idle"}
+              disabled={editRecordingLocked}
               aria-pressed={activePatternBank === bank}
               title={
                 patternBanks[bank]
@@ -5861,7 +5864,7 @@ export function PlaygroundSurface({
             type="button"
             className="playground-pattern-duplicate"
             onClick={duplicatePatternBank}
-            disabled={gridRecord.status !== "idle"}
+            disabled={editRecordingLocked}
             title={
               "Duplicate current beat into Pattern " +
               (activePatternBank === "A" ? "B" : "A")
@@ -6018,6 +6021,7 @@ export function PlaygroundSurface({
         <button
           type="button"
           className="playground-record-button"
+          disabled={melodicMidiRecording}
           onClick={(event) => {
             event.currentTarget.blur();
             void toggleGridRecording();
@@ -6064,6 +6068,7 @@ export function PlaygroundSurface({
                 onClick={() =>
                   setGridRecordMode(mode)
                 }
+                disabled={melodicMidiRecording}
                 aria-pressed={
                   gridRecord.mode === mode
                 }
@@ -6151,19 +6156,25 @@ export function PlaygroundSurface({
           aria-live="polite"
         >
           <strong>
-            {gridRecord.status === "recording"
-              ? "REC"
-              : gridRecord.status === "armed"
-                ? "ARMED"
-                : "READY"}
+            {melodicMidiRecording
+              ? "MELO REC"
+              : gridRecord.status === "recording"
+                ? "REC"
+                : gridRecord.status === "armed"
+                  ? "ARMED"
+                  : "READY"}
           </strong>
           <span>
-            {gridRecord.status === "recording"
-              ? gridRecord.hitCount +
-                (gridRecord.hitCount === 1
-                  ? " hit"
-                  : " hits")
-              : "Pads · keys · MIDI"}
+            {melodicMidiRecording
+              ? "MIDI · " +
+                (selectedMelodicDefinition?.name ??
+                  "melodic")
+              : gridRecord.status === "recording"
+                ? gridRecord.hitCount +
+                  (gridRecord.hitCount === 1
+                    ? " hit"
+                    : " hits")
+                : "Pads · keys · MIDI"}
           </span>
         </output>
       </section>
@@ -6383,7 +6394,7 @@ export function PlaygroundSurface({
                     className="playground-bar-control__remove"
                     onClick={deletePatternBar}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       !wholeBarPattern ||
                       pageCount <= 1
                     }
@@ -6423,7 +6434,7 @@ export function PlaygroundSurface({
                     className="playground-bar-control__add"
                     onClick={addPatternBar}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       atBarLimit
                     }
                     aria-label="Add bar"
@@ -6441,7 +6452,7 @@ export function PlaygroundSurface({
                     type="button"
                     onClick={duplicatePatternBar}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       !wholeBarPattern ||
                       atBarLimit
                     }
@@ -6454,7 +6465,7 @@ export function PlaygroundSurface({
                     type="button"
                     onClick={clearPatternBar}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       !wholeBarPattern
                     }
                     aria-label="Clear current bar"
@@ -6541,9 +6552,7 @@ export function PlaygroundSurface({
                 <button
                   type="button"
                   onClick={selectCurrentBar}
-                  disabled={
-                    gridRecord.status !== "idle"
-                  }
+                  disabled={editRecordingLocked}
                   aria-label="Select current bar notes"
                 >
                   Bar
@@ -6551,9 +6560,7 @@ export function PlaygroundSurface({
                 <button
                   type="button"
                   onClick={selectCurrentTrack}
-                  disabled={
-                    gridRecord.status !== "idle"
-                  }
+                  disabled={editRecordingLocked}
                   aria-label="Select current track notes"
                 >
                   Track
@@ -6561,9 +6568,7 @@ export function PlaygroundSurface({
                 <button
                   type="button"
                   onClick={selectAllNotes}
-                  disabled={
-                    gridRecord.status !== "idle"
-                  }
+                  disabled={editRecordingLocked}
                   aria-label="Select all pattern notes"
                 >
                   All
@@ -6575,7 +6580,7 @@ export function PlaygroundSurface({
                     setNotice("Selection cleared");
                   }}
                   disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                   aria-label="Clear note selection"
@@ -6593,7 +6598,7 @@ export function PlaygroundSurface({
                     type="button"
                     onClick={batchDeleteSelection}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Delete selected notes"
@@ -6605,7 +6610,7 @@ export function PlaygroundSurface({
                     type="button"
                     onClick={batchCopySelection}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Copy selected notes"
@@ -6617,7 +6622,7 @@ export function PlaygroundSurface({
                     type="button"
                     onClick={batchPasteSelection}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       !selectionClipboard
                     }
                     aria-label="Paste copied notes to current bar"
@@ -6629,7 +6634,7 @@ export function PlaygroundSurface({
                     type="button"
                     onClick={batchDuplicateSelection}
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Duplicate selected notes"
@@ -6643,7 +6648,7 @@ export function PlaygroundSurface({
                       batchMoveSelection(-1)
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Move selected notes left one step"
@@ -6657,7 +6662,7 @@ export function PlaygroundSurface({
                       batchMoveSelection(1)
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Move selected notes right one step"
@@ -6671,7 +6676,7 @@ export function PlaygroundSurface({
                       batchAdjustVelocity(-0.08)
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Make selected notes softer"
@@ -6685,7 +6690,7 @@ export function PlaygroundSurface({
                       batchAdjustVelocity(0.08)
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Make selected notes louder"
@@ -6699,7 +6704,7 @@ export function PlaygroundSurface({
                       batchSetDynamic("ghost")
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Make selected notes ghost notes"
@@ -6713,7 +6718,7 @@ export function PlaygroundSurface({
                       batchSetDynamic("normal")
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Make selected notes normal"
@@ -6727,7 +6732,7 @@ export function PlaygroundSurface({
                       batchSetDynamic("accent")
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Accent selected notes"
@@ -6741,7 +6746,7 @@ export function PlaygroundSurface({
                       batchNudgeTiming(-5_000)
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Move selected notes earlier"
@@ -6755,7 +6760,7 @@ export function PlaygroundSurface({
                       batchNudgeTiming(5_000)
                     }
                     disabled={
-                      gridRecord.status !== "idle" ||
+                      editRecordingLocked ||
                       selectedSteps.length === 0
                     }
                     aria-label="Move selected notes later"
@@ -8092,7 +8097,7 @@ export function PlaygroundSurface({
 
             <div
               className={
-                gridRecord.status === "idle"
+                !editRecordingLocked
                   ? "playground-lane-toolbar"
                   : "playground-lane-toolbar is-recording-locked"
               }
@@ -8713,7 +8718,7 @@ export function PlaygroundSurface({
           }}
           disabled={
             !sequencer.canUndo ||
-            gridRecord.status !== "idle"
+            editRecordingLocked
           }
           aria-label="Undo"
         >
