@@ -1245,7 +1245,13 @@ export function validateGeneratedBeat(
   const dna = getStyleDNA(style);
   const backbeatHits = countBackbeats(pattern, style);
   const syncopatedKickHits = countSyncopatedKicks(pattern);
-  const totalHits = pattern.lanes.reduce(
+  const drumLaneIds = new Set(
+    SEQUENCER_LANES.map((lane) => lane.id),
+  );
+  const drumLanes = pattern.lanes.filter((laneValue) =>
+    drumLaneIds.has(laneValue.id),
+  );
+  const totalHits = drumLanes.reduce(
     (sum, laneValue) => sum + laneValue.events.length,
     0,
   );
@@ -1253,7 +1259,7 @@ export function validateGeneratedBeat(
   let maxSimultaneousHits = 0;
   for (let step = 0; step < stepCount; step += 1) {
     const tick = step * FOUNDATION_STEP_TICKS;
-    const simultaneous = pattern.lanes.filter((laneValue) =>
+    const simultaneous = drumLanes.filter((laneValue) =>
       laneValue.events.some((event) => event.tick === tick),
     ).length;
     maxSimultaneousHits = Math.max(maxSimultaneousHits, simultaneous);
