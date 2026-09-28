@@ -853,7 +853,7 @@ function PlaygroundMixStrip({
 
   const resetTrackMix = () => {
     if (drumVoice) {
-      mixerStore.resetChannel(drumVoice);
+      mixerStore.resetPlaygroundChannel(drumVoice);
     } else {
       sequencerStore.resetMelodicMix(lane.id);
     }
