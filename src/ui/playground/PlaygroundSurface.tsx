@@ -6619,7 +6619,970 @@ export function PlaygroundSurface({
                   </div>
                 );
               })}
+
+              {melodicLanes.map(
+                ({ definition, lane }) => {
+                  if (!lane) return null;
+
+                  const selected =
+                    selectedMelodicLaneId ===
+                    definition.id;
+                  const presets =
+                    MELODIC_PRESETS[
+                      definition.track
+                    ];
+                  const preset =
+                    presets.find(
+                      (entry) =>
+                        entry.id ===
+                        lane.instrumentPresetId,
+                    ) ?? presets[0];
+                  const visibleSteps = Math.min(
+                    pageSize,
+                    sequencer.lengthSteps -
+                      pageStart,
+                  );
+
+                  return (
+                    <div
+                      key={definition.id}
+                      className={[
+                        "playground-track-row",
+                        "playground-track-row--melodic",
+                        selected
+                          ? "is-selected"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      style={
+                        {
+                          "--lane-color":
+                            MELODIC_COLORS[
+                              definition.track
+                            ],
+                        } as CSSProperties
+                      }
+                    >
+                      <div className="playground-track-head">
+                        <button
+                          type="button"
+                          className="playground-track-select"
+                          onClick={() =>
+                            selectMelodicTrack(
+                              definition.id,
+                            )
+                          }
+                          aria-pressed={selected}
+                          aria-label={
+                            "Open " +
+                            definition.name +
+                            " piano roll"
+                          }
+                        >
+                          <span
+                            className="playground-track-swatch"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <strong>
+                              {definition.name}
+                            </strong>
+                            <small>
+                              {preset?.label ??
+                                "Synth"}
+                            </small>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="playground-track-sound"
+                          onClick={() => {
+                            setSelectedMelodicLaneId(
+                              definition.id,
+                            );
+                            cycleMelodicPreset(
+                              definition,
+                              1,
+                            );
+                          }}
+                          aria-label={
+                            "Change " +
+                            definition.name +
+                            " instrument"
+                          }
+                          title={
+                            "Instrument · " +
+                            (preset?.label ??
+                              "Synth")
+                          }
+                        >
+                          ♫
+                        </button>
+                      </div>
+
+                      <div
+                        className="playground-steps playground-steps--lane playground-steps--melodic"
+                        style={{
+                          gridTemplateColumns:
+                            "repeat(" +
+                            visibleSteps +
+                            ", minmax(0, 1fr))",
+                        }}
+                      >
+                        {Array.from(
+                          {
+                            length:
+                              visibleSteps,
+                          },
+                          (_, offset) => {
+                            const stepIndex =
+                              pageStart + offset;
+                            const started =
+                              lane.events.find(
+                                (event) =>
+                                  Math.round(
+                                    event.tick /
+                                      FOUNDATION_STEP_TICKS,
+                                  ) ===
+                                  stepIndex,
+                              );
+                            const held =
+                              !started
+                                ? lane.events.find(
+                                    (event) => {
+                                      const start =
+                                        Math.round(
+                                          event.tick /
+                                            FOUNDATION_STEP_TICKS,
+                                        );
+                                      const duration =
+                                        Math.max(
+                                          1,
+                                          Math.round(
+                                            (event.durationTicks ??
+                                              FOUNDATION_STEP_TICKS) /
+                                              FOUNDATION_STEP_TICKS,
+                                          ),
+                                        );
+                                      return (
+                                        start <
+                                          stepIndex &&
+                                        start +
+                                          duration >
+                                          stepIndex
+                                      );
+                                    },
+                                  )
+                                : undefined;
+                            const source =
+                              started ?? held;
+                            const pitch =
+                              source?.pitchMidi ??
+                              definition.defaultPitchMidi;
+                            const isCurrent =
+                              visualStep ===
+                              stepIndex;
+
+                            return (
+                              <button
+                                type="button"
+                                key={
+                                  definition.id +
+                                  "-" +
+                                  stepIndex
+                                }
+                                className={[
+                                  "playground-step",
+                                  "playground-step--melodic",
+                                  started
+                                    ? "is-on"
+                                    : "",
+                                  held
+                                    ? "is-held"
+                                    : "",
+                                  isCurrent
+                                    ? "is-current"
+                                    : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ")}
+                                aria-label={
+                                  source
+                                    ? definition.name +
+                                      " " +
+                                      midiNoteLabel(
+                                        pitch,
+                                      ) +
+                                      " at step " +
+                                      (Math.round(
+                                        source.tick /
+                                          FOUNDATION_STEP_TICKS,
+                                      ) +
+                                        1) +
+                                      ". Open piano roll"
+                                    : "Add " +
+                                      definition.name +
+                                      " note at step " +
+                                      (stepIndex +
+                                        1)
+                                }
+                                onClick={() => {
+                                  setSelectedMelodicLaneId(
+                                    definition.id,
+                                  );
+
+                                  if (source) {
+                                    const sourceStep =
+                                      Math.round(
+                                        source.tick /
+                                          FOUNDATION_STEP_TICKS,
+                                      );
+                                    setSelectedMelodicNote({
+                                      laneId:
+                                        definition.id,
+                                      stepIndex:
+                                        sourceStep,
+                                    });
+                                    setMelodicPitchCursor(
+                                      (current) => ({
+                                        ...current,
+                                        [definition.track]:
+                                          source.pitchMidi ??
+                                          definition.defaultPitchMidi,
+                                      }),
+                                    );
+                                    auditionMelodic(
+                                      definition,
+                                      melodicEventPitches(
+                                        definition,
+                                        source,
+                                      ),
+                                      Math.max(
+                                        1,
+                                        Math.round(
+                                          (source.durationTicks ??
+                                            FOUNDATION_STEP_TICKS) /
+                                            FOUNDATION_STEP_TICKS,
+                                        ),
+                                      ),
+                                      source.velocity,
+                                    );
+                                  } else {
+                                    createMelodicNoteAt(
+                                      definition.id,
+                                      stepIndex,
+                                      melodicPitchCursor[
+                                        definition
+                                          .track
+                                      ],
+                                    );
+                                  }
+                                }}
+                              >
+                                {started ? (
+                                  <span>
+                                    {midiNoteLabel(
+                                      pitch,
+                                    )}
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
+                    </div>
+                  );
+                },
+              )}
             </div>
+
+            {selectedMelodicDefinition &&
+            selectedMelodicLane ? (
+              <section
+                className="playground-piano"
+                aria-label={
+                  selectedMelodicDefinition.name +
+                  " piano roll"
+                }
+                style={
+                  {
+                    "--lane-color":
+                      MELODIC_COLORS[
+                        selectedMelodicDefinition
+                          .track
+                      ],
+                  } as CSSProperties
+                }
+              >
+                <header className="playground-piano__toolbar">
+                  <div className="playground-piano__identity">
+                    <span>MELODIC</span>
+                    <strong>
+                      {
+                        selectedMelodicDefinition.name
+                      }
+                    </strong>
+                  </div>
+
+                  <div
+                    className="playground-piano__preset"
+                    aria-label="Melodic instrument preset"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        cycleMelodicPreset(
+                          selectedMelodicDefinition,
+                          -1,
+                        )
+                      }
+                      aria-label="Previous melodic instrument"
+                    >
+                      ‹
+                    </button>
+                    <b>
+                      {selectedMelodicPreset?.label ??
+                        "Synth"}
+                    </b>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        cycleMelodicPreset(
+                          selectedMelodicDefinition,
+                          1,
+                        )
+                      }
+                      aria-label="Next melodic instrument"
+                    >
+                      ›
+                    </button>
+                  </div>
+
+                  <label className="playground-piano__select">
+                    <span>Key</span>
+                    <select
+                      aria-label="Melodic key"
+                      value={
+                        harmonicContext.rootPitchClass
+                      }
+                      onChange={(event) =>
+                        setMelodicHarmony({
+                          rootPitchClass:
+                            Number(
+                              event.currentTarget
+                                .value,
+                            ),
+                        })
+                      }
+                    >
+                      {KEY_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={option.value}
+                            value={option.value}
+                          >
+                            {option.label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
+
+                  <label className="playground-piano__select">
+                    <span>Scale</span>
+                    <select
+                      aria-label="Melodic scale"
+                      value={
+                        harmonicContext.scaleId
+                      }
+                      onChange={(event) =>
+                        setMelodicHarmony({
+                          scaleId:
+                            event.currentTarget
+                              .value as ScaleId,
+                        })
+                      }
+                    >
+                      {SCALE_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={option.id}
+                            value={option.id}
+                          >
+                            {option.label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
+
+                  <button
+                    type="button"
+                    className={[
+                      "playground-piano__scale-lock",
+                      harmonicContext.lockToScale
+                        ? "is-active"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() =>
+                      setMelodicHarmony({
+                        lockToScale:
+                          !harmonicContext.lockToScale,
+                      })
+                    }
+                    aria-pressed={
+                      harmonicContext.lockToScale
+                    }
+                    aria-label="Lock melodic notes to scale"
+                  >
+                    Scale Lock
+                  </button>
+
+                  <div
+                    className="playground-piano__duration"
+                    aria-label="New note length"
+                  >
+                    {[1, 2, 4, 8, 16].map(
+                      (steps) => (
+                        <button
+                          type="button"
+                          key={steps}
+                          className={
+                            melodicDurationSteps ===
+                            steps
+                              ? "is-active"
+                              : ""
+                          }
+                          onClick={() => {
+                            setMelodicDurationSteps(
+                              steps,
+                            );
+                            if (
+                              selectedMelodicNote &&
+                              selectedMelodicEvent
+                            ) {
+                              sequencerStore.setMelodicDurationSteps(
+                                selectedMelodicNote.laneId,
+                                selectedMelodicNote.stepIndex,
+                                steps,
+                              );
+                            }
+                          }}
+                          aria-pressed={
+                            melodicDurationSteps ===
+                            steps
+                          }
+                        >
+                          {melodicDurationLabel(
+                            steps,
+                          )}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  <div className="playground-piano__octave">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMelodicOctaveShift(
+                          (current) => ({
+                            ...current,
+                            [selectedMelodicDefinition.track]:
+                              Math.max(
+                                -2,
+                                current[
+                                  selectedMelodicDefinition
+                                    .track
+                                ] - 1,
+                              ),
+                          }),
+                        )
+                      }
+                      aria-label="Piano roll octave down"
+                    >
+                      Oct−
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMelodicOctaveShift(
+                          (current) => ({
+                            ...current,
+                            [selectedMelodicDefinition.track]:
+                              Math.min(
+                                2,
+                                current[
+                                  selectedMelodicDefinition
+                                    .track
+                                ] + 1,
+                              ),
+                          }),
+                        )
+                      }
+                      aria-label="Piano roll octave up"
+                    >
+                      Oct＋
+                    </button>
+                  </div>
+                </header>
+
+                {selectedMelodicDefinition.track ===
+                "chords" ? (
+                  <div
+                    className="playground-piano__chords"
+                    aria-label="Chord shape"
+                  >
+                    {CHORD_SHAPES.map(
+                      (shape) => (
+                        <button
+                          type="button"
+                          key={shape.id}
+                          className={
+                            chordShape ===
+                            shape.id
+                              ? "is-active"
+                              : ""
+                          }
+                          onClick={() =>
+                            applyChordShape(
+                              shape.id,
+                            )
+                          }
+                          aria-pressed={
+                            chordShape ===
+                            shape.id
+                          }
+                        >
+                          {shape.label}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                ) : null}
+
+                <div className="playground-piano__note-tools">
+                  <span>
+                    {selectedMelodicEvent
+                      ? melodicEventPitches(
+                          selectedMelodicDefinition,
+                          selectedMelodicEvent,
+                        )
+                          .map(midiNoteLabel)
+                          .join(" / ")
+                      : "Click the roll to add a note"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      changeSelectedMelodicPitch(
+                        -1,
+                      )
+                    }
+                    disabled={
+                      !selectedMelodicEvent
+                    }
+                    aria-label="Move selected melodic note down"
+                  >
+                    Pitch−
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      changeSelectedMelodicPitch(
+                        1,
+                      )
+                    }
+                    disabled={
+                      !selectedMelodicEvent
+                    }
+                    aria-label="Move selected melodic note up"
+                  >
+                    Pitch＋
+                  </button>
+                  <button
+                    type="button"
+                    onClick={
+                      removeSelectedMelodicNote
+                    }
+                    disabled={
+                      !selectedMelodicEvent
+                    }
+                    aria-label="Delete selected melodic note"
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                <div className="playground-piano__viewport">
+                  <div
+                    className="playground-piano__ruler"
+                    aria-hidden="true"
+                  >
+                    <span />
+                    {Array.from(
+                      {
+                        length: Math.min(
+                          pageSize,
+                          sequencer.lengthSteps -
+                            pageStart,
+                        ),
+                      },
+                      (_, offset) => (
+                        <b
+                          key={
+                            pageStart +
+                            offset
+                          }
+                        >
+                          {pageStart +
+                            offset +
+                            1}
+                        </b>
+                      ),
+                    )}
+                  </div>
+
+                  {melodicPitchRows.map(
+                    (pitch) => {
+                      const visibleSteps =
+                        Math.min(
+                          pageSize,
+                          sequencer.lengthSteps -
+                            pageStart,
+                        );
+                      const pageEnd =
+                        pageStart +
+                        visibleSteps;
+                      const events =
+                        selectedMelodicLane.events.filter(
+                          (event) => {
+                            const pitches =
+                              melodicEventPitches(
+                                selectedMelodicDefinition,
+                                event,
+                              );
+                            if (
+                              !pitches.includes(
+                                pitch,
+                              )
+                            ) {
+                              return false;
+                            }
+                            const start =
+                              Math.round(
+                                event.tick /
+                                  FOUNDATION_STEP_TICKS,
+                              );
+                            const duration =
+                              Math.max(
+                                1,
+                                Math.round(
+                                  (event.durationTicks ??
+                                    FOUNDATION_STEP_TICKS) /
+                                    FOUNDATION_STEP_TICKS,
+                                ),
+                              );
+                            return (
+                              start <
+                                pageEnd &&
+                              start +
+                                duration >
+                                pageStart
+                            );
+                          },
+                        );
+                      const inScale =
+                        pitchIsInScale(
+                          pitch,
+                          harmonicContext.rootPitchClass,
+                          harmonicContext.scaleId,
+                        );
+                      const isRoot =
+                        pitch % 12 ===
+                        harmonicContext.rootPitchClass;
+
+                      return (
+                        <div
+                          key={pitch}
+                          className={[
+                            "playground-piano-row",
+                            inScale
+                              ? "is-in-scale"
+                              : "",
+                            isRoot
+                              ? "is-root"
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          <button
+                            type="button"
+                            className="playground-piano-key"
+                            onClick={() => {
+                              setMelodicPitchCursor(
+                                (current) => ({
+                                  ...current,
+                                  [selectedMelodicDefinition.track]:
+                                    pitch,
+                                }),
+                              );
+                              auditionMelodic(
+                                selectedMelodicDefinition,
+                                selectedMelodicDefinition.track ===
+                                  "chords"
+                                  ? chordPitchesForRoot(
+                                      pitch,
+                                    )
+                                  : [pitch],
+                                1,
+                              );
+                            }}
+                            aria-label={
+                              "Audition " +
+                              midiNoteLabel(
+                                pitch,
+                              )
+                            }
+                          >
+                            {midiNoteLabel(
+                              pitch,
+                            )}
+                          </button>
+
+                          <div
+                            className="playground-piano-grid"
+                            style={{
+                              gridTemplateColumns:
+                                "repeat(" +
+                                visibleSteps +
+                                ", minmax(36px, 1fr))",
+                            }}
+                          >
+                            {Array.from(
+                              {
+                                length:
+                                  visibleSteps,
+                              },
+                              (_, offset) => {
+                                const stepIndex =
+                                  pageStart +
+                                  offset;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={
+                                      pitch +
+                                      "-" +
+                                      stepIndex
+                                    }
+                                    className={
+                                      offset %
+                                        4 ===
+                                      0
+                                        ? "playground-piano-cell is-beat"
+                                        : "playground-piano-cell"
+                                    }
+                                    onClick={() =>
+                                      createMelodicNoteAt(
+                                        selectedMelodicDefinition.id,
+                                        stepIndex,
+                                        pitch,
+                                      )
+                                    }
+                                    aria-label={
+                                      "Add " +
+                                      selectedMelodicDefinition.name +
+                                      " " +
+                                      midiNoteLabel(
+                                        pitch,
+                                      ) +
+                                      " at step " +
+                                      (stepIndex +
+                                        1)
+                                    }
+                                  />
+                                );
+                              },
+                            )}
+
+                            {events.map(
+                              (event) => {
+                                const start =
+                                  Math.round(
+                                    event.tick /
+                                      FOUNDATION_STEP_TICKS,
+                                  );
+                                const duration =
+                                  Math.max(
+                                    1,
+                                    Math.round(
+                                      (event.durationTicks ??
+                                        FOUNDATION_STEP_TICKS) /
+                                        FOUNDATION_STEP_TICKS,
+                                    ),
+                                  );
+                                const visibleStart =
+                                  Math.max(
+                                    start,
+                                    pageStart,
+                                  );
+                                const visibleEnd =
+                                  Math.min(
+                                    start +
+                                      duration,
+                                    pageEnd,
+                                  );
+                                const left =
+                                  ((visibleStart -
+                                    pageStart) /
+                                    visibleSteps) *
+                                  100;
+                                const width =
+                                  ((visibleEnd -
+                                    visibleStart) /
+                                    visibleSteps) *
+                                  100;
+                                const selected =
+                                  selectedMelodicNote?.laneId ===
+                                    selectedMelodicDefinition.id &&
+                                  selectedMelodicNote.stepIndex ===
+                                    start;
+                                const isRootBlock =
+                                  (event.pitchMidi ??
+                                    selectedMelodicDefinition.defaultPitchMidi) ===
+                                  pitch;
+
+                                return (
+                                  <button
+                                    type="button"
+                                    key={
+                                      event.id +
+                                      "-" +
+                                      pitch
+                                    }
+                                    className={[
+                                      "playground-piano-note",
+                                      selected
+                                        ? "is-selected"
+                                        : "",
+                                      isRootBlock
+                                        ? "is-root-note"
+                                        : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" ")}
+                                    style={{
+                                      left:
+                                        left +
+                                        "%",
+                                      width:
+                                        width +
+                                        "%",
+                                    }}
+                                    onClick={(
+                                      eventClick,
+                                    ) => {
+                                      eventClick.stopPropagation();
+                                      setSelectedMelodicNote({
+                                        laneId:
+                                          selectedMelodicDefinition.id,
+                                        stepIndex:
+                                          start,
+                                      });
+                                      setMelodicDurationSteps(
+                                        duration,
+                                      );
+                                      setMelodicPitchCursor(
+                                        (current) => ({
+                                          ...current,
+                                          [selectedMelodicDefinition.track]:
+                                            event.pitchMidi ??
+                                            pitch,
+                                        }),
+                                      );
+                                      auditionMelodic(
+                                        selectedMelodicDefinition,
+                                        melodicEventPitches(
+                                          selectedMelodicDefinition,
+                                          event,
+                                        ),
+                                        duration,
+                                        event.velocity,
+                                      );
+                                    }}
+                                    aria-label={
+                                      selectedMelodicDefinition.name +
+                                      " note " +
+                                      midiNoteLabel(
+                                        pitch,
+                                      ) +
+                                      " step " +
+                                      (start +
+                                        1) +
+                                      ", length " +
+                                      melodicDurationLabel(
+                                        duration,
+                                      )
+                                    }
+                                  >
+                                    {isRootBlock ? (
+                                      <span>
+                                        {midiNoteLabel(
+                                          event.pitchMidi ??
+                                            pitch,
+                                        )}
+                                      </span>
+                                    ) : null}
+                                    {isRootBlock ? (
+                                      <i
+                                        className="playground-piano-note__resize"
+                                        onPointerDown={(
+                                          resizeEvent,
+                                        ) =>
+                                          beginMelodicResize(
+                                            resizeEvent,
+                                            selectedMelodicDefinition.id,
+                                            start,
+                                          )
+                                        }
+                                        onPointerMove={
+                                          moveMelodicResize
+                                        }
+                                        onPointerUp={(
+                                          resizeEvent,
+                                        ) =>
+                                          finishMelodicResize(
+                                            resizeEvent.pointerId,
+                                          )
+                                        }
+                                        onPointerCancel={(
+                                          resizeEvent,
+                                        ) =>
+                                          finishMelodicResize(
+                                            resizeEvent.pointerId,
+                                          )
+                                        }
+                                        aria-hidden="true"
+                                      />
+                                    ) : null}
+                                  </button>
+                                );
+                              },
+                            )}
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              </section>
+            ) : null}
 
             <div
               className={
