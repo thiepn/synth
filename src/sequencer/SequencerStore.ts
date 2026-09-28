@@ -1,6 +1,8 @@
 import type {
+  HarmonicContext,
   Pattern,
   PatternLane,
+  ScaleId,
   StepEvent,
 } from "../domain/contracts";
 import {
@@ -87,6 +89,19 @@ type StoreListener = () => void;
 const HISTORY_LIMIT = 100;
 const DEFAULT_STEP_VELOCITY = 0.76;
 const DEFAULT_MELODIC_DURATION_STEPS = 4;
+const DEFAULT_HARMONIC_CONTEXT: HarmonicContext = {
+  rootPitchClass: 0,
+  scaleId: "minor",
+  lockToScale: true,
+};
+
+const SCALE_INTERVALS: Readonly<Record<ScaleId, readonly number[]>> = {
+  chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  major: [0, 2, 4, 5, 7, 9, 11],
+  minor: [0, 2, 3, 5, 7, 8, 10],
+  majorPentatonic: [0, 2, 4, 7, 9],
+  minorPentatonic: [0, 3, 5, 7, 10],
+};
 
 function clampMidiPitch(value: number): number {
   if (!Number.isFinite(value)) return 60;
@@ -179,9 +194,72 @@ function laneDefaultVelocity(
   return fromSeed > 0 ? fromSeed : DEFAULT_STEP_VELOCITY;
 }
 
+function normalizeHarmonicContext(
+  context: HarmonicContext | undefined,
+): HarmonicContext {
+  return {
+    rootPitchClass:
+      ((Math.round(
+        context?.rootPitchClass ??
+          DEFAULT_HARMONIC_CONTEXT.rootPitchClass,
+      ) % 12) + 12) % 12,
+    scaleId:
+      context?.scaleId &&
+      Object.prototype.hasOwnProperty.call(
+        SCALE_INTERVALS,
+        context.scaleId,
+      )
+        ? context.scaleId
+        : DEFAULT_HARMONIC_CONTEXT.scaleId,
+    lockToScale:
+      context?.lockToScale ??
+      DEFAULT_HARMONIC_CONTEXT.lockToScale,
+  };
+}
+
+function pitchInScale(
+  pitchMidi: number,
+  context: HarmonicContext,
+): boolean {
+  const pitchClass =
+    ((Math.round(pitchMidi) % 12) + 12) % 12;
+  const relative =
+    ((pitchClass - context.rootPitchClass) % 12 + 12) % 12;
+  return SCALE_INTERVALS[context.scaleId].includes(relative);
+}
+
+function nearestScalePitch(
+  pitchMidi: number,
+  context: HarmonicContext,
+): number {
+  const pitch = clampMidiPitch(pitchMidi);
+  if (
+    !context.lockToScale ||
+    context.scaleId === "chromatic" ||
+    pitchInScale(pitch, context)
+  ) {
+    return pitch;
+  }
+
+  for (let distance = 1; distance <= 6; distance += 1) {
+    const down = pitch - distance;
+    if (down >= 0 && pitchInScale(down, context)) {
+      return down;
+    }
+    const up = pitch + distance;
+    if (up <= 127 && pitchInScale(up, context)) {
+      return up;
+    }
+  }
+
+  return pitch;
+}
+
 function ensureMelodicPatternLanes(pattern: Pattern): Pattern {
   const next = clonePattern(pattern);
-  const laneIds = new Set(next.lanes.map((lane) => lane.id));
+  next.harmonicContext = normalizeHarmonicContext(
+    next.harmonicContext,
+  );
 
   for (const definition of MELODIC_LANES) {
     const existing = next.lanes.find(
@@ -332,6 +410,78 @@ export class SequencerStore {
     return lane ? eventAtStep(lane, stepIndex)?.velocity : undefined;
   }
 
+  getHarmonicContext(): HarmonicContext {
+    return normalizeHarmonicContext(
+      this.pattern.harmonicContext,
+    );
+  }
+
+  setHarmonicContext(
+    update: Partial<HarmonicContext>,
+  ): boolean {
+    const current = this.getHarmonicContext();
+    const next = normalizeHarmonicContext({
+      ...current,
+      ...update,
+    });
+    if (
+      JSON.stringify(current) ===
+      JSON.stringify(next)
+    ) {
+      return false;
+    }
+
+    const beforeRevision = this.revision;
+    this.commit((draft) => {
+      draft.harmonicContext = { ...next };
+
+      if (!next.lockToScale) return;
+
+      for (const definition of MELODIC_LANES) {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === definition.id,
+        );
+        if (!lane) continue;
+
+        for (const event of lane.events) {
+          const root = nearestScalePitch(
+            event.pitchMidi ??
+              definition.defaultPitchMidi,
+            next,
+          );
+          event.pitchMidi = Math.max(
+            definition.minPitchMidi,
+            Math.min(
+              definition.maxPitchMidi,
+              root,
+            ),
+          );
+
+          if (
+            definition.track === "chords" &&
+            event.pitchesMidi
+          ) {
+            event.pitchesMidi = [
+              ...new Set(
+                event.pitchesMidi.map((pitch) =>
+                  Math.max(
+                    definition.minPitchMidi,
+                    Math.min(
+                      definition.maxPitchMidi,
+                      nearestScalePitch(pitch, next),
+                    ),
+                  ),
+                ),
+              ),
+            ].sort((a, b) => a - b);
+          }
+        }
+      }
+    });
+
+    return this.revision !== beforeRevision;
+  }
+
   getMelodicEvent(
     laneId: string,
     stepIndex: number,
@@ -359,11 +509,15 @@ export class SequencerStore {
     );
     if (!source || source.lock.rhythm) return false;
 
+    const harmony = this.getHarmonicContext();
     const pitch = Math.max(
       definition.minPitchMidi,
       Math.min(
         definition.maxPitchMidi,
-        clampMidiPitch(pitchMidi),
+        nearestScalePitch(
+          clampMidiPitch(pitchMidi),
+          harmony,
+        ),
       ),
     );
     const safeDurationSteps = Math.max(
@@ -375,7 +529,15 @@ export class SequencerStore {
     );
     const chord =
       definition.track === "chords"
-        ? normalizedChordPitches(pitch, pitchesMidi)
+        ? normalizedChordPitches(
+            pitch,
+            pitchesMidi?.map((candidate) =>
+              nearestScalePitch(
+                candidate,
+                harmony,
+              ),
+            ),
+          )
         : undefined;
     const beforeRevision = this.revision;
 
