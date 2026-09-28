@@ -75,6 +75,15 @@ export interface PatternRegionLock extends GenerationLock {
   endTick: Tick;
 }
 
+export interface LaneMix {
+  /** Track trim in decibels. */
+  gainDb: number;
+  /** Stereo position from -1 (left) to 1 (right). */
+  pan: number;
+  /** Normalized send into the shared room/reverb path. */
+  reverbSend: Normalized;
+}
+
 export interface PatternLane {
   id: EntityId;
   role: InstrumentRole;
@@ -82,6 +91,8 @@ export interface PatternLane {
   kitSlotId: EntityId;
   /** Optional melodic instrument preset persisted with the lane. */
   instrumentPresetId?: string;
+  /** Lightweight per-lane mix for melodic Playground tracks. */
+  mix?: LaneMix;
   events: StepEvent[];
   /** Optional independent lane loop length for polymetric playback. */
   loopLengthTicks?: Tick;
