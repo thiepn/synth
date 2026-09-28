@@ -37,45 +37,6 @@
   overflow: hidden;
 }
 
-.playground-surface::before,
-.playground-surface::after {
-  content: "";
-  position: fixed;
-  z-index: -1;
-  width: min(50vw, 620px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.11;
-  pointer-events: none;
-}
-
-.playground-surface::before {
-  top: -18vw;
-  left: -10vw;
-  background: #ff5577;
-  animation: playground-ambient-a 16s ease-in-out infinite alternate;
-}
-
-.playground-surface::after {
-  right: -12vw;
-  bottom: -24vw;
-  background: #63def4;
-  animation: playground-ambient-b 19s ease-in-out infinite alternate;
-}
-
-@keyframes playground-ambient-a {
-  to {
-    transform: translate(12vw, 7vh) scale(1.12);
-  }
-}
-
-@keyframes playground-ambient-b {
-  to {
-    transform: translate(-10vw, -8vh) scale(0.9);
-  }
-}
-
 .sr-only {
   position: absolute !important;
   width: 1px !important;
@@ -275,16 +236,6 @@
 .playground-project-alert:hover {
   transform: translateY(-1px);
   background: rgba(255, 216, 74, 0.13);
-}
-
-.playground-project-alert--error {
-  border-color: rgba(255, 85, 119, 0.34);
-  background: rgba(255, 85, 119, 0.09);
-  color: #ff8aa0;
-}
-
-.playground-project-alert--error:hover {
-  background: rgba(255, 85, 119, 0.15);
 }
 
 .playground-help-button,
@@ -2740,8 +2691,6 @@
 @media (prefers-reduced-motion: reduce) {
   .playground-pad__pulse,
   .playground-mini-pattern i,
-  .playground-surface::before,
-  .playground-surface::after,
   .playground-step.is-current.is-on > span,
   .playground-beat-pad__hit,
   .playground-remix-wave,
