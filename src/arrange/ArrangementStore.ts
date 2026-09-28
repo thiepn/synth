@@ -9,6 +9,7 @@ import type {
   ArrangementBlueprint,
   FillPlacement,
   Pattern,
+  SceneRole,
   SectionBlueprint,
   TransitionPlacement,
 } from "../domain/contracts";
@@ -327,7 +328,6 @@ export class ArrangementStore {
 
     this.captureUndo();
     section.sceneId = scene.id;
-    section.role = scene.role ?? section.role;
     section.patternSequence = Array.from(
       { length: Math.max(1, section.cycleCount) },
       () => patternId,
@@ -336,6 +336,22 @@ export class ArrangementStore {
     section.fillPlacement = "off";
     section.transitionPatternId = undefined;
     section.transitionPlacement = "off";
+    this.markEditedAndPublish();
+  }
+
+  setSectionRole(
+    sectionId: string,
+    role: SceneRole,
+  ): void {
+    const section = this.findSection(sectionId);
+    if (!section || section.role === role) return;
+
+    this.captureUndo();
+    section.role = role;
+    section.label =
+      role === "preChorus"
+        ? "PRE-CHORUS"
+        : role.toUpperCase();
     this.markEditedAndPublish();
   }
 
