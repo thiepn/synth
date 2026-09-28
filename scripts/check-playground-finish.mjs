@@ -108,6 +108,7 @@ if (
   !finish.includes("mastering.revision") ||
   !finish.includes("arrangement.revision") ||
   !finish.includes("drumSounds.revision") ||
+  !finish.includes("modulation.revision") ||
   !finish.includes("transport.bpm") ||
   !finish.includes("transport.meter.numerator") ||
   !finish.includes("transport.meter.denominator")
