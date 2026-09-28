@@ -277,6 +277,11 @@ export function createFoundationPattern(): Pattern {
     meter: { numerator: 4, denominator: 4 },
     ppq: PPQ,
     lengthTicks: FOUNDATION_STEP_COUNT * FOUNDATION_STEP_TICKS,
+    harmonicContext: {
+      rootPitchClass: 0,
+      scaleId: "minor",
+      lockToScale: true,
+    },
     lanes: [
       ...SEQUENCER_LANES.map(laneFromDefinition),
       ...createEmptyMelodicLanes(),
