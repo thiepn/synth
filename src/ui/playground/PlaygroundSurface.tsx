@@ -181,6 +181,7 @@ function PlaygroundFinishPanel({
   onClose,
   onNotice,
   onProjectBackup,
+  onOpenStudio,
 }: {
   projectName: string;
   songAvailable: boolean;
@@ -188,6 +189,7 @@ function PlaygroundFinishPanel({
   onClose: () => void;
   onNotice: (message: string) => void;
   onProjectBackup: () => Promise<void>;
+  onOpenStudio: () => void;
 }) {
   const renderTask = useRenderTaskSnapshot();
   const mastering = useMasteringSnapshot();
@@ -538,7 +540,10 @@ function PlaygroundFinishPanel({
         Need stems, custom bars, alternate bit depths or detailed mastering?{" "}
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+            onOpenStudio();
+          }}
         >
           Use Studio
         </button>
@@ -1665,6 +1670,8 @@ export function PlaygroundSurface({
   const [projectNameDraft, setProjectNameDraft] =
     useState(project.name);
   const [projectMenuOpen, setProjectMenuOpen] =
+    useState(false);
+  const [finishOpen, setFinishOpen] =
     useState(false);
   const [projectBusy, setProjectBusy] =
     useState<string | null>(null);
@@ -6766,6 +6773,7 @@ export function PlaygroundSurface({
             className="playground-help-button"
             onClick={() => {
               setProjectMenuOpen(false);
+              setFinishOpen(false);
               setStepContext(null);
               setSoundPickerVoice(null);
               setHelpOpen(true);
@@ -6919,25 +6927,31 @@ export function PlaygroundSurface({
           </button>
           <button
             type="button"
-            onClick={() =>
-              void shareOrExportProject()
+            className={
+              finishOpen ? "is-active" : ""
             }
+            onClick={() => {
+              setProjectMenuOpen(false);
+              setFinishOpen((current) => !current);
+            }}
             disabled={
               Boolean(projectBusy) ||
-              !project.initialized ||
-              !project.supported
+              !project.initialized
             }
+            aria-expanded={finishOpen}
+            aria-haspopup="dialog"
           >
-            <span aria-hidden="true">↗</span>
-            Share
+            <span aria-hidden="true">↓</span>
+            Finish
           </button>
           <button
             type="button"
             className={
               projectMenuOpen ? "is-active" : ""
             }
-            onClick={() =>
-              setProjectMenuOpen((current) => !current)
+            onClick={() => {
+              setFinishOpen(false);
+              setProjectMenuOpen((current) => !current);
             }
             aria-expanded={projectMenuOpen}
             aria-haspopup="dialog"
@@ -7068,6 +7082,21 @@ export function PlaygroundSurface({
           </div>
         ) : null}
       </section>
+
+      {finishOpen ? (
+        <PlaygroundFinishPanel
+          projectName={project.name}
+          songAvailable={Boolean(
+            arrangement.blueprint &&
+              arrangement.totalTicks > 0
+          )}
+          songName={arrangement.blueprint?.name}
+          onClose={() => setFinishOpen(false)}
+          onNotice={setNotice}
+          onProjectBackup={shareOrExportProject}
+          onOpenStudio={openStudio}
+        />
+      ) : null}
 
       <div className="playground-hero">
         <div>
