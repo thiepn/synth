@@ -1307,6 +1307,9 @@ export function PlaygroundSurface({
   };
 
   const toggleGridRecording = async () => {
+    if (melodicMidiRecording) {
+      stopMelodicMidiRecording();
+    }
     if (gridRecord.status === "recording") {
       stopGridRecording();
       return;
@@ -1414,6 +1417,9 @@ export function PlaygroundSurface({
       if (gridRecord.status === "recording") {
         stopGridRecording();
       }
+      if (melodicMidiRecording) {
+        stopMelodicMidiRecording();
+      }
       audioTransport.pause();
       return;
     }
@@ -1426,6 +1432,9 @@ export function PlaygroundSurface({
   };
 
   const restartPlayback = () => {
+    if (melodicMidiRecording) {
+      stopMelodicMidiRecording();
+    }
     cancelCountIn();
     cancelPatternPreview();
     audioTransport.restartFromBeginning();
@@ -1454,11 +1463,18 @@ export function PlaygroundSurface({
   };
 
   const openStudio = () => {
+    if (melodicMidiRecording) {
+      stopMelodicMidiRecording();
+    }
     cancelPatternPreview();
     onOpenStudio();
   };
 
   const undoPattern = () => {
+    if (melodicMidiRecording) {
+      setNotice("Stop melodic recording before Undo");
+      return;
+    }
     if (gridRecorder.getSnapshot().status !== "idle") {
       setNotice("Stop recording before Undo");
       return;
@@ -1470,6 +1486,10 @@ export function PlaygroundSurface({
   };
 
   const redoPattern = () => {
+    if (melodicMidiRecording) {
+      setNotice("Stop melodic recording before Redo");
+      return;
+    }
     if (gridRecorder.getSnapshot().status !== "idle") {
       setNotice("Stop recording before Redo");
       return;
@@ -2702,6 +2722,7 @@ export function PlaygroundSurface({
         : durationSteps,
       chordPitches,
       gestureId,
+      active.velocity,
     );
   };
 
@@ -2985,7 +3006,10 @@ export function PlaygroundSurface({
     stepIndex: number,
     pitchMidi: number,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (
+      gridRecorder.getSnapshot().status !== "idle" ||
+      melodicMidiRecording
+    ) {
       setNotice("Stop recording before editing melodic notes");
       return;
     }
@@ -3047,6 +3071,10 @@ export function PlaygroundSurface({
   };
 
   const removeSelectedMelodicNote = () => {
+    if (melodicMidiRecording) {
+      setNotice("Stop recording before editing melodic notes");
+      return;
+    }
     if (!selectedMelodicNote) return;
     if (
       sequencerStore.removeMelodicNote(
@@ -3065,6 +3093,10 @@ export function PlaygroundSurface({
   const changeSelectedMelodicPitch = (
     delta: number,
   ) => {
+    if (melodicMidiRecording) {
+      setNotice("Stop recording before editing melodic notes");
+      return;
+    }
     if (
       !selectedMelodicDefinition ||
       !selectedMelodicNote ||
@@ -3119,6 +3151,10 @@ export function PlaygroundSurface({
   const applyChordShape = (
     nextShape: ChordShapeId,
   ) => {
+    if (melodicMidiRecording) {
+      setNotice("Stop recording before editing melodic notes");
+      return;
+    }
     setChordShape(nextShape);
     if (
       !selectedMelodicDefinition ||
@@ -3175,6 +3211,10 @@ export function PlaygroundSurface({
     definition: MelodicLaneDefinition,
     direction: -1 | 1,
   ) => {
+    if (melodicMidiRecording) {
+      setNotice("Stop recording before changing the instrument");
+      return;
+    }
     const lane = sequencer.pattern.lanes.find(
       (entry) => entry.id === definition.id,
     );
@@ -3231,6 +3271,10 @@ export function PlaygroundSurface({
       lockToScale?: boolean;
     },
   ) => {
+    if (melodicMidiRecording) {
+      setNotice("Stop recording before changing key or scale");
+      return;
+    }
     if (
       sequencerStore.setHarmonicContext(update)
     ) {
@@ -3244,7 +3288,10 @@ export function PlaygroundSurface({
     laneId: string,
     stepIndex: number,
   ) => {
-    if (gridRecorder.getSnapshot().status !== "idle") {
+    if (
+      gridRecorder.getSnapshot().status !== "idle" ||
+      melodicMidiRecording
+    ) {
       return;
     }
     const note = sequencerStore.getMelodicEvent(
