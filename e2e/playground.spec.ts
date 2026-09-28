@@ -1765,6 +1765,28 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   expect(pianoCellBox).not.toBeNull();
   expect(pianoCellBox!.height).toBeGreaterThanOrEqual(44);
 
+  await page.getByRole("button", {
+    name: "Toggle musical starter kits",
+  }).click();
+  const mobileStarters = page.getByRole("region", {
+    name: "Musical starter kits",
+  });
+  await expect(mobileStarters).toBeVisible();
+  const mobileStarterCard =
+    mobileStarters.getByRole("button", {
+      name: "Apply starter Warm Lo-Fi",
+    });
+  await mobileStarterCard.scrollIntoViewIfNeeded();
+  const mobileStarterBox =
+    await mobileStarterCard.boundingBox();
+  expect(mobileStarterBox).not.toBeNull();
+  expect(
+    mobileStarterBox!.height,
+  ).toBeGreaterThanOrEqual(44);
+  await mobileStarters.getByRole("button", {
+    name: "Close starter kits",
+  }).click();
+
   const mobileFeel = page.getByRole("region", {
     name: "Feel and groove",
   });
@@ -1939,6 +1961,120 @@ test("Playground P12 recovery checkpoints restore safely without losing the curr
       name: "Recovery checkpoints",
     }),
   ).toContainText("Before restore");
+
+  expect(errors).toEqual([]);
+});
+
+test("Playground P13 starter kits create an editable polished A B baseline", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Toggle musical starter kits",
+  }).click();
+
+  const starters = page.getByRole("region", {
+    name: "Musical starter kits",
+  });
+  await expect(starters).toBeVisible();
+
+  await starters.getByRole("button", {
+    name: "Apply starter Warm Lo-Fi",
+  }).click();
+
+  await expect(
+    page.getByLabel("Beat style"),
+  ).toHaveValue("lofi");
+  await expect(
+    page.getByRole("button", {
+      name: "Tap tempo. Current tempo 76 BPM",
+    }),
+  ).toBeVisible();
+
+  const feel = page.getByRole("region", {
+    name: "Feel and groove",
+  });
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity strong",
+    ),
+  ).toHaveText("Human");
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity small",
+    ),
+  ).toContainText("58% human");
+  await expect(
+    feel.locator(
+      ".playground-feel-strip__identity small",
+    ),
+  ).toContainText("16% swing");
+
+  await expect(
+    page.getByRole("button", {
+      name: "Change KICK sound. Current sound Soft",
+    }),
+  ).toBeVisible();
+
+  const patternA = page.getByRole("button", {
+    name: "A",
+    exact: true,
+  });
+  const patternB = page.getByRole("button", {
+    name: "B",
+    exact: true,
+  });
+  await expect(patternA).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(patternB).toHaveAttribute(
+    "title",
+    /Switch to Pattern B/i,
+  );
+
+  await page.getByRole("button", {
+    name: /^Projects$/i,
+  }).click();
+  const projects = page.getByRole("dialog", {
+    name: "Recent projects",
+  });
+  await expect(
+    projects.getByRole("region", {
+      name: "Recovery checkpoints",
+    }),
+  ).toContainText(
+    "Before starter · Warm Lo-Fi",
+  );
+  await projects.getByRole("button", {
+    name: "Close project menu",
+  }).click();
+
+  const editableStep = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="1"]',
+  );
+  const before =
+    await editableStep.getAttribute(
+      "aria-pressed",
+    );
+  await editableStep.click();
+  await expect(editableStep).toHaveAttribute(
+    "aria-pressed",
+    before === "true" ? "false" : "true",
+  );
+
+  await patternB.click();
+  await expect(patternB).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await patternA.click();
+  await expect(patternA).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 
   expect(errors).toEqual([]);
 });
