@@ -19,6 +19,11 @@ import {
   melodicLaneDefinitionById,
 } from "../music/foundationPattern";
 import {
+  DEFAULT_LANE_MIX,
+  clampLaneMix,
+  type LaneMixParameter,
+} from "../mix/laneMix";
+import {
   clampManualTimingOffsetUs,
 } from "./playbackRules";
 import {
@@ -274,6 +279,7 @@ function ensureMelodicPatternLanes(pattern: Pattern): Pattern {
     existing.instrumentPresetId =
       existing.instrumentPresetId ??
       definition.defaultPresetId;
+    existing.mix = clampLaneMix(existing.mix);
     existing.events = existing.events
       .filter((event) => event.tick < next.lengthTicks)
       .map((event) => {
@@ -800,6 +806,75 @@ export class SequencerStore {
       );
       if (!lane) return;
       lane.instrumentPresetId = next;
+    });
+    return this.revision !== beforeRevision;
+  }
+
+  setMelodicMixValue(
+    laneId: string,
+    parameter: LaneMixParameter,
+    value: number,
+  ): boolean {
+    if (!melodicLaneDefinitionById(laneId)) return false;
+    const source = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!source) return false;
+
+    const current = clampLaneMix(source.mix);
+    const next = clampLaneMix({
+      ...current,
+      [parameter]: value,
+    });
+    if (
+      Math.abs(current[parameter] - next[parameter]) <
+      0.0001
+    ) {
+      return false;
+    }
+
+    const beforeRevision = this.revision;
+    this.commit(
+      (draft) => {
+        const lane = draft.lanes.find(
+          (entry) => entry.id === laneId,
+        );
+        if (!lane) return;
+        lane.mix = {
+          ...clampLaneMix(lane.mix),
+          [parameter]: next[parameter],
+        };
+      },
+      "melodic-mix:" + laneId + ":" + parameter,
+    );
+    return this.revision !== beforeRevision;
+  }
+
+  resetMelodicMix(
+    laneId: string,
+  ): boolean {
+    if (!melodicLaneDefinitionById(laneId)) return false;
+    const source = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!source) return false;
+
+    const current = clampLaneMix(source.mix);
+    if (
+      Math.abs(current.gainDb) < 0.0001 &&
+      Math.abs(current.pan) < 0.0001 &&
+      Math.abs(current.reverbSend) < 0.0001
+    ) {
+      return false;
+    }
+
+    const beforeRevision = this.revision;
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+      lane.mix = { ...DEFAULT_LANE_MIX };
     });
     return this.revision !== beforeRevision;
   }
@@ -2400,6 +2475,9 @@ export class SequencerStore {
         ...lane,
         muted: current?.muted ?? false,
         solo: current?.solo ?? false,
+        mix: current?.mix
+          ? { ...clampLaneMix(current.mix) }
+          : lane.mix,
         loopLengthTicks:
           current?.loopLengthTicks ?? lane.loopLengthTicks,
         lock: current ? { ...current.lock } : { ...lane.lock },
