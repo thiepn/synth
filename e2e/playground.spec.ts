@@ -884,6 +884,20 @@ test("Playground mobile layout keeps core controls reachable without horizontal 
   expect(box).not.toBeNull();
   expect(box!.height).toBeGreaterThanOrEqual(44);
 
+  await page.getByRole("button", {
+    name: "Open BASS piano roll",
+  }).click();
+  const mobilePiano = page.getByRole("region", {
+    name: "BASS piano roll",
+  });
+  await expect(mobilePiano).toBeVisible();
+  const pianoCell = mobilePiano
+    .locator(".playground-piano-cell")
+    .first();
+  const pianoCellBox = await pianoCell.boundingBox();
+  expect(pianoCellBox).not.toBeNull();
+  expect(pianoCellBox!.height).toBeGreaterThanOrEqual(44);
+
   const touchMode = page.getByRole("button", {
     name: "Touch edit mode: draw",
   });
