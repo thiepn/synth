@@ -459,6 +459,138 @@ test("Playground selection batch edits move duplicate delete and undo notes", as
   );
 });
 
+test("Playground melodic tracks edit pitch duration chords scale and survive drum regeneration", async ({
+  page,
+}) => {
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Open BASS piano roll",
+  }).click();
+
+  const bassRoll = page.getByRole("region", {
+    name: "BASS piano roll",
+  });
+  await expect(bassRoll).toBeVisible();
+
+  await bassRoll.getByRole("button", {
+    name: "Add BASS C2 at step 1",
+  }).click();
+
+  let bassNote = bassRoll.getByRole("button", {
+    name: /BASS note C2 step 1, length 1/4/i,
+  });
+  await expect(bassNote).toBeVisible();
+
+  await bassRoll.getByRole("button", {
+    name: "Next melodic instrument",
+  }).click();
+  await expect(
+    bassRoll.locator(".playground-piano__preset b"),
+  ).toHaveText("Pluck");
+
+  await bassRoll.getByLabel("Melodic key").selectOption("2");
+  await bassRoll
+    .getByLabel("Melodic scale")
+    .selectOption("minor");
+  await expect(
+    bassRoll.getByRole("button", {
+      name: "Lock melodic notes to scale",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  bassNote = bassRoll.getByRole("button", {
+    name: /BASS note D2 step 1, length 1/4/i,
+  });
+  await expect(bassNote).toBeVisible();
+
+  const resize = bassNote.locator(
+    ".playground-piano-note__resize",
+  );
+  const resizeBox = await resize.boundingBox();
+  expect(resizeBox).not.toBeNull();
+  await page.mouse.move(
+    resizeBox!.x + resizeBox!.width / 2,
+    resizeBox!.y + resizeBox!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    resizeBox!.x + 150,
+    resizeBox!.y + resizeBox!.height / 2,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+
+  await expect(
+    bassRoll.getByRole("button", {
+      name: /BASS note D2 step 1, length 1/2/i,
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Open CHORDS piano roll",
+  }).click();
+  const chordRoll = page.getByRole("region", {
+    name: "CHORDS piano roll",
+  });
+  await expect(chordRoll).toBeVisible();
+
+  await chordRoll.getByRole("button", {
+    name: "Add CHORDS C4 at step 1",
+  }).click();
+  await expect(
+    chordRoll.locator(".playground-piano-note"),
+  ).toHaveCount(3);
+
+  await chordRoll.getByRole("button", {
+    name: "Maj",
+    exact: true,
+  }).click();
+  await expect(
+    chordRoll.locator(".playground-piano-note"),
+  ).toHaveCount(3);
+
+  await chordRoll.getByRole("button", {
+    name: "Mute selected melodic track",
+  }).click();
+  await expect(
+    chordRoll.getByRole("button", {
+      name: "Mute selected melodic track",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", {
+    name: "Undo",
+    exact: true,
+  }).click();
+  await expect(
+    chordRoll.getByRole("button", {
+      name: "Mute selected melodic track",
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByLabel("Beat style").selectOption("house");
+
+  await expect(
+    page.getByRole("button", {
+      name: /BASS D2 at step 1\. Open piano roll/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /CHORDS .* at step 1\. Open piano roll/i,
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Open BASS piano roll",
+  }).click();
+  await expect(
+    page.getByRole("region", {
+      name: "BASS piano roll",
+    }).getByLabel("Melodic key"),
+  ).toHaveValue("2");
+});
+
 test("Playground lane transforms are deterministic and undoable", async ({
   page,
 }) => {
