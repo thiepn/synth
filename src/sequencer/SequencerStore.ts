@@ -9,9 +9,12 @@ import {
 } from "../domain/patternClone";
 import {
   FOUNDATION_STEP_TICKS,
+  MELODIC_LANES,
   SEQUENCER_LANES,
+  createEmptyMelodicLane,
   createFoundationPattern,
   laneDefinitionById,
+  melodicLaneDefinitionById,
 } from "../music/foundationPattern";
 import {
   clampManualTimingOffsetUs,
@@ -83,6 +86,12 @@ type StoreListener = () => void;
 
 const HISTORY_LIMIT = 100;
 const DEFAULT_STEP_VELOCITY = 0.76;
+const DEFAULT_MELODIC_DURATION_STEPS = 4;
+
+function clampMidiPitch(value: number): number {
+  if (!Number.isFinite(value)) return 60;
+  return Math.max(0, Math.min(127, Math.round(value)));
+}
 
 function normalizeVelocity(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_STEP_VELOCITY;
@@ -122,6 +131,20 @@ function eventId(laneId: string, stepIndex: number): string {
   return "evt-" + laneId + "-" + stepIndex;
 }
 
+function normalizedChordPitches(
+  rootPitch: number,
+  pitches: readonly number[] | undefined,
+): number[] | undefined {
+  if (!pitches || pitches.length === 0) return undefined;
+  const next = [...new Set(
+    pitches.map(clampMidiPitch),
+  )].sort((a, b) => a - b);
+  if (!next.includes(clampMidiPitch(rootPitch))) {
+    next.unshift(clampMidiPitch(rootPitch));
+  }
+  return next.slice(0, 6);
+}
+
 function accentFromVelocity(
   velocity: number,
 ): StepEvent["accent"] {
@@ -154,6 +177,63 @@ function laneDefaultVelocity(
   const definition = laneDefinitionById(laneId);
   const fromSeed = definition?.defaultValues[stepIndex] ?? 0;
   return fromSeed > 0 ? fromSeed : DEFAULT_STEP_VELOCITY;
+}
+
+function ensureMelodicPatternLanes(pattern: Pattern): Pattern {
+  const next = clonePattern(pattern);
+  const laneIds = new Set(next.lanes.map((lane) => lane.id));
+
+  for (const definition of MELODIC_LANES) {
+    const existing = next.lanes.find(
+      (lane) => lane.id === definition.id,
+    );
+
+    if (!existing) {
+      next.lanes.push(createEmptyMelodicLane(definition));
+      continue;
+    }
+
+    existing.instrumentPresetId =
+      existing.instrumentPresetId ??
+      definition.defaultPresetId;
+    existing.events = existing.events
+      .filter((event) => event.tick < next.lengthTicks)
+      .map((event) => {
+        const startStep = Math.round(
+          event.tick / FOUNDATION_STEP_TICKS,
+        );
+        const maxDurationTicks = Math.max(
+          FOUNDATION_STEP_TICKS,
+          next.lengthTicks -
+            startStep * FOUNDATION_STEP_TICKS,
+        );
+        const pitch = clampMidiPitch(
+          event.pitchMidi ?? definition.defaultPitchMidi,
+        );
+        return {
+          ...cloneStepEvent(event),
+          pitchMidi: pitch,
+          pitchesMidi:
+            definition.track === "chords"
+              ? normalizedChordPitches(
+                  pitch,
+                  event.pitchesMidi,
+                )
+              : undefined,
+          durationTicks: Math.max(
+            FOUNDATION_STEP_TICKS,
+            Math.min(
+              maxDurationTicks,
+              event.durationTicks ??
+                DEFAULT_MELODIC_DURATION_STEPS *
+                  FOUNDATION_STEP_TICKS,
+            ),
+          ),
+        };
+      });
+  }
+
+  return next;
 }
 
 export class SequencerStore {
@@ -250,6 +330,235 @@ export class SequencerStore {
   ): number | undefined {
     const lane = this.pattern.lanes.find((entry) => entry.id === laneId);
     return lane ? eventAtStep(lane, stepIndex)?.velocity : undefined;
+  }
+
+  getMelodicEvent(
+    laneId: string,
+    stepIndex: number,
+  ): StepEvent | undefined {
+    if (!melodicLaneDefinitionById(laneId)) return undefined;
+    const lane = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    const event = lane ? eventAtStep(lane, stepIndex) : undefined;
+    return event ? cloneStepEvent(event) : undefined;
+  }
+
+  setMelodicNote(
+    laneId: string,
+    stepIndex: number,
+    pitchMidi: number,
+    durationSteps = DEFAULT_MELODIC_DURATION_STEPS,
+    pitchesMidi?: readonly number[],
+  ): boolean {
+    const definition = melodicLaneDefinitionById(laneId);
+    if (!definition || !this.isValidStep(stepIndex)) return false;
+
+    const source = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+
+    const pitch = Math.max(
+      definition.minPitchMidi,
+      Math.min(
+        definition.maxPitchMidi,
+        clampMidiPitch(pitchMidi),
+      ),
+    );
+    const safeDurationSteps = Math.max(
+      1,
+      Math.min(
+        lengthStepsFromPattern(this.pattern) - stepIndex,
+        Math.round(durationSteps),
+      ),
+    );
+    const chord =
+      definition.track === "chords"
+        ? normalizedChordPitches(pitch, pitchesMidi)
+        : undefined;
+    const beforeRevision = this.revision;
+
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+
+      const existing = eventAtStep(lane, stepIndex);
+      const next: StepEvent = {
+        ...(existing
+          ? cloneStepEvent(existing)
+          : createStepEvent(
+              laneId,
+              stepIndex,
+              DEFAULT_STEP_VELOCITY,
+            )),
+        id: eventId(laneId, stepIndex),
+        tick: stepIndex * FOUNDATION_STEP_TICKS,
+        pitchMidi: pitch,
+        pitchesMidi: chord,
+        durationTicks:
+          safeDurationSteps * FOUNDATION_STEP_TICKS,
+        generatorTags: [
+          ...(
+            existing?.generatorTags ?? []
+          ).filter((tag) => tag !== "melodic-edit"),
+          "melodic-edit",
+        ],
+        grooveBase: undefined,
+      };
+
+      if (existing) {
+        lane.events = lane.events.map((event) =>
+          event.id === existing.id ? next : event,
+        );
+      } else {
+        lane.events.push(next);
+        lane.events.sort((a, b) => a.tick - b.tick);
+      }
+    });
+
+    return this.revision !== beforeRevision;
+  }
+
+  removeMelodicNote(
+    laneId: string,
+    stepIndex: number,
+  ): boolean {
+    const definition = melodicLaneDefinitionById(laneId);
+    if (!definition || !this.isValidStep(stepIndex)) return false;
+    const source = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!source || source.lock.rhythm) return false;
+    const existing = eventAtStep(source, stepIndex);
+    if (!existing) return false;
+
+    const beforeRevision = this.revision;
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+      lane.events = lane.events.filter(
+        (event) => event.id !== existing.id,
+      );
+    });
+    return this.revision !== beforeRevision;
+  }
+
+  setMelodicPitch(
+    laneId: string,
+    stepIndex: number,
+    pitchMidi: number,
+  ): boolean {
+    const current = this.getMelodicEvent(
+      laneId,
+      stepIndex,
+    );
+    if (!current) return false;
+    return this.setMelodicNote(
+      laneId,
+      stepIndex,
+      pitchMidi,
+      Math.max(
+        1,
+        Math.round(
+          (current.durationTicks ?? FOUNDATION_STEP_TICKS) /
+            FOUNDATION_STEP_TICKS,
+        ),
+      ),
+      current.pitchesMidi,
+    );
+  }
+
+  setMelodicDurationSteps(
+    laneId: string,
+    stepIndex: number,
+    durationSteps: number,
+  ): boolean {
+    const current = this.getMelodicEvent(
+      laneId,
+      stepIndex,
+    );
+    if (!current) return false;
+    return this.setMelodicNote(
+      laneId,
+      stepIndex,
+      current.pitchMidi ?? 60,
+      durationSteps,
+      current.pitchesMidi,
+    );
+  }
+
+  setMelodicChordPitches(
+    laneId: string,
+    stepIndex: number,
+    pitchesMidi: readonly number[],
+  ): boolean {
+    const definition = melodicLaneDefinitionById(laneId);
+    const current = this.getMelodicEvent(
+      laneId,
+      stepIndex,
+    );
+    if (
+      !definition ||
+      definition.track !== "chords" ||
+      !current
+    ) {
+      return false;
+    }
+
+    const pitches = pitchesMidi
+      .map((pitch) =>
+        Math.max(
+          definition.minPitchMidi,
+          Math.min(
+            definition.maxPitchMidi,
+            clampMidiPitch(pitch),
+          ),
+        ),
+      )
+      .slice(0, 6);
+    if (pitches.length === 0) return false;
+
+    return this.setMelodicNote(
+      laneId,
+      stepIndex,
+      pitches[0]!,
+      Math.max(
+        1,
+        Math.round(
+          (current.durationTicks ?? FOUNDATION_STEP_TICKS) /
+            FOUNDATION_STEP_TICKS,
+        ),
+      ),
+      pitches,
+    );
+  }
+
+  setMelodicInstrumentPreset(
+    laneId: string,
+    presetId: string,
+  ): boolean {
+    const definition = melodicLaneDefinitionById(laneId);
+    const source = this.pattern.lanes.find(
+      (entry) => entry.id === laneId,
+    );
+    if (!definition || !source || source.lock.sound) return false;
+    const next = presetId.trim();
+    if (!next || source.instrumentPresetId === next) return false;
+
+    const beforeRevision = this.revision;
+    this.commit((draft) => {
+      const lane = draft.lanes.find(
+        (entry) => entry.id === laneId,
+      );
+      if (!lane) return;
+      lane.instrumentPresetId = next;
+    });
+    return this.revision !== beforeRevision;
   }
 
   getHitsForStep(stepIndex: number): SequencerHit[] {
@@ -1833,7 +2142,9 @@ export class SequencerStore {
     }
 
     const currentById = new Map(
-      this.pattern.lanes.map((lane) => [lane.id, lane]),
+      ensureMelodicPatternLanes(this.pattern).lanes.map(
+        (lane) => [lane.id, lane],
+      ),
     );
     const generated = clonePattern(nextPattern);
 
@@ -1849,6 +2160,38 @@ export class SequencerStore {
         regionLocks: current?.regionLocks?.map((lock) => ({ ...lock })),
       };
     });
+
+    const generatedLaneIds = new Set(
+      generated.lanes.map((lane) => lane.id),
+    );
+    for (const definition of MELODIC_LANES) {
+      if (generatedLaneIds.has(definition.id)) continue;
+      const current =
+        currentById.get(definition.id) ??
+        createEmptyMelodicLane(definition);
+      const preserved = clonePattern({
+        ...generated,
+        lanes: [current],
+      }).lanes[0]!;
+      preserved.events = preserved.events
+        .filter(
+          (event) =>
+            event.tick < generated.lengthTicks,
+        )
+        .map((event) => ({
+          ...event,
+          durationTicks: Math.max(
+            FOUNDATION_STEP_TICKS,
+            Math.min(
+              event.durationTicks ??
+                DEFAULT_MELODIC_DURATION_STEPS *
+                  FOUNDATION_STEP_TICKS,
+              generated.lengthTicks - event.tick,
+            ),
+          ),
+        }));
+      generated.lanes.push(preserved);
+    }
 
     this.pushUndo();
     this.pattern = generated;
@@ -1867,7 +2210,9 @@ export class SequencerStore {
   }
 
   restoreProjectPattern(nextPattern: Pattern): void {
-    const restored = clonePattern(nextPattern);
+    const restored = ensureMelodicPatternLanes(
+      nextPattern,
+    );
     this.validatePatternShape(restored, "Project");
     this.pattern = restored;
     this.undoStack = [];
@@ -1881,7 +2226,10 @@ export class SequencerStore {
   }
 
   restorePatternSnapshot(nextPattern: Pattern): void {
-    this.validatePatternShape(nextPattern, "History");
+    const upgraded = ensureMelodicPatternLanes(
+      nextPattern,
+    );
+    this.validatePatternShape(upgraded, "History");
 
     const monitoringById = new Map(
       this.pattern.lanes.map((lane) => [
@@ -1892,7 +2240,7 @@ export class SequencerStore {
         },
       ]),
     );
-    const restored = clonePattern(nextPattern);
+    const restored = clonePattern(upgraded);
 
     restored.lanes = restored.lanes.map((lane) => {
       const monitoring = monitoringById.get(lane.id);
@@ -2418,6 +2766,7 @@ export const sequencerStore = new SequencerStore();
 
 export const SEQUENCER_META = Object.freeze({
   stepTicks: FOUNDATION_STEP_TICKS,
-  laneCount: SEQUENCER_LANES.length,
+  laneCount:
+    SEQUENCER_LANES.length + MELODIC_LANES.length,
   maxHistory: HISTORY_LIMIT,
 });
