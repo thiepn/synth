@@ -3935,3 +3935,47 @@
     background:Highlight;color:HighlightText
   }
 }
+
+
+/* Playground P14 — one-tap song drafts */
+.playground-song__draft-actions{
+  display:flex;align-items:stretch;justify-content:flex-end;gap:5px;flex-wrap:wrap
+}
+.playground-song__draft-actions>.playground-song__build,
+.playground-song-draft{
+  min-height:44px;border:1px solid rgba(255,255,255,.075);border-radius:10px;
+  background:rgba(255,255,255,.04);color:var(--pg-text);cursor:pointer;
+  padding:5px 10px
+}
+.playground-song-draft{
+  min-width:84px;display:grid;align-content:center;gap:1px;text-align:left
+}
+.playground-song-draft strong{font-size:.57rem}
+.playground-song-draft small{color:var(--pg-muted);font-size:.43rem}
+.playground-song-draft:hover:not(:disabled),
+.playground-song__draft-actions>.playground-song__build:hover:not(:disabled){
+  border-color:rgba(99,222,244,.26);background:rgba(99,222,244,.07)
+}
+.playground-song-draft:disabled,
+.playground-song__draft-actions>.playground-song__build:disabled{
+  opacity:.3;cursor:default
+}
+@media(max-width:760px){
+  .playground-song__draft-actions{
+    width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px
+  }
+  .playground-song__draft-actions>.playground-song__build,
+  .playground-song-draft{
+    min-width:0;min-height:48px;touch-action:manipulation
+  }
+}
+@media(prefers-contrast:more){
+  .playground-song__draft-actions>.playground-song__build,
+  .playground-song-draft{border-color:rgba(255,255,255,.3)}
+}
+@media(forced-colors:active){
+  .playground-song__draft-actions>.playground-song__build,
+  .playground-song-draft{
+    border-color:ButtonText;background:Canvas;color:CanvasText
+  }
+}
