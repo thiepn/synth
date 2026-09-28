@@ -7653,6 +7653,13 @@ export function PlaygroundSurface({
     if (projectBusy) return;
     setProjectBusy("song-draft");
 
+    let audioReady = true;
+    try {
+      await audioTransport.unlockAudio();
+    } catch {
+      audioReady = false;
+    }
+
     try {
       cancelPatternPreview();
       if (jamOpen) {
@@ -7697,10 +7704,13 @@ export function PlaygroundSurface({
         draft.label +
           " song ready · " +
           created.blueprint.sections.length +
-          " sections",
+          " sections" +
+          (audioReady ? "" : " · press Play"),
       );
 
-      await arrangementPlaybackStore.start();
+      if (audioReady) {
+        await arrangementPlaybackStore.start();
+      }
     } catch (error) {
       setNotice(
         error instanceof Error
