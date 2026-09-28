@@ -87,6 +87,11 @@ import {
   type LaneMixParameter,
 } from "../../mix/laneMix";
 import { playbackCoordinator } from "../../playback/PlaybackCoordinator";
+import {
+  performanceStore,
+  type PerformanceMomentaryId,
+} from "../../performance/PerformanceStore";
+import { usePerformanceSnapshot } from "../../performance/usePerformance";
 import { projectStore } from "../../project/ProjectStore";
 import { useProjectSnapshot } from "../../project/useProject";
 import { masteringStore } from "../../master/MasteringStore";
@@ -1324,6 +1329,284 @@ function ProjectHealthAlert({
       <span aria-hidden="true">!</span>
       <b>{projectAlert.label}</b>
     </button>
+  );
+}
+
+function PlaygroundJamPad({
+  action,
+  label,
+  disabled,
+}: {
+  action: PerformanceMomentaryId;
+  label: string;
+  disabled: boolean;
+}) {
+  const performance = usePerformanceSnapshot();
+  const interaction = useRef<
+    "pointer" | "keyboard" | null
+  >(null);
+  const armed = performance.windows.some(
+    (window) =>
+      window.id === action &&
+      window.endTick === undefined,
+  );
+
+  const release = () => {
+    performanceStore.releaseMomentary(action);
+  };
+
+  const releasePointer = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    release();
+    try {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId,
+      );
+    } catch {
+      // Pointer capture may already be released.
+    }
+    window.setTimeout(() => {
+      interaction.current = null;
+    }, 0);
+  };
+
+  return (
+    <button
+      type="button"
+      className={
+        armed
+          ? "playground-jam-pad is-active"
+          : "playground-jam-pad"
+      }
+      disabled={disabled}
+      aria-pressed={armed}
+      aria-label={
+        label +
+        ". Hold for beat-quantized live effect."
+      }
+      onPointerDown={(event) => {
+        if (disabled) return;
+        interaction.current = "pointer";
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(
+          event.pointerId,
+        );
+        performanceStore.pressMomentary(action);
+      }}
+      onPointerUp={releasePointer}
+      onPointerCancel={releasePointer}
+      onKeyDown={(event) => {
+        if (
+          disabled ||
+          event.repeat ||
+          (event.key !== " " &&
+            event.key !== "Enter")
+        ) {
+          return;
+        }
+        interaction.current = "keyboard";
+        event.preventDefault();
+        performanceStore.pressMomentary(action);
+      }}
+      onKeyUp={(event) => {
+        if (
+          event.key !== " " &&
+          event.key !== "Enter"
+        ) {
+          return;
+        }
+        event.preventDefault();
+        release();
+      }}
+      onBlur={() => {
+        release();
+        interaction.current = null;
+      }}
+      onClick={() => {
+        if (disabled) return;
+        if (interaction.current) {
+          interaction.current = null;
+          return;
+        }
+
+        performanceStore.pressMomentary(action);
+        window.setTimeout(() => {
+          performanceStore.releaseMomentary(action);
+        }, 180);
+      }}
+    >
+      <strong>{label}</strong>
+      <small>HOLD</small>
+    </button>
+  );
+}
+
+function PlaygroundJamStrip({
+  playing,
+  disabled,
+  onNotice,
+}: {
+  playing: boolean;
+  disabled: boolean;
+  onNotice: (message: string) => void;
+}) {
+  const performance = usePerformanceSnapshot();
+  const actionDisabled =
+    disabled || !playing;
+
+  return (
+    <section
+      className="playground-jam-strip"
+      aria-label="Live jam controls"
+    >
+      <div className="playground-jam-strip__identity">
+        <span>JAM</span>
+        <strong>
+          {playing ? "Live" : "Press Play"}
+        </strong>
+        <small>
+          Temporary performance · not pattern edits
+        </small>
+      </div>
+
+      <label className="playground-jam-macro">
+        <span>Energy</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Math.round(
+            performance.macros.energy * 100,
+          )}
+          disabled={disabled}
+          onChange={(event) =>
+            performanceStore.setMacro(
+              "energy",
+              Number(
+                event.currentTarget.value,
+              ) / 100,
+            )
+          }
+          aria-label="Live energy"
+        />
+        <output>
+          {Math.round(
+            performance.macros.energy * 100,
+          )}
+          %
+        </output>
+      </label>
+
+      <label className="playground-jam-macro">
+        <span>Filter</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Math.round(
+            performance.macros.filter * 100,
+          )}
+          disabled={disabled}
+          onChange={(event) =>
+            performanceStore.setMacro(
+              "filter",
+              Number(
+                event.currentTarget.value,
+              ) / 100,
+            )
+          }
+          aria-label="Live filter"
+        />
+        <output>
+          {Math.round(
+            performance.macros.filter * 100,
+          )}
+          %
+        </output>
+      </label>
+
+      <label className="playground-jam-macro">
+        <span>Space</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Math.round(
+            performance.macros.space * 100,
+          )}
+          disabled={disabled}
+          onChange={(event) =>
+            performanceStore.setMacro(
+              "space",
+              Number(
+                event.currentTarget.value,
+              ) / 100,
+            )
+          }
+          aria-label="Live space"
+        />
+        <output>
+          {Math.round(
+            performance.macros.space * 100,
+          )}
+          %
+        </output>
+      </label>
+
+      <div
+        className="playground-jam-actions"
+        aria-label="Live jam actions"
+      >
+        <button
+          type="button"
+          className="playground-jam-pad playground-jam-pad--fill"
+          disabled={actionDisabled}
+          onClick={() => {
+            performanceStore.triggerFill();
+            onNotice(
+              "Fill queued · final beat before next bar",
+            );
+          }}
+          aria-label="Queue live fill"
+        >
+          <strong>Fill</strong>
+          <small>NEXT BAR</small>
+        </button>
+        <PlaygroundJamPad
+          action="drop"
+          label="Drop"
+          disabled={actionDisabled}
+        />
+        <PlaygroundJamPad
+          action="build"
+          label="Build"
+          disabled={actionDisabled}
+        />
+        <PlaygroundJamPad
+          action="stutter"
+          label="Stutter"
+          disabled={actionDisabled}
+        />
+      </div>
+
+      <button
+        type="button"
+        className="playground-jam-reset"
+        disabled={disabled}
+        onClick={() => {
+          performanceStore.resetMacros();
+          performanceStore.clearTransient();
+          onNotice("Live performance reset");
+        }}
+        aria-label="Reset live jam controls"
+      >
+        Reset
+      </button>
+    </section>
   );
 }
 
