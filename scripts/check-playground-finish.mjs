@@ -14,6 +14,9 @@ const renderStore = read("src/render/RenderStore.ts");
 const wav = read("src/render/wavEncoder.ts");
 const e2e = read("e2e/playground.spec.ts");
 
+const shareHelperStart = playground.indexOf(
+  "async function shareAudioArtifact(",
+);
 const finishStart = playground.indexOf(
   "function PlaygroundFinishPanel(",
 );
@@ -24,6 +27,14 @@ const finishEnd = playground.indexOf(
 const finish =
   finishStart >= 0 && finishEnd > finishStart
     ? playground.slice(finishStart, finishEnd)
+    : "";
+const finishBundle =
+  shareHelperStart >= 0 &&
+  finishEnd > shareHelperStart
+    ? playground.slice(
+        shareHelperStart,
+        finishEnd,
+      )
     : "";
 
 const required = [
@@ -38,7 +49,7 @@ const required = [
   [finish, '{ kind: "pattern" }', "P8 Pattern export must use canonical pattern rendering."],
   [finish, "readyArtifact", "P8 native sharing must prepare an artifact before the share gesture."],
   [finish, "shareReadyAudio", "P8 prepared native share action is missing."],
-  [finish, "navigator.share(shareData)", "P8 native file sharing integration is missing."],
+  [finishBundle, "navigator.share(shareData)", "P8 native file sharing integration is missing."],
   [finish, "Project file", "P8 editable project backup escape hatch is missing."],
   [finish, "Use Studio", "P8 advanced export handoff is missing."],
   [css, ".playground-finish-panel", "P8 Finish styling is missing."],
@@ -69,16 +80,20 @@ for (const forbidden of [
 }
 
 const nativeShareCall =
-  finish.indexOf("navigator.share(shareData)");
+  finishBundle.indexOf(
+    "navigator.share(shareData)",
+  );
 const readyShare =
-  finish.indexOf("const shareReadyAudio");
+  finishBundle.indexOf(
+    "const shareReadyAudio",
+  );
 if (
   nativeShareCall < 0 ||
   readyShare < 0 ||
   nativeShareCall > readyShare
 ) {
   failures.push(
-    "Native share helper must remain prepared before the explicit share-ready action.",
+    "Native share helper must remain callable synchronously from the explicit share-ready action.",
   );
 }
 
