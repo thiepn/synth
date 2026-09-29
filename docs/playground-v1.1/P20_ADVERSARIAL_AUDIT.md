@@ -22,7 +22,7 @@ Before P20, project changes cleared some transient performance state but did not
 
 Per-project Playground session state remembers the selected drum voice. The mixer target was normally synchronized by a selectedVoice effect. If consecutive projects restored the same drum voice while mixer focus had moved to a melodic lane, the unchanged voice state could leave the mixer on the wrong lane.
 
-**P20 fix:** project hydration now restores both selected drum voice and its canonical mixer lane explicitly.
+**P20 fix:** project hydration now restores both selected drum voice and its canonical mixer lane explicitly. New/open project boundaries also suspend session persistence before resetting UI state, preventing reset values from being written back into the project being left.
 
 ### 3. Recording boundaries were inconsistent
 
