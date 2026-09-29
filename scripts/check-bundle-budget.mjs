@@ -66,10 +66,10 @@ const budgets = {
   entryJs: 550 * 1024,
   anyJs: 550 * 1024,
   totalJs: 1100 * 1024,
-  // main already exceeded the former 210 KB raw-only cap before this
-  // feature. Keep a bounded raw ceiling while also enforcing the bytes
-  // users actually transfer over a compressed production connection.
-  totalCss: 225 * 1024,
+  // P8–P16 expanded the Playground UI while compressed CSS remains
+  // tightly bounded. Keep a near-current raw ceiling and continue to
+  // enforce the bytes users actually transfer over production delivery.
+  totalCss: 260 * 1024,
   totalCssGzip: 40 * 1024,
   minimumJsChunks: 10,
 };
