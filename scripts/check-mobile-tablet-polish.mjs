@@ -17,7 +17,7 @@ const checks = [
   [/grid-template-columns:\s*minmax\(76px,\s*\.55fr\)\s*minmax\(190px,\s*1\.45fr\)/, "P19 compact phone Style/Tempo row is missing."],
   [/\.playground-bar-tabs > button \{\s*min-width:\s*44px;/, "P19 bar tabs must keep a 44px touch width."],
   [/\.playground-track-head \{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*44px;/, "P19 mobile track sound column must be 44px."],
-  [/\.playground-finish-actions>\.playground-finish-primary\{min-height:64px\}/, "P19 primary export action must remain comfortably touchable."],
+  [/\.playground-finish-actions>button\{min-height:64px\}/, "P19 export actions must remain comfortably touchable."],
   [/@media \(forced-colors: active\)[\s\S]*?\.playground-mobile-dock/, "P19 must preserve forced-colors support for the dock."],
 ];
 
