@@ -65,6 +65,18 @@ function defaultTransitionPlacement(
   return section.transitionPatternId ? "append" : undefined;
 }
 
+function cleanArrangementText(
+  value: string,
+  fallback: string,
+  maxLength: number,
+): string {
+  const cleaned = value
+    .replace(/[\u0000-\u001f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (cleaned || fallback).slice(0, maxLength);
+}
+
 export class ArrangementStore {
   private listeners = new Set<Listener>();
   private blueprint: ArrangementBlueprint | undefined;
@@ -169,6 +181,20 @@ export class ArrangementStore {
     this.musicalRevision += 1;
     this.recalculate();
     this.publish();
+  }
+
+  renameArrangement(name: string): void {
+    if (!this.blueprint) return;
+    const next = cleanArrangementText(
+      name,
+      "Untitled Song",
+      80,
+    );
+    if (next === this.blueprint.name) return;
+
+    this.captureUndo();
+    this.blueprint.name = next;
+    this.markEditedAndPublish();
   }
 
   clear(): void {
@@ -336,6 +362,24 @@ export class ArrangementStore {
     section.fillPlacement = "off";
     section.transitionPatternId = undefined;
     section.transitionPlacement = "off";
+    this.markEditedAndPublish();
+  }
+
+  setSectionLabel(
+    sectionId: string,
+    label: string,
+  ): void {
+    const section = this.findSection(sectionId);
+    if (!section) return;
+    const next = cleanArrangementText(
+      label,
+      section.label || "Section",
+      48,
+    );
+    if (next === section.label) return;
+
+    this.captureUndo();
+    section.label = next;
     this.markEditedAndPublish();
   }
 

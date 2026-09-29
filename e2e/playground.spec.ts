@@ -2428,3 +2428,108 @@ test("Playground P16 consolidates creative controls and targets advanced Studio 
 
   expect(errors).toEqual([]);
 });
+
+
+test("P17 preserves Playground songs and polishes canonical Arrange editing", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const song = page.getByRole("region", {
+    name: "Song arrangement",
+  });
+  await song.getByRole("button", {
+    name: "Build Standard song draft",
+  }).click();
+
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(6);
+
+  const stopSong = song.getByRole("button", {
+    name: "Stop song playback",
+  });
+  if (await stopSong.isEnabled()) {
+    await stopSong.click();
+  }
+
+  await song.getByRole("button", {
+    name: "Open advanced Arrange Studio",
+  }).click();
+
+  const arrange = page.locator(".arrange-surface");
+  await expect(arrange).toBeVisible();
+  await expect(
+    arrange.locator(".arrange-section-block"),
+  ).toHaveCount(6);
+
+  const arrangementName = arrange.getByLabel(
+    "Arrangement name",
+  );
+  await expect(arrangementName).toHaveValue(
+    "Standard Song",
+  );
+  await arrangementName.fill("Road Test Song");
+  await arrangementName.press("Enter");
+
+  const sectionName = arrange.getByLabel(
+    "Section name",
+  );
+  await sectionName.fill("Opening");
+  await sectionName.press("Enter");
+
+  await arrange.getByLabel("Section role").selectOption(
+    "build",
+  );
+  await arrange
+    .getByLabel("Section pattern", { exact: true })
+    .selectOption({
+      label: "Pattern B / Song",
+    });
+  await arrange.getByRole("button", {
+    name: "Set section to 8 cycles",
+  }).click();
+
+  const firstSection =
+    arrange.locator(".arrange-section-block").first();
+  await expect(firstSection).toContainText("Opening");
+  await expect(firstSection).toContainText("BLD · 8 CYC");
+
+  await arrange
+    .getByLabel("New section pattern")
+    .selectOption({
+      label: "Pattern A / Song",
+    });
+  await arrange.getByRole("button", {
+    name: "+ ADD",
+    exact: true,
+  }).click();
+
+  await expect(
+    arrange.locator(".arrange-section-block"),
+  ).toHaveCount(7);
+  await expect(
+    arrange.getByRole("button", {
+      name: "PLAY FROM HERE",
+      exact: true,
+    }),
+  ).toBeEnabled();
+
+  await page.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
+
+  await expect(song).toBeVisible();
+  await expect(song).toContainText("Road Test Song");
+  await expect(
+    song.locator(".playground-song-section"),
+  ).toHaveCount(7);
+  await expect(
+    song.getByRole("button", {
+      name: /Opening, section 1 of 7, Pattern B, Build, 8 repeats/i,
+    }),
+  ).toBeVisible();
+
+  expect(errors).toEqual([]);
+});
