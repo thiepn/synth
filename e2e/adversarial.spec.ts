@@ -73,6 +73,8 @@ test("P20 project switching clears transient edit and export state and restores 
   const kickStep = page.locator(
     '.playground-step[data-lane-id="lane-kick"]',
   ).first();
+  await kickStep.click({ modifiers: ["Shift"] });
+  await expect(kickStep).toHaveClass(/is-selected/);
   await kickStep.click({ button: "right" });
   await expect(
     page.getByRole("menu", {
@@ -232,6 +234,15 @@ test("P20 recording boundaries prevent partial project actions and commit safely
   await expect(barTwoKickHits).toHaveCount(1);
 
   await page.getByRole("button", {
+    name: "Start grid recording",
+  }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Stop grid recording",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
     name: /^Finish$/i,
   }).click();
   await expect(
@@ -239,6 +250,16 @@ test("P20 recording boundaries prevent partial project actions and commit safely
       name: "Finish and export",
     }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Start grid recording",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /^New$/i,
+    }),
+  ).toBeEnabled();
 
   expect(errors).toEqual([]);
 });
