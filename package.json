@@ -29,7 +29,8 @@
     "check:recovery": "node scripts/check-playground-recovery.mjs",
     "check:starter": "node scripts/check-playground-starters.mjs",
     "check:song-drafts": "node scripts/check-playground-song-drafts.mjs",
-    "check:motion": "node scripts/check-playground-motion.mjs",\n    "check:workflow": "node scripts/check-playground-workflow.mjs"
+    "check:motion": "node scripts/check-playground-motion.mjs",
+    "check:workflow": "node scripts/check-playground-workflow.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
