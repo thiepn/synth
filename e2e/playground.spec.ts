@@ -2708,10 +2708,15 @@ test("P19 mobile and tablet layouts keep touch controls compact and reachable", 
     Math.abs(styleBox!.y - tempoBox!.y),
   ).toBeLessThan(12);
 
-  const kickSound = page.getByRole("button", {
-    name: "Change KICK sound",
-    exact: true,
-  });
+  const kickSound = page
+    .getByRole("button", {
+      name: "Select KICK tools",
+    })
+    .locator("..")
+    .getByRole("button", {
+      name: "Change KICK sound",
+      exact: true,
+    });
   const kickSoundBox = await kickSound.boundingBox();
   expect(kickSoundBox).not.toBeNull();
   expect(kickSoundBox!.width).toBeGreaterThanOrEqual(44);
