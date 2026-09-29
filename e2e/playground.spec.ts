@@ -2533,3 +2533,147 @@ test("P17 preserves Playground songs and polishes canonical Arrange editing", as
 
   expect(errors).toEqual([]);
 });
+
+
+test("P18 generation develops phrases and starters keep a deterministic mix baseline", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Add bar",
+  }).click();
+  await page.getByLabel("Beat style").selectOption(
+    "funk",
+  );
+
+  const rhythmForVisibleBar = async () =>
+    page
+      .locator(
+        '.playground-step[aria-pressed="true"]',
+      )
+      .evaluateAll((elements) =>
+        elements
+          .map((element) => {
+            const lane =
+              (element as HTMLElement).dataset.laneId;
+            const raw =
+              (element as HTMLElement).dataset.stepIndex;
+            const step = Number(raw);
+            return lane && Number.isFinite(step)
+              ? lane + ":" + (step % 16)
+              : "";
+          })
+          .filter(Boolean)
+          .sort(),
+      );
+
+  const assertHatExclusivity = async () => {
+    const closed = new Set(
+      await page
+        .locator(
+          '.playground-step[data-lane-id="lane-closed-hat"][aria-pressed="true"]',
+        )
+        .evaluateAll((elements) =>
+          elements.map(
+            (element) =>
+              Number(
+                (element as HTMLElement).dataset
+                  .stepIndex,
+              ) % 16,
+          ),
+        ),
+    );
+    const open = await page
+      .locator(
+        '.playground-step[data-lane-id="lane-open-hat"][aria-pressed="true"]',
+      )
+      .evaluateAll((elements) =>
+        elements.map(
+          (element) =>
+            Number(
+              (element as HTMLElement).dataset
+                .stepIndex,
+            ) % 16,
+        ),
+      );
+    expect(
+      open.filter((step) => closed.has(step)),
+    ).toEqual([]);
+  };
+
+  await page.getByRole("button", {
+    name: "Bar 1",
+  }).click();
+  const barOne = await rhythmForVisibleBar();
+  await assertHatExclusivity();
+
+  await page.getByRole("button", {
+    name: "Bar 2",
+  }).click();
+  const barTwo = await rhythmForVisibleBar();
+  await assertHatExclusivity();
+  expect(barTwo).not.toEqual(barOne);
+
+  await page.getByRole("button", {
+    name: /Change TOM sound\. Current/i,
+  }).click();
+  const tomSounds = page.getByRole("region", {
+    name: "TOM sounds",
+  });
+  await tomSounds.getByRole("button", {
+    name: "Big TOM sound",
+  }).click();
+
+  await page.getByRole("button", {
+    name: "Select TOM tools",
+  }).click();
+  const tomMix = page.getByRole("region", {
+    name: "Mix controls for TOM",
+  });
+  const tomLevel = tomMix.getByLabel("TOM level");
+  const tomPan = tomMix.getByLabel("TOM pan");
+  const tomSpace = tomMix.getByLabel("TOM space");
+
+  await tomLevel.press("ArrowRight");
+  await tomPan.press("ArrowRight");
+  await tomSpace.press("ArrowRight");
+  await expect(tomLevel).toHaveValue("0.5");
+  await expect(tomPan).toHaveValue("0.05");
+  await expect(tomSpace).toHaveValue("0.35");
+
+  await page.getByRole("button", {
+    name: "Toggle musical starter kits",
+  }).click();
+  const starters = page.getByRole("region", {
+    name: "Musical starter kits",
+  });
+  await starters.getByRole("button", {
+    name: "Apply starter Warm Lo-Fi",
+  }).click();
+
+  await expect(
+    page.getByRole("button", {
+      name: "Change TOM sound. Current sound Core",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Select TOM tools",
+  }).click();
+  const resetTomMix = page.getByRole("region", {
+    name: "Mix controls for TOM",
+  });
+  await expect(
+    resetTomMix.getByLabel("TOM level"),
+  ).toHaveValue("0");
+  await expect(
+    resetTomMix.getByLabel("TOM pan"),
+  ).toHaveValue("0");
+  await expect(
+    resetTomMix.getByLabel("TOM space"),
+  ).toHaveValue("0.3");
+
+  expect(errors).toEqual([]);
+});
