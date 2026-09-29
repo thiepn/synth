@@ -35,7 +35,7 @@ import {
 } from "../style/styleDNA";
 
 export const BEAT_FAMILY_GENERATOR_ID = "beat-family";
-export const BEAT_FAMILY_GENERATOR_VERSION = 2;
+export const BEAT_FAMILY_GENERATOR_VERSION = 3;
 
 export interface BeatFamilyGenerationRequest {
   source: Pattern;
@@ -264,6 +264,29 @@ function patternSteps(pattern: Pattern): number {
   );
 }
 
+function thinLaneRange(
+  pattern: Pattern,
+  laneId: string,
+  startStep: number,
+  endStep: number,
+  probability: number,
+  seed: string,
+): void {
+  const target = lane(pattern, laneId);
+  if (!target || target.lock.rhythm) return;
+  const random = new SeededRandom(
+    deriveSeed(seed, laneId + ":" + startStep),
+  );
+
+  target.events = target.events.filter((event) => {
+    const step = stepOf(event);
+    if (step < startStep || step >= endStep) {
+      return true;
+    }
+    return !random.chance(probability);
+  });
+}
+
 function makeBuild(
   source: Pattern,
   seed: string,
@@ -373,6 +396,42 @@ function makeFill(
   const span = Math.min(variant === 1 ? 4 : 8, steps);
   const start = Math.max(0, steps - span);
 
+  // A fill needs negative space. Thin the source groove in the fill window
+  // before adding the fill voice so it reads as a phrase ending, not a layer
+  // pasted on top of the original beat.
+  thinLaneRange(
+    next,
+    "lane-closed-hat",
+    start,
+    steps,
+    variant === 1 ? 0.42 : 0.58,
+    deriveSeed(seed, "fill-space-closed"),
+  );
+  thinLaneRange(
+    next,
+    "lane-open-hat",
+    start,
+    steps,
+    0.72,
+    deriveSeed(seed, "fill-space-open"),
+  );
+  thinLaneRange(
+    next,
+    "lane-percussion",
+    start,
+    steps,
+    variant === 1 ? 0.34 : 0.5,
+    deriveSeed(seed, "fill-space-perc"),
+  );
+  thinLaneRange(
+    next,
+    "lane-kick",
+    Math.max(start, steps - Math.max(2, Math.floor(span / 2))),
+    steps,
+    variant === 1 ? 0.28 : 0.46,
+    deriveSeed(seed, "fill-space-kick"),
+  );
+
   for (let step = start; step < steps; step += 1) {
     const progress = (step - start) / Math.max(1, span - 1);
     const random = new SeededRandom(
@@ -437,8 +496,28 @@ function makeTransition(
     deriveSeed(seed, "space"),
     (event) => stepOf(event) < boundary,
   );
-  addHit(next, "lane-open-hat", Math.max(0, steps - 2), 0.62, seed);
-  addHit(next, "lane-crash", Math.max(0, steps - 1), 0.72, seed);
+  const liftStep = Math.max(0, steps - 2);
+  thinLaneRange(
+    next,
+    "lane-closed-hat",
+    liftStep,
+    liftStep + 1,
+    1,
+    deriveSeed(seed, "transition-hat-choke"),
+  );
+  addHit(next, "lane-open-hat", liftStep, 0.62, seed);
+
+  // Leave the final subdivision open for the next section's downbeat.
+  // The destination drop/chorus owns its crash, which keeps transitions from
+  // sounding like a cymbal hit arrived one sixteenth too early.
+  thinLaneRange(
+    next,
+    "lane-crash",
+    Math.max(0, steps - 1),
+    steps,
+    1,
+    deriveSeed(seed, "transition-no-early-crash"),
+  );
   return next;
 }
 

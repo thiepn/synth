@@ -23,7 +23,7 @@ import {
 } from "../style/styleDNA";
 
 export const BEAT_GENERATOR_ID = "beat-generator";
-export const BEAT_GENERATOR_VERSION = 2;
+export const BEAT_GENERATOR_VERSION = 3;
 
 export type BeatStyleId = StyleDNAId;
 
@@ -71,6 +71,8 @@ export interface BeatValidationMetrics {
   percussionHits: number;
   maxSimultaneousHits: number;
   syncopatedKickHits: number;
+  hatCollisions: number;
+  repeatedBarMatches: number;
 }
 
 export interface BeatValidation {
@@ -197,6 +199,154 @@ function extendSixteenStepMotif(
         const variation = random.range(0.92, 1.04);
         values[blockStart + offset] = Math.min(1, source * variation);
       }
+    }
+  }
+}
+
+function polishGeneratedGrid(
+  grid: Grid,
+  stepCount: number,
+  random: SeededRandom,
+  dna: StyleDNAProfile,
+  intent: BeatGenerationIntent,
+): void {
+  const closedHat = lane(grid, LANE.closedHat);
+  const openHat = lane(grid, LANE.openHat);
+
+  // A drummer or drum machine choke group should not fire closed and open
+  // hats on the same subdivision. Prefer the open hat when both were authored.
+  for (let step = 0; step < stepCount; step += 1) {
+    if (openHat[step] > 0 && closedHat[step] > 0) {
+      closedHat[step] = 0;
+    }
+  }
+
+  if (stepCount <= 16) return;
+
+  const variationStrength = clamp01(
+    0.18 +
+      intent.complexity * 0.34 +
+      intent.syncopation * 0.2 +
+      dna.rhythm.percussion * 0.16,
+  );
+
+  // Long patterns should feel like a phrase, not a pasted one-bar loop.
+  // Keep the foundational pulse intact and alter only phrase-end ornamentation.
+  for (
+    let blockStart = 16;
+    blockStart < stepCount;
+    blockStart += 16
+  ) {
+    const blockEnd = Math.min(stepCount, blockStart + 16);
+    const ending = Array.from(
+      { length: Math.min(4, blockEnd - blockStart) },
+      (_, index) => blockEnd - 1 - index,
+    );
+    if (ending.length === 0) continue;
+
+    const targetStep =
+      ending[random.int(0, ending.length - 1)]!;
+    const closed = lane(grid, LANE.closedHat);
+    const percussion = lane(grid, LANE.percussion);
+    const tom = lane(grid, LANE.tom);
+    const kick = lane(grid, LANE.kick);
+
+    if (random.chance(0.44 + variationStrength * 0.28)) {
+      if (closed[targetStep] > 0) {
+        closed[targetStep] = random.chance(0.58)
+          ? 0
+          : closed[targetStep] * 0.72;
+      } else if (openHat[targetStep] <= 0) {
+        setHit(
+          grid,
+          LANE.closedHat,
+          targetStep,
+          varyVelocity(random, 0.3, intent, 0.06),
+        );
+      }
+    }
+
+    if (
+      dna.rhythm.percussion >= 0.28 &&
+      random.chance(variationStrength * 0.58)
+    ) {
+      const step =
+        ending[random.int(0, ending.length - 1)]!;
+      if (percussion[step] <= 0) {
+        setHit(
+          grid,
+          LANE.percussion,
+          step,
+          varyVelocity(random, 0.34, intent, 0.08),
+        );
+      }
+    }
+
+    if (
+      dna.rhythm.toms >= 0.35 &&
+      random.chance(variationStrength * 0.34)
+    ) {
+      const step = blockEnd - 1;
+      if (step >= blockStart && tom[step] <= 0) {
+        setHit(
+          grid,
+          LANE.tom,
+          step,
+          varyVelocity(random, 0.46, intent, 0.08),
+        );
+      }
+    }
+
+    if (
+      dna.rhythm.fourOnFloor < 0.7 &&
+      dna.rhythm.kickSyncopation >= 0.58 &&
+      random.chance(variationStrength * 0.28)
+    ) {
+      const step = Math.max(blockStart, blockEnd - 2);
+      if (kick[step] <= 0) {
+        setHit(
+          grid,
+          LANE.kick,
+          step,
+          varyVelocity(random, 0.64, intent, 0.08),
+        );
+      }
+    }
+
+    const rhythmSignature = (start: number) =>
+      SEQUENCER_LANES.flatMap((definition) =>
+        lane(grid, definition.id)
+          .map((velocity, offset) =>
+            velocity > 0 &&
+            offset >= start &&
+            offset < Math.min(stepCount, start + 16)
+              ? definition.id + ":" + (offset - start)
+              : "",
+          )
+          .filter(Boolean),
+      )
+        .sort()
+        .join("|");
+
+    if (rhythmSignature(blockStart) === rhythmSignature(0)) {
+      const step = blockEnd - 1;
+      if (percussion[step] > 0) {
+        percussion[step] = 0;
+      } else {
+        setHit(
+          grid,
+          LANE.percussion,
+          step,
+          varyVelocity(random, 0.3, intent, 0.05),
+        );
+      }
+    }
+  }
+
+  // Re-run choke cleanup after phrase-end variation.
+  for (let step = 0; step < stepCount; step += 1) {
+    if (openHat[step] > 0 && closedHat[step] > 0) {
+      closedHat[step] = 0;
     }
   }
 }
@@ -1225,6 +1375,64 @@ function countSyncopatedKicks(pattern: Pattern): number {
   }).length;
 }
 
+function countHatCollisions(pattern: Pattern): number {
+  const closed = new Set(
+    pattern.lanes
+      .find((entry) => entry.id === LANE.closedHat)
+      ?.events.map((event) =>
+        Math.round(event.tick / FOUNDATION_STEP_TICKS),
+      ) ?? [],
+  );
+  return (
+    pattern.lanes
+      .find((entry) => entry.id === LANE.openHat)
+      ?.events.filter((event) =>
+        closed.has(
+          Math.round(event.tick / FOUNDATION_STEP_TICKS),
+        ),
+      ).length ?? 0
+  );
+}
+
+function countRepeatedBarMatches(pattern: Pattern): number {
+  const stepCount = Math.max(
+    1,
+    Math.round(pattern.lengthTicks / FOUNDATION_STEP_TICKS),
+  );
+  if (stepCount <= 16) return 0;
+
+  const drumIds = new Set(
+    SEQUENCER_LANES.map((definition) => definition.id),
+  );
+  const signature = (start: number) =>
+    pattern.lanes
+      .filter((laneValue) => drumIds.has(laneValue.id))
+      .flatMap((laneValue) =>
+        laneValue.events
+          .map((event) =>
+            Math.round(event.tick / FOUNDATION_STEP_TICKS),
+          )
+          .filter(
+            (step) =>
+              step >= start &&
+              step < Math.min(stepCount, start + 16),
+          )
+          .map(
+            (step) =>
+              laneValue.id + ":" + (step - start),
+          ),
+      )
+      .sort()
+      .join("|");
+
+  const first = signature(0);
+  let matches = 0;
+  for (let start = 16; start < stepCount; start += 16) {
+    if (signature(start) === first) matches += 1;
+  }
+  return matches;
+}
+
 export function validateGeneratedBeat(
   pattern: Pattern,
   style: BeatStyleId,
@@ -1245,6 +1453,9 @@ export function validateGeneratedBeat(
   const dna = getStyleDNA(style);
   const backbeatHits = countBackbeats(pattern, style);
   const syncopatedKickHits = countSyncopatedKicks(pattern);
+  const hatCollisions = countHatCollisions(pattern);
+  const repeatedBarMatches =
+    countRepeatedBarMatches(pattern);
   const drumLaneIds = new Set(
     SEQUENCER_LANES.map((lane) => lane.id),
   );
@@ -1273,6 +1484,8 @@ export function validateGeneratedBeat(
     percussionHits,
     maxSimultaneousHits,
     syncopatedKickHits,
+    hatCollisions,
+    repeatedBarMatches,
   };
 
   const reasons: string[] = [];
@@ -1323,6 +1536,23 @@ export function validateGeneratedBeat(
     score -= 15;
   }
 
+  if (hatCollisions > 0) {
+    reasons.push("open and closed hats collide");
+    score -= 24;
+  }
+
+  const barCount = Math.ceil(stepCount / 16);
+  if (
+    barCount > 1 &&
+    repeatedBarMatches >= barCount - 1 &&
+    (dna.subdivision === "sixteenth" ||
+      dna.subdivision === "rolling" ||
+      dna.rhythm.percussion >= 0.35)
+  ) {
+    reasons.push("long pattern repeats without phrase development");
+    score -= 12;
+  }
+
   if (
     dna.rhythm.fourOnFloor >= 0.85 &&
     kickHits < quarterSteps(stepCount).length
@@ -1359,7 +1589,8 @@ export function validateGeneratedBeat(
     valid: score >= 72 && !reasons.some((reason) =>
       reason === "missing kick foundation" ||
       (backbeatRequired && reason === "missing backbeat") ||
-      reason === "style pulse lost four-on-floor foundation"
+      reason === "style pulse lost four-on-floor foundation" ||
+      reason === "open and closed hats collide"
     ),
     score,
     reasons,
@@ -1396,13 +1627,22 @@ export function generateBeat(
     const grid = makeGrid(request.stepCount);
     generateStyle(request.style, random, grid, request.intent);
     extendSixteenStepMotif(grid, request.stepCount, random);
+    const dna = getStyleDNA(request.style);
+    polishGeneratedGrid(
+      grid,
+      request.stepCount,
+      new SeededRandom(
+        deriveSeed(effectiveSeed, "musical-polish"),
+      ),
+      dna,
+      request.intent,
+    );
 
     const rawPattern = buildPattern(
       request,
       effectiveSeed,
       grid,
     );
-    const dna = getStyleDNA(request.style);
     const vocabularyPattern = applyAdvancedStyleVocabulary(
       rawPattern,
       dna,
