@@ -35,7 +35,7 @@ import {
 } from "../style/styleDNA";
 
 export const BEAT_FAMILY_GENERATOR_ID = "beat-family";
-export const BEAT_FAMILY_GENERATOR_VERSION = 2;
+export const BEAT_FAMILY_GENERATOR_VERSION = 3;
 
 export interface BeatFamilyGenerationRequest {
   source: Pattern;
