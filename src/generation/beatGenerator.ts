@@ -23,7 +23,7 @@ import {
 } from "../style/styleDNA";
 
 export const BEAT_GENERATOR_ID = "beat-generator";
-export const BEAT_GENERATOR_VERSION = 2;
+export const BEAT_GENERATOR_VERSION = 3;
 
 export type BeatStyleId = StyleDNAId;
 
