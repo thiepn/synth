@@ -2617,17 +2617,17 @@ test("P18 generation develops phrases and starters keep a deterministic mix base
   expect(barTwo).not.toEqual(barOne);
 
   await page.getByRole("button", {
-    name: /Change TOM sound\. Current/i,
+    name: "Select TOM tools",
+  }).click();
+  await page.getByRole("button", {
+    name: /Change TOM sound\. Current sound/i,
   }).click();
   const tomSounds = page.getByRole("region", {
     name: "TOM sounds",
   });
+  await expect(tomSounds).toBeVisible();
   await tomSounds.getByRole("button", {
     name: "Big TOM sound",
-  }).click();
-
-  await page.getByRole("button", {
-    name: "Select TOM tools",
   }).click();
   const tomMix = page.getByRole("region", {
     name: "Mix controls for TOM",
