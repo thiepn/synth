@@ -2062,7 +2062,6 @@
   min-height: 18px;
   display: grid;
   place-items: center;
-  color: currentColor;
   font-size: 0.92rem;
   line-height: 1;
 }
@@ -2074,7 +2073,6 @@
   color: currentColor;
   font-size: 0.49rem;
   font-weight: 850;
-  letter-spacing: 0.015em;
   white-space: nowrap;
 }
 
@@ -2608,7 +2606,6 @@
   .playground-mobile-dock {
     left: 6px;
     right: 6px;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
     border-radius: 17px;
   }
 
@@ -2633,21 +2630,13 @@
 
   .playground-topbar__center {
     display: grid;
-    grid-template-columns: minmax(90px, .6fr) minmax(214px, 1.4fr);
+    grid-template-columns: minmax(76px, .55fr) minmax(190px, 1.45fr);
     gap: 6px;
   }
 
   .playground-tempo {
     width: 100%;
     grid-template-columns: 34px 34px minmax(72px, 1fr) 34px 40px;
-  }
-
-  .playground-hero p {
-    font-size: 0.64rem;
-  }
-
-  .playground-pad-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .playground-beat-pad__trigger {
@@ -4208,7 +4197,4 @@
   .playground-surface{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
   .playground-actions{display:none}
   .playground-mobile-dock{display:grid}
-}
-@media(max-width:340px){
-  .playground-topbar__center{grid-template-columns:1fr}
 }
