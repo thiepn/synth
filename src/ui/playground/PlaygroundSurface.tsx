@@ -6613,6 +6613,9 @@ export function PlaygroundSurface({
     ) {
       selectionDragRef.current = null;
       setSelectedSteps([]);
+      setSelectedMelodicLaneId(null);
+      setSelectedMelodicNote(null);
+      setStepContext(null);
     }
 
     if (!projectId) {
@@ -6627,9 +6630,18 @@ export function PlaygroundSurface({
         (pad) => pad.voice === saved.selectedVoice,
       )
     ) {
+      const restoredDefinition =
+        SEQUENCER_LANES.find(
+          (entry) =>
+            entry.voice === saved.selectedVoice,
+        );
       setSelectedVoice(saved.selectedVoice);
+      setMixLaneId(
+        restoredDefinition?.id ?? "lane-kick",
+      );
     } else {
       setSelectedVoice("kick");
+      setMixLaneId("lane-kick");
     }
 
     if (
@@ -8910,14 +8922,23 @@ export function PlaygroundSurface({
     cancelCountIn();
     clearPadRepeat();
     clearPadLongPress();
+    cancelPatternPreview();
     sequencerStore.clearTransientMonitoring();
+    renderStore.cancel();
     if (jamOpen) {
       performanceStore.setActive(false);
       setJamOpen(false);
     }
+    setFinishOpen(false);
+    setMotionOpen(false);
     setMomentaryMonitor(null);
     setSoundPickerVoice(null);
     setStarterOpen(false);
+    setStepContext(null);
+    clearSelection();
+    setSelectedMelodicLaneId(null);
+    setSelectedMelodicNote(null);
+    setSongDraggingSectionId(null);
   };
 
   const createFreshProject = async () => {
