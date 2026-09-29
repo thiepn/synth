@@ -1766,7 +1766,7 @@ function ProjectHealthAlert({
         "playground-project-alert playground-project-alert--" +
         project.saveStatus
       }
-      onClick={onOpenStudio}
+      onClick={() => onOpenStudio()}
       aria-label={projectAlert.aria}
       title={projectAlert.detail}
     >
