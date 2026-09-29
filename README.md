@@ -8,7 +8,7 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 
 ## Current status
 
-**Release:** Synth v1.1.0
+**Release:** Synth v1.2.0
 
 - **Phase 0 — Product Constitution & Architecture Freeze:** complete
 - **Phase 1 — Pulse Architecture UI Foundation:** complete
@@ -52,6 +52,19 @@ Synth is not intended to be a general-purpose DAW or a drum-practice application
 - **Phase 39 — Release Candidate Certification, Soak Testing & Final Bug-Fix Freeze:** complete
 - **Phase 40 — v1.0.0 Production Release & Maintenance Baseline:** complete
 - **Playground v1.1 — Fast Creation, Safety, Mobile & Session Polish:** complete
+- **Playground v1.2 — Composition, Sound, Workflow & Release Hardening:** complete
+
+### Playground v1.2
+
+v1.2 turns the Playground foundation into a more complete music-making product. The release adds a simple canonical song timeline, substantially improved instrument/preset sound quality, direct mix controls, one-surface Finish/export, musical Feel and micro-variation, live Jam, recovery checkpoints, one-tap starter kits and song drafts, Motion automation, consolidated Playground → Studio handoffs, stronger Arrange editing, improved default generation quality, final phone/tablet ergonomics, and a dedicated adversarial product QA layer.
+
+The intended everyday path is now:
+
+> Open Synth → make something → shape it → turn it into a song → perform/tweak it → export it.
+
+v1.2 intentionally freezes feature expansion after the P20 adversarial audit. P21 is the release cut and final certification rather than another product subsystem.
+
+See [v1.2.0 release notes](docs/playground-v1.2/RELEASE_NOTES.md) and the [v1.2 release checklist](docs/playground-v1.2/RELEASE_CHECKLIST.md).
 
 ### Playground v1.1
 
