@@ -3300,6 +3300,8 @@ export function PlaygroundSurface({
     useState<string | null>(null);
   const [sessionHydratedProjectId, setSessionHydratedProjectId] =
     useState<string | null>(null);
+  const sessionPersistenceSuspendedRef =
+    useRef(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [firstUseHintVisible, setFirstUseHintVisible] =
     useState(() => !readDiscoverySeen());
@@ -6633,6 +6635,7 @@ export function PlaygroundSurface({
 
     if (!projectId) {
       setSessionHydratedProjectId(null);
+      sessionPersistenceSuspendedRef.current = false;
       return;
     }
 
@@ -6689,8 +6692,21 @@ export function PlaygroundSurface({
   }, [project.projectId, project.name]);
 
   useEffect(() => {
+    if (
+      project.projectId &&
+      sessionHydratedProjectId === project.projectId
+    ) {
+      sessionPersistenceSuspendedRef.current = false;
+    }
+  }, [
+    project.projectId,
+    sessionHydratedProjectId,
+  ]);
+
+  useEffect(() => {
     const projectId = project.projectId;
     if (
+      sessionPersistenceSuspendedRef.current ||
       !projectId ||
       sessionHydratedProjectId !== projectId
     ) {
@@ -8935,6 +8951,7 @@ export function PlaygroundSurface({
     suspendSessionPersistence = false,
   ) => {
     if (suspendSessionPersistence) {
+      sessionPersistenceSuspendedRef.current = true;
       setSessionHydratedProjectId(null);
     }
     cancelCountIn();
@@ -8981,6 +8998,7 @@ export function PlaygroundSurface({
         setProjectMenuOpen(false);
         setNotice("New beat ready");
       } else {
+        sessionPersistenceSuspendedRef.current = false;
         setSessionHydratedProjectId(
           projectStore.getSnapshot().projectId ??
             null,
@@ -9223,6 +9241,7 @@ export function PlaygroundSurface({
         setProjectMenuOpen(false);
         setNotice("Project opened");
       } else {
+        sessionPersistenceSuspendedRef.current = false;
         setSessionHydratedProjectId(
           projectStore.getSnapshot().projectId ??
             null,
