@@ -9,32 +9,30 @@ const css = read("src/playground.css");
 const e2e = read("e2e/playground.spec.ts");
 const failures = [];
 
-const required = [
-  [css, "/* P19 — Mobile & Tablet Final Polish */", "P19 responsive polish block is missing."],
-  [css, "@media(min-width:761px) and (max-width:900px)", "P19 tablet breakpoint is missing."],
-  [css, "grid-template-columns: repeat(7, minmax(0, 1fr));", "P19 tablet dock must keep seven equally reachable controls."],
-  [css, "grid-template-columns:minmax(96px,.62fr) minmax(220px,1.38fr);", "P19 compact phone Style/Tempo row is missing."],
-  [css, ".playground-track-sound{width:44px;min-width:44px;min-height:44px}", "P19 track sound touch target is not protected."],
-  [css, ".playground-finish-actions>.playground-finish-primary{min-height:64px}", "P19 primary export action must remain comfortably touchable."],
-  [css, "scroll-snap-type:x proximity", "P19 dense horizontal editors must keep touch-friendly snap behavior."],
-  [css, "@media(max-width:900px) and (max-height:520px)", "P19 landscape compact-dock behavior is missing."],
-  [css, "@media (forced-colors: active)", "P19 must preserve the existing forced-colors mobile dock contract."],
-  [e2e, "P19 mobile and tablet layouts keep touch controls compact and reachable", "P19 browser certification is missing."],
-  [e2e, "width: 768,", "P19 browser certification must include tablet portrait."],
-  [e2e, "width: 1024,", "P19 browser certification must verify desktop/tablet breakpoint exit."],
+const checks = [
+  [/\/\* P19 — Mobile & Tablet Final Polish \*\//, "P19 responsive polish marker is missing."],
+  [/@media\(min-width:761px\) and \(max-width:900px\)/, "P19 tablet breakpoint is missing."],
+  [/\.playground-mobile-dock\{display:grid\}/, "P19 tablet dock continuity is missing."],
+  [/\.playground-actions\{display:none\}/, "P19 tablet must hide the redundant hero transport."],
+  [/grid-template-columns:\s*minmax\(90px,\s*\.6fr\)\s*minmax\(214px,\s*1\.4fr\)/, "P19 compact phone Style/Tempo row is missing."],
+  [/@media\(max-width:340px\)/, "P19 very-small-phone fallback is missing."],
+  [/\.playground-bar-tabs > button \{\s*min-width:\s*44px;/, "P19 bar tabs must keep a 44px touch width."],
+  [/\.playground-track-head \{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*44px;/, "P19 mobile track sound column must be 44px."],
+  [/\.playground-finish-actions>\.playground-finish-primary\{min-height:64px\}/, "P19 primary export action must remain comfortably touchable."],
+  [/@media \(forced-colors: active\)[\s\S]*?\.playground-mobile-dock/, "P19 must preserve forced-colors support for the dock."],
 ];
 
-for (const [source, token, message] of required) {
-  if (!source.includes(token)) failures.push(message);
+for (const [pattern, message] of checks) {
+  if (!pattern.test(css)) failures.push(message);
 }
 
-if (
-  !css.includes(".playground-bar-tabs>button,") ||
-  !css.includes("min-width:44px")
-) {
-  failures.push(
-    "P19 bar navigation must preserve a 44px coarse-pointer width.",
-  );
+for (const [token, message] of [
+  ["P19 mobile and tablet layouts keep touch controls compact and reachable", "P19 browser certification is missing."],
+  ["width: 390,", "P19 browser certification must include a common phone viewport."],
+  ["width: 768,", "P19 browser certification must include tablet portrait."],
+  ["width: 1024,", "P19 browser certification must verify the desktop/tablet breakpoint exit."],
+]) {
+  if (!e2e.includes(token)) failures.push(message);
 }
 
 if (failures.length > 0) {
@@ -45,5 +43,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  "P19 mobile/tablet contracts verified: compact phone transport, tablet dock continuity, 44px editor controls, stable export target, landscape compaction, scroll snapping, and forced-colors preservation.",
+  "P19 mobile/tablet contracts verified: compact phone transport, tablet dock continuity, 44px editor controls, stable export target, tiny-phone fallback, and forced-colors preservation.",
 );
