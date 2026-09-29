@@ -8982,7 +8982,8 @@ export function PlaygroundSurface({
         setNotice("New beat ready");
       } else {
         setSessionHydratedProjectId(
-          projectStore.getSnapshot().projectId,
+          projectStore.getSnapshot().projectId ??
+            null,
         );
         setNotice(
           projectStore.getSnapshot().lastError ??
@@ -9223,7 +9224,8 @@ export function PlaygroundSurface({
         setNotice("Project opened");
       } else {
         setSessionHydratedProjectId(
-          projectStore.getSnapshot().projectId,
+          projectStore.getSnapshot().projectId ??
+            null,
         );
         setNotice(
           projectStore.getSnapshot().lastError ??
