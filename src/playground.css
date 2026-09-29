@@ -526,7 +526,6 @@
   border-radius: 20px;
   background: rgba(19, 20, 33, 0.97);
   box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(22px);
 }
 
 .playground-project-menu > header {
@@ -893,7 +892,6 @@
   min-width: 118px;
   min-height: 42px;
   display: grid;
-  align-content: center;
   gap: 3px;
   padding: 6px 12px;
   border: 1px solid rgba(255, 255, 255, 0.075);
@@ -2018,7 +2016,51 @@
 }
 
 .playground-mobile-dock {
+  position: fixed;
+  z-index: 40;
+  left: 10px;
+  right: 10px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
   display: none;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 20px;
+  background: rgba(14, 15, 26, 0.91);
+}
+
+.playground-mobile-dock > button {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 5px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--pg-muted);
+  touch-action: manipulation;
+}
+
+.playground-mobile-dock > button:disabled { opacity: 0.24; }
+.playground-mobile-dock > button.is-active {
+  color: var(--pg-text);
+  background: rgba(120, 103, 255, 0.14);
+}
+
+.playground-mobile-dock > button b {
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.playground-mobile-dock > button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.49rem;
+  font-weight: 850;
+  white-space: nowrap;
 }
 
 .playground-footer {
@@ -2197,73 +2239,7 @@
       calc(78px + env(safe-area-inset-bottom));
   }
 
-  .playground-mobile-dock {
-    position: fixed;
-    z-index: 40;
-    left: 10px;
-    right: 10px;
-    bottom:
-      calc(8px + env(safe-area-inset-bottom));
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    min-height: 62px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.11);
-    border-radius: 20px;
-    background: rgba(14, 15, 26, 0.91);
-    box-shadow:
-      0 18px 48px rgba(0, 0, 0, 0.42),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(22px);
-  }
-
-  .playground-mobile-dock > button {
-    min-width: 0;
-    min-height: 62px;
-    display: grid;
-    place-items: center;
-    align-content: center;
-    gap: 4px;
-    padding: 5px 2px;
-    border: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    background: transparent;
-    color: var(--pg-muted);
-    touch-action: manipulation;
-  }
-
-  .playground-mobile-dock > button:last-child {
-    border-right: 0;
-  }
-
-  .playground-mobile-dock > button:disabled {
-    opacity: 0.24;
-  }
-
-  .playground-mobile-dock > button.is-active {
-    color: var(--pg-text);
-    background: rgba(120, 103, 255, 0.14);
-  }
-
-  .playground-mobile-dock > button b {
-    min-height: 18px;
-    display: grid;
-    place-items: center;
-    color: currentColor;
-    font-size: 0.92rem;
-    line-height: 1;
-  }
-
-  .playground-mobile-dock > button span {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: currentColor;
-    font-size: 0.49rem;
-    font-weight: 850;
-    letter-spacing: 0.015em;
-    white-space: nowrap;
-  }
+  .playground-mobile-dock { display: grid; }
 
   .playground-topbar {
     min-height: 64px;
@@ -2617,7 +2593,6 @@
   .playground-mobile-dock {
     left: 6px;
     right: 6px;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
     border-radius: 17px;
   }
 
@@ -2642,20 +2617,13 @@
 
   .playground-topbar__center {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(76px, .55fr) minmax(190px, 1.45fr);
+    gap: 6px;
   }
 
   .playground-tempo {
     width: 100%;
     grid-template-columns: 34px 34px minmax(72px, 1fr) 34px 40px;
-  }
-
-  .playground-hero p {
-    font-size: 0.64rem;
-  }
-
-  .playground-pad-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .playground-beat-pad__trigger {
@@ -2836,7 +2804,6 @@
 
 .playground-bar-control,
 .playground-bar-actions {
-  min-height: 42px;
   display: flex;
   align-items: stretch;
   overflow: hidden;
@@ -2848,7 +2815,8 @@
 .playground-bar-control > button,
 .playground-bar-tabs > button,
 .playground-bar-actions > button {
-  min-width: 38px;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.07);
   background: transparent;
@@ -2868,7 +2836,7 @@
 }
 
 .playground-bar-tabs > button {
-  min-width: 32px;
+  min-width: 44px;
 }
 
 .playground-bar-control button:hover:not(:disabled),
@@ -3115,11 +3083,6 @@
 }
 
 @media (pointer: coarse) {
-  .playground-bar-control button,
-  .playground-bar-actions button {
-    min-height: 44px;
-  }
-
   .playground-steps--lane .playground-step {
     min-height: 42px;
   }
@@ -3162,7 +3125,7 @@
   }
 
   .playground-track-head {
-    grid-template-columns: minmax(0, 1fr) 30px;
+    grid-template-columns: minmax(0, 1fr) 44px;
   }
 
   .playground-track-select {
@@ -3185,7 +3148,7 @@
   }
 
   .playground-track-sound {
-    width: 30px;
+    width: 44px;
   }
 
   .playground-steps.playground-steps--lane {
@@ -3458,7 +3421,7 @@
   .playground-finish-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
   .playground-finish-range>button{min-width:0;min-height:52px}
   .playground-finish-actions{grid-template-columns:1fr}
-  .playground-finish-actions>button{min-height:58px}
+  .playground-finish-actions>button{min-height:64px}
   .playground-finish-warning{grid-template-columns:1fr}
   .playground-finish-warning>div{width:100%}
   .playground-finish-warning button{flex:1;min-height:44px}
@@ -4207,4 +4170,12 @@
     background:Canvas;
     color:CanvasText
   }
+}
+
+
+/* P19 — Mobile & Tablet Final Polish */
+@media(min-width:761px) and (max-width:900px){
+  .playground-surface{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+  .playground-actions{display:none}
+  .playground-mobile-dock{display:grid}
 }

@@ -2685,3 +2685,112 @@ test("P18 generation develops phrases and starters keep a deterministic mix base
 
   expect(errors).toEqual([]);
 });
+
+
+test("P19 mobile and tablet layouts keep touch controls compact and reachable", async ({ page }) => {
+  const errors = watchRuntimeErrors(page);
+
+  await page.setViewportSize({
+    width: 390,
+    height: 844,
+  });
+  await waitForPlayground(page);
+
+  const style = page.getByLabel("Beat style");
+  const tempo = page.getByRole("button", {
+    name: /Tap tempo\. Current tempo/i,
+  });
+  const styleBox = await style.boundingBox();
+  const tempoBox = await tempo.boundingBox();
+  expect(styleBox).not.toBeNull();
+  expect(tempoBox).not.toBeNull();
+  expect(
+    Math.abs(styleBox!.y - tempoBox!.y),
+  ).toBeLessThan(12);
+
+  const kickSound = page
+    .getByRole("button", {
+      name: "Select KICK tools",
+    })
+    .locator("..")
+    .getByRole("button", {
+      name: "Change KICK sound",
+      exact: true,
+    });
+  const kickSoundBox = await kickSound.boundingBox();
+  expect(kickSoundBox).not.toBeNull();
+  expect(kickSoundBox!.width).toBeGreaterThanOrEqual(44);
+  expect(kickSoundBox!.height).toBeGreaterThanOrEqual(44);
+
+  const addBar = page.getByRole("button", {
+    name: "Add bar",
+  });
+  const addBarBox = await addBar.boundingBox();
+  expect(addBarBox).not.toBeNull();
+  expect(addBarBox!.width).toBeGreaterThanOrEqual(44);
+  expect(addBarBox!.height).toBeGreaterThanOrEqual(44);
+
+  await page.getByRole("button", {
+    name: "Finish",
+  }).click();
+  const mobileFinish = page.getByRole("dialog", {
+    name: "Finish and export",
+  });
+  const mobileDownload = mobileFinish.getByRole(
+    "button",
+    { name: /Download WAV/i },
+  );
+  const downloadBox = await mobileDownload.boundingBox();
+  expect(downloadBox).not.toBeNull();
+  expect(downloadBox!.height).toBeGreaterThanOrEqual(60);
+  await mobileFinish.getByRole("button", {
+    name: "Close finish panel",
+  }).click();
+
+  let overflow = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(overflow.scroll).toBeLessThanOrEqual(
+    overflow.width + 1,
+  );
+
+  await page.setViewportSize({
+    width: 768,
+    height: 1024,
+  });
+
+  const dock = page.locator(
+    ".playground-mobile-dock",
+  );
+  await expect(dock).toBeVisible();
+  await expect(
+    dock.locator(":scope > button"),
+  ).toHaveCount(7);
+  await expect(
+    page.locator(".playground-actions"),
+  ).toBeHidden();
+
+  const tabletPlay = dock.getByRole("button", {
+    name: "Play beat",
+  });
+  const tabletPlayBox = await tabletPlay.boundingBox();
+  expect(tabletPlayBox).not.toBeNull();
+  expect(tabletPlayBox!.height).toBeGreaterThanOrEqual(60);
+
+  overflow = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(overflow.scroll).toBeLessThanOrEqual(
+    overflow.width + 1,
+  );
+
+  await page.setViewportSize({
+    width: 1024,
+    height: 768,
+  });
+  await expect(dock).toBeHidden();
+
+  expect(errors).toEqual([]);
+});
