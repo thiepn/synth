@@ -27,6 +27,7 @@ const required = [
   [css, ".playground-control-deck{", "P16 Creative controls deck styling is missing."],
   [css, ".playground-song__studio{", "P16 contextual Arrange button styling is missing."],
   [e2e, "Playground P16 consolidates creative controls and targets advanced Studio workspaces", "P16 browser certification is missing."],
+  [playground, "onClick={() => onOpenStudio()}", "Project health alert must not pass a React MouseEvent into the targeted Studio handoff."],
 ];
 
 for (const [source, token, message] of required) {
