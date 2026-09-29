@@ -312,7 +312,7 @@ function ModeRail({
       ))}
       <div className="mode-rail__system" aria-hidden="true">
         <span className="status-lamp" />
-        <span>v1.1.0</span>
+        <span>v1.2.0</span>
       </div>
     </nav>
   );

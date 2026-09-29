@@ -1,4 +1,4 @@
-name: Publish v1.1.0
+name: Publish v1.2.0
 
 on:
   workflow_run:
@@ -51,8 +51,8 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [ "$version" != "1.1.0" ]; then
-            echo "::notice title=Release publisher idle::Certified main is $version, not 1.1.0."
+          if [ "$version" != "1.2.0" ]; then
+            echo "::notice title=Release publisher idle::Certified main is $version, not 1.2.0."
             echo "publish=false" >> "$GITHUB_OUTPUT"
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
@@ -71,13 +71,6 @@ jobs:
         shell: bash
         run: |
           tag="v$VERSION"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" \
-              --title "Synth $tag" \
-              --notes-file docs/playground-v1.1/RELEASE_NOTES.md
-            echo "::notice title=Release refreshed::$tag already exists; title and notes were updated from certified main."
-            exit 0
-          fi
 
           current_main="$(gh api repos/${{ github.repository }}/commits/main --jq .sha)"
           if [ "$RELEASE_SHA" != "$current_main" ]; then
@@ -85,19 +78,26 @@ jobs:
             exit 0
           fi
 
+          git fetch --tags --force
           existing_tag_sha=""
-          if resolved_tag_sha="$(
-            gh api "repos/${{ github.repository }}/git/ref/tags/$tag" --jq .object.sha 2>/dev/null
-          )"; then
-            existing_tag_sha="$resolved_tag_sha"
+          if git rev-parse "$tag^{commit}" >/dev/null 2>&1; then
+            existing_tag_sha="$(git rev-parse "$tag^{commit}")"
           fi
 
           if [ -n "$existing_tag_sha" ] && [ "$existing_tag_sha" != "$RELEASE_SHA" ]; then
-            echo "::error title=Release tag mismatch::$tag already points to $existing_tag_sha instead of certified $RELEASE_SHA."
+            echo "::error title=Release tag mismatch::$tag resolves to $existing_tag_sha instead of certified $RELEASE_SHA."
             exit 1
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --title "Synth $tag" \
+              --notes-file docs/playground-v1.2/RELEASE_NOTES.md
+            echo "::notice title=Release refreshed::$tag already exists at the certified SHA; notes were refreshed."
+            exit 0
           fi
 
           gh release create "$tag" \
             --target "$RELEASE_SHA" \
             --title "Synth $tag" \
-            --notes-file docs/playground-v1.1/RELEASE_NOTES.md
+            --notes-file docs/playground-v1.2/RELEASE_NOTES.md
