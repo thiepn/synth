@@ -4435,3 +4435,19 @@
     font-size: 0.43rem;
   }
 }
+
+
+@media (forced-colors: active) and (min-width: 761px) and (max-width: 900px) {
+  .playground-mobile-dock,
+  .playground-mobile-dock > button {
+    border-color: ButtonText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+
+  .playground-mobile-dock > button.is-active {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
