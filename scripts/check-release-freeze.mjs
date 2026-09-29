@@ -92,6 +92,8 @@ const contracts = [
   ["docs/playground-v1.2/RELEASE_NOTES.md", "## P21 — v1.2 release cut"],
   ["docs/playground-v1.2/RELEASE_CHECKLIST.md", "# Synth v1.2.0 — Release Checklist"],
   ["docs/playground-v1.2/RELEASE_CHECKLIST.md", "P20 adversarial product QA"],
+  ["docs/playground-v1.2/P21_RELEASE_CUT.md", "# P21 — v1.2 Release Cut & Final Certification"],
+  ["docs/playground-v1.2/P21_RELEASE_CUT.md", "planned feature development stops"],
 
   ["README.md", "**Release:** Synth v1.2.0"],
   ["README.md", "### Playground v1.2"],
