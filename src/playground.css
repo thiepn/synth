@@ -2804,7 +2804,7 @@
 
 .playground-bar-control,
 .playground-bar-actions {
-  min-height: 42px;
+  min-height: 44px;
   display: flex;
   align-items: stretch;
   overflow: hidden;
@@ -3083,11 +3083,6 @@
 }
 
 @media (pointer: coarse) {
-  .playground-bar-control button,
-  .playground-bar-actions button {
-    min-height: 44px;
-  }
-
   .playground-steps--lane .playground-step {
     min-height: 42px;
   }
