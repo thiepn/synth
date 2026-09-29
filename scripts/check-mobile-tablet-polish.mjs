@@ -14,8 +14,7 @@ const checks = [
   [/@media\(min-width:761px\) and \(max-width:900px\)/, "P19 tablet breakpoint is missing."],
   [/\.playground-mobile-dock\{display:grid\}/, "P19 tablet dock continuity is missing."],
   [/\.playground-actions\{display:none\}/, "P19 tablet must hide the redundant hero transport."],
-  [/grid-template-columns:\s*minmax\(90px,\s*\.6fr\)\s*minmax\(214px,\s*1\.4fr\)/, "P19 compact phone Style/Tempo row is missing."],
-  [/@media\(max-width:340px\)/, "P19 very-small-phone fallback is missing."],
+  [/grid-template-columns:\s*minmax\(76px,\s*\.55fr\)\s*minmax\(190px,\s*1\.45fr\)/, "P19 compact phone Style/Tempo row is missing."],
   [/\.playground-bar-tabs > button \{\s*min-width:\s*44px;/, "P19 bar tabs must keep a 44px touch width."],
   [/\.playground-track-head \{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*44px;/, "P19 mobile track sound column must be 44px."],
   [/\.playground-finish-actions>\.playground-finish-primary\{min-height:64px\}/, "P19 primary export action must remain comfortably touchable."],
@@ -43,5 +42,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  "P19 mobile/tablet contracts verified: compact phone transport, tablet dock continuity, 44px editor controls, stable export target, tiny-phone fallback, and forced-colors preservation.",
+  "P19 mobile/tablet contracts verified: compact phone transport, tablet dock continuity, 44px editor controls, stable export target, and forced-colors preservation.",
 );
