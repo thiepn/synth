@@ -81,6 +81,10 @@ test("P20 project switching clears transient edit and export state and restores 
       name: /Step 1 actions/i,
     }),
   ).toBeVisible();
+  await page.getByRole("button", {
+    name: "Close step actions",
+  }).click();
+  await expect(kickStep).toHaveClass(/is-selected/);
 
   await waitForSaved(page);
 
@@ -288,6 +292,9 @@ test("P20 complete beat-to-song workflow survives reload and exports from restor
 
   await page.getByRole("button", {
     name: "Add bar",
+  }).click();
+  await page.getByRole("button", {
+    name: "Bar 1",
   }).click();
 
   await page.getByRole("button", {
