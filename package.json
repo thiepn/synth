@@ -7,7 +7,7 @@
     "predev": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
     "dev": "vite",
     "prebuild": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
-    "build": "npm run check:interaction && npm run check:playground && npm run check:sound && npm run check:mix && npm run check:finish && npm run check:feel && npm run check:variation && npm run check:jam && npm run check:recovery && npm run check:starter && npm run check:song-drafts && npm run check:motion && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
+    "build": "npm run check:interaction && npm run check:playground && npm run check:sound && npm run check:mix && npm run check:finish && npm run check:feel && npm run check:variation && npm run check:jam && npm run check:recovery && npm run check:starter && npm run check:song-drafts && npm run check:motion && npm run check:workflow && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:interaction": "node scripts/check-interaction-contracts.mjs",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
@@ -29,7 +29,7 @@
     "check:recovery": "node scripts/check-playground-recovery.mjs",
     "check:starter": "node scripts/check-playground-starters.mjs",
     "check:song-drafts": "node scripts/check-playground-song-drafts.mjs",
-    "check:motion": "node scripts/check-playground-motion.mjs"
+    "check:motion": "node scripts/check-playground-motion.mjs",\n    "check:workflow": "node scripts/check-playground-workflow.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
