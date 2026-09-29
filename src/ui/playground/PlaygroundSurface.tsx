@@ -9463,7 +9463,7 @@ export function PlaygroundSurface({
                 setJamOpen(false);
               }
               setFinishOpen((current) => !current);
-            }
+            }}
             disabled={
               Boolean(projectBusy) ||
               !project.initialized
@@ -9485,7 +9485,7 @@ export function PlaygroundSurface({
               }
               setFinishOpen(false);
               setProjectMenuOpen((current) => !current);
-            }
+            }}
             aria-expanded={projectMenuOpen}
             aria-haspopup="dialog"
           >
