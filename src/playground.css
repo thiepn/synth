@@ -2804,7 +2804,6 @@
 
 .playground-bar-control,
 .playground-bar-actions {
-  min-height: 44px;
   display: flex;
   align-items: stretch;
   overflow: hidden;
@@ -2817,6 +2816,7 @@
 .playground-bar-tabs > button,
 .playground-bar-actions > button {
   min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.07);
   background: transparent;
