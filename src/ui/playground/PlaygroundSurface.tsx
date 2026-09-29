@@ -7909,6 +7909,20 @@ export function PlaygroundSurface({
         restoredA,
       );
 
+      for (const pad of DRUM_PADS) {
+        if (
+          starter.sounds[pad.voice] !==
+          undefined
+        ) {
+          continue;
+        }
+        await applyStarterSound(
+          pad.voice,
+          0,
+          soundLockedVoices,
+        );
+      }
+
       for (const [voiceKey, presetIndex] of Object.entries(
         starter.sounds,
       )) {
