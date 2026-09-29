@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import type { ModeId } from "../../app/modeModel";
 import {
   audioTransport,
   TRANSPORT_SCHEDULER_CONFIG,
@@ -128,7 +129,7 @@ import { useGridRecorderSnapshot } from "../../sequencer/useGridRecorder";
 import { getStyleDNA } from "../../style/styleDNA";
 
 interface PlaygroundSurfaceProps {
-  onOpenStudio: () => void;
+  onOpenStudio: (mode?: ModeId) => void;
 }
 
 type PlaygroundFinishRange = "pattern" | "song";
@@ -211,7 +212,7 @@ function PlaygroundFinishPanel({
   onClose: () => void;
   onNotice: (message: string) => void;
   onProjectBackup: () => Promise<void>;
-  onOpenStudio: () => void;
+  onOpenStudio: (mode?: ModeId) => void;
   projectBackupAvailable: boolean;
 }) {
   const renderTask = useRenderTaskSnapshot();
@@ -648,7 +649,7 @@ function PlaygroundFinishPanel({
           type="button"
           onClick={() => {
             onClose();
-            onOpenStudio();
+            onOpenStudio("archive");
           }}
         >
           Use Studio
@@ -1765,7 +1766,7 @@ function ProjectHealthAlert({
         "playground-project-alert playground-project-alert--" +
         project.saveStatus
       }
-      onClick={onOpenStudio}
+      onClick={() => onOpenStudio()}
       aria-label={projectAlert.aria}
       title={projectAlert.detail}
     >
@@ -2266,7 +2267,7 @@ function PlaygroundMotionStrip({
 }: {
   disabled: boolean;
   onNotice: (message: string) => void;
-  onOpenStudio: () => void;
+  onOpenStudio: (mode?: ModeId) => void;
 }) {
   const modulation = useModulationSnapshot();
   const sequencer = useSequencerSnapshot();
@@ -2505,7 +2506,7 @@ function PlaygroundMotionStrip({
         {studioOwned ? (
           <button
             type="button"
-            onClick={onOpenStudio}
+            onClick={() => onOpenStudio("sound")}
           >
             Studio ↗
           </button>
@@ -3975,7 +3976,7 @@ export function PlaygroundSurface({
     drumEngine.cancelAudition();
   };
 
-  const openStudio = () => {
+  const openStudio = (targetMode: ModeId = "create") => {
     if (melodicMidiRecording) {
       stopMelodicMidiRecording();
     }
@@ -3989,7 +3990,7 @@ export function PlaygroundSurface({
     }
     setMotionOpen(false);
     cancelPatternPreview();
-    onOpenStudio();
+    onOpenStudio(targetMode);
   };
 
   const undoPattern = () => {
@@ -9306,7 +9307,7 @@ export function PlaygroundSurface({
           <button
             type="button"
             className="playground-studio-button"
-            onClick={openStudio}
+            onClick={() => openStudio()}
             aria-label="Open Studio"
             data-tip="Open advanced Studio"
           >
@@ -9462,7 +9463,7 @@ export function PlaygroundSurface({
                 setJamOpen(false);
               }
               setFinishOpen((current) => !current);
-            }
+            }}
             disabled={
               Boolean(projectBusy) ||
               !project.initialized
@@ -9484,7 +9485,7 @@ export function PlaygroundSurface({
               }
               setFinishOpen(false);
               setProjectMenuOpen((current) => !current);
-            }
+            }}
             aria-expanded={projectMenuOpen}
             aria-haspopup="dialog"
           >
@@ -9723,7 +9724,7 @@ export function PlaygroundSurface({
               </span>
               <button
                 type="button"
-                onClick={openStudio}
+                onClick={() => openStudio("archive")}
               >
                 Open Studio ↗
               </button>
@@ -9826,6 +9827,10 @@ export function PlaygroundSurface({
         </aside>
       ) : null}
 
+      <section
+        className="playground-control-deck"
+        aria-label="Creative controls"
+      >
       <section
         className="playground-experiment-bar"
         aria-label="Pattern experimentation controls"
@@ -10361,6 +10366,7 @@ export function PlaygroundSurface({
                 : "Pads · keys · MIDI"}
           </span>
         </output>
+      </section>
       </section>
 
       <div className="playground-workbench">
@@ -12895,6 +12901,16 @@ export function PlaygroundSurface({
                 : "Arrange sections without leaving Playground"}
             </small>
           </div>
+
+          <button
+            type="button"
+            className="playground-song__studio"
+            onClick={() => openStudio("arrange")}
+            aria-label="Open advanced Arrange Studio"
+            title="Open the full arrangement workspace"
+          >
+            Arrange ↗
+          </button>
 
           {!arrangement.blueprint ? (
             <div

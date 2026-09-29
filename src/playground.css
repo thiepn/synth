@@ -4104,3 +4104,107 @@
     background:Highlight;color:HighlightText
   }
 }
+
+
+/* Playground P16 — workflow consolidation */
+.playground-control-deck{
+  width:min(1440px,calc(100% - clamp(36px,7vw,108px)));
+  margin:-4px auto 14px;
+  padding:8px;
+  display:grid;
+  gap:7px;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:20px;
+  background:
+    linear-gradient(135deg,rgba(120,103,255,.03),rgba(53,213,163,.018) 52%,rgba(255,216,74,.018)),
+    rgba(255,255,255,.018);
+  box-shadow:0 14px 42px rgba(0,0,0,.12)
+}
+.playground-control-deck>.playground-experiment-bar,
+.playground-control-deck>.playground-starter-panel,
+.playground-control-deck>.playground-feel-strip,
+.playground-control-deck>.playground-flow-bar,
+.playground-control-deck>.playground-jam-strip,
+.playground-control-deck>.playground-motion-strip,
+.playground-control-deck>.playground-record-bar{
+  width:100%;
+  margin:0;
+  max-width:none
+}
+.playground-control-deck>.playground-experiment-bar,
+.playground-control-deck>.playground-feel-strip,
+.playground-control-deck>.playground-jam-strip,
+.playground-control-deck>.playground-motion-strip{
+  border-radius:13px
+}
+.playground-control-deck>.playground-experiment-bar{
+  background:rgba(255,255,255,.024)
+}
+.playground-control-deck>.playground-flow-bar{
+  padding:1px 0 0
+}
+.playground-control-deck>.playground-record-bar{
+  min-height:48px;
+  margin-top:0
+}
+.playground-song__studio{
+  min-height:38px;
+  flex:0 0 auto;
+  padding:0 10px;
+  border:1px solid rgba(99,222,244,.16);
+  border-radius:10px;
+  background:rgba(99,222,244,.055);
+  color:#9bedf8;
+  cursor:pointer;
+  font-size:.52rem;
+  font-weight:900;
+  white-space:nowrap
+}
+.playground-song__studio:hover{
+  background:rgba(99,222,244,.1);
+  border-color:rgba(99,222,244,.28)
+}
+@media(min-width:1180px){
+  .playground-control-deck{
+    grid-template-columns:minmax(0,1fr)
+  }
+  .playground-control-deck>.playground-flow-bar,
+  .playground-control-deck>.playground-record-bar{
+    padding-inline:2px
+  }
+}
+@media(max-width:760px){
+  .playground-control-deck{
+    width:calc(100% - 20px);
+    padding:6px;
+    gap:6px;
+    border-radius:16px
+  }
+  .playground-control-deck>.playground-experiment-bar,
+  .playground-control-deck>.playground-starter-panel,
+  .playground-control-deck>.playground-feel-strip,
+  .playground-control-deck>.playground-flow-bar,
+  .playground-control-deck>.playground-jam-strip,
+  .playground-control-deck>.playground-motion-strip,
+  .playground-control-deck>.playground-record-bar{
+    width:100%;
+    margin:0
+  }
+  .playground-song__studio{
+    min-height:44px;
+    padding-inline:12px;
+    touch-action:manipulation
+  }
+}
+@media(prefers-contrast:more){
+  .playground-control-deck,
+  .playground-song__studio{border-color:rgba(255,255,255,.3)}
+}
+@media(forced-colors:active){
+  .playground-control-deck,
+  .playground-song__studio{
+    border-color:ButtonText;
+    background:Canvas;
+    color:CanvasText
+  }
+}

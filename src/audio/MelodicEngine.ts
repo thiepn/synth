@@ -71,7 +71,7 @@ function clampMelodicFilterHz(
   );
 }
 
-function melodicDriveCurve(amount: number): Float32Array {
+function melodicDriveCurve(amount: number): Float32Array<ArrayBuffer> {
   const safe = Math.max(0, Math.min(1, amount));
   const curve = new Float32Array(257);
   const strength = 1 + safe * 6;

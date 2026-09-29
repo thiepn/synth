@@ -166,7 +166,16 @@ export function App() {
         >
           <Suspense fallback={<PlaygroundLoading />}>
             <PlaygroundSurface
-              onOpenStudio={() => setExperience("studio")}
+              onOpenStudio={(targetMode = "create") => {
+                if (targetMode !== modeId) {
+                  playbackCoordinator.prepareModeChange(
+                    modeId,
+                    targetMode,
+                  );
+                  setModeId(targetMode);
+                }
+                setExperience("studio");
+              }}
             />
           </Suspense>
         </main>

@@ -190,7 +190,8 @@ export class SampleAssetStore {
         }
       } else if (
         metadata?.origin === "bundled" &&
-        metadata.bundledSampleId
+        metadata.bundledSampleId &&
+        existing.reference.origin !== "user"
       ) {
         const changed =
           existing.reference.bundledSampleId !==
