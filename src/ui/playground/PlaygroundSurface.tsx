@@ -7694,6 +7694,16 @@ export function PlaygroundSurface({
     const locks =
       mixerStore.getSnapshot().locks;
 
+    // A starter is a complete listening baseline. Reset every unlocked
+    // Playground-facing channel first so omitted voices cannot inherit level,
+    // pan or space from the previously loaded beat.
+    for (const pad of DRUM_PADS) {
+      if (locks.channels[pad.voice]) continue;
+      mixerStore.resetPlaygroundChannel(
+        pad.voice,
+      );
+    }
+
     for (const [voiceKey, settings] of Object.entries(
       starter.mix,
     )) {
