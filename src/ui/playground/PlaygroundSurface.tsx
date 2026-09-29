@@ -8931,7 +8931,12 @@ export function PlaygroundSurface({
     );
   };
 
-  const prepareProjectSwitch = () => {
+  const prepareProjectSwitch = (
+    suspendSessionPersistence = false,
+  ) => {
+    if (suspendSessionPersistence) {
+      setSessionHydratedProjectId(null);
+    }
     cancelCountIn();
     clearPadRepeat();
     clearPadLongPress();
@@ -8963,7 +8968,7 @@ export function PlaygroundSurface({
     setProjectBusy("new");
 
     try {
-      prepareProjectSwitch();
+      prepareProjectSwitch(true);
       const id = await projectStore.createNewProject(
         "New Beat",
       );
@@ -8976,6 +8981,9 @@ export function PlaygroundSurface({
         setProjectMenuOpen(false);
         setNotice("New beat ready");
       } else {
+        setSessionHydratedProjectId(
+          projectStore.getSnapshot().projectId,
+        );
         setNotice(
           projectStore.getSnapshot().lastError ??
             "New beat could not be created",
@@ -9207,13 +9215,16 @@ export function PlaygroundSurface({
 
     setProjectBusy("open");
     try {
-      prepareProjectSwitch();
+      prepareProjectSwitch(true);
       const opened =
         await projectStore.openProject(projectId);
       if (opened) {
         setProjectMenuOpen(false);
         setNotice("Project opened");
       } else {
+        setSessionHydratedProjectId(
+          projectStore.getSnapshot().projectId,
+        );
         setNotice(
           projectStore.getSnapshot().lastError ??
             "Project could not be opened",
