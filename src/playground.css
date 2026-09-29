@@ -892,7 +892,6 @@
   min-width: 118px;
   min-height: 42px;
   display: grid;
-  align-content: center;
   gap: 3px;
   padding: 6px 12px;
   border: 1px solid rgba(255, 255, 255, 0.075);
@@ -2024,12 +2023,10 @@
   bottom: calc(8px + env(safe-area-inset-bottom));
   display: none;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  min-height: 62px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 20px;
   background: rgba(14, 15, 26, 0.91);
-  backdrop-filter: blur(22px);
 }
 
 .playground-mobile-dock > button {
@@ -2041,13 +2038,11 @@
   gap: 4px;
   padding: 5px 2px;
   border: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
   color: var(--pg-muted);
   touch-action: manipulation;
 }
 
-.playground-mobile-dock > button:last-child { border-right: 0; }
 .playground-mobile-dock > button:disabled { opacity: 0.24; }
 .playground-mobile-dock > button.is-active {
   color: var(--pg-text);
