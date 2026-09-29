@@ -2323,6 +2323,109 @@ test("Playground P13 starter kits create an editable polished A B baseline", asy
   expect(errors).toEqual([]);
 });
 
+test("Playground P12 checkpoints safely restore and preserve the pre-restore state", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  await page.getByRole("button", {
+    name: "Clear selected lane",
+  }).click();
+
+  const step = page.locator(
+    '.playground-step[data-lane-id="lane-kick"][data-step-index="0"]',
+  );
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  await page.getByRole("button", {
+    name: "Create recovery checkpoint",
+  }).click();
+
+  await expect(
+    page.locator(".playground-notice"),
+  ).toContainText("Recovery snapshot saved");
+
+  await step.click();
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await expect
+    .poll(() =>
+      page
+        .locator(".playground-save-state")
+        .innerText(),
+    )
+    .toBe("Saved");
+
+  await page.getByRole("button", {
+    name: /^Projects$/i,
+  }).click();
+
+  const projects = page.getByRole("dialog", {
+    name: "Recent projects",
+  });
+  const recovery = projects.getByRole("region", {
+    name: "Recovery checkpoints",
+  });
+  await expect(recovery).toBeVisible();
+  await expect(recovery).toContainText(
+    "Autosave on",
+  );
+  await expect(recovery).toContainText(
+    /storage/i,
+  );
+
+  const recoveryRow = recovery
+    .locator(".playground-project-checkpoint")
+    .filter({ hasText: "Recovery" })
+    .first();
+  await expect(recoveryRow).toBeVisible();
+
+  const recoveryName =
+    (await recoveryRow.locator("strong").innerText()).trim();
+
+  await recoveryRow.getByRole("button", {
+    name: "Restore checkpoint " + recoveryName,
+  }).click();
+
+  await expect(projects).toHaveCount(0);
+  await expect(step).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(
+    page.locator(".playground-notice"),
+  ).toContainText(
+    "current state kept as Before restore",
+  );
+
+  await page.getByRole("button", {
+    name: /^Projects$/i,
+  }).click();
+
+  const reopened = page.getByRole("dialog", {
+    name: "Recent projects",
+  });
+  const reopenedRecovery =
+    reopened.getByRole("region", {
+      name: "Recovery checkpoints",
+    });
+
+  await expect(
+    reopenedRecovery.locator(
+      ".playground-project-checkpoint",
+    ).filter({ hasText: "Before restore" }),
+  ).toHaveCount(1);
+
+  expect(errors).toEqual([]);
+});
+
 test("Playground project session can create a fresh beat while preserving the previous project", async ({
   page,
 }) => {
