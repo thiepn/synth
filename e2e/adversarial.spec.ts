@@ -70,12 +70,12 @@ test("P20 project switching clears transient edit and export state and restores 
     }),
   ).toBeVisible();
 
-  const kickStep = page.locator(
-    '.playground-step[data-lane-id="lane-kick"]',
+  const snareStep = page.locator(
+    '.playground-step[data-lane-id="lane-snare"]',
   ).first();
-  await kickStep.click({ modifiers: ["Shift"] });
-  await expect(kickStep).toHaveClass(/is-selected/);
-  await kickStep.click({ button: "right" });
+  await snareStep.click({ modifiers: ["Shift"] });
+  await expect(snareStep).toHaveClass(/is-selected/);
+  await snareStep.click({ button: "right" });
   await expect(
     page.getByRole("menu", {
       name: /Step 1 actions/i,
@@ -84,7 +84,7 @@ test("P20 project switching clears transient edit and export state and restores 
   await page.getByRole("button", {
     name: "Close step actions",
   }).click();
-  await expect(kickStep).toHaveClass(/is-selected/);
+  await expect(snareStep).toHaveClass(/is-selected/);
 
   await waitForSaved(page);
 
