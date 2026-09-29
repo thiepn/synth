@@ -2363,3 +2363,68 @@ test("Playground project session can create a fresh beat while preserving the pr
 
   expect(errors).toEqual([]);
 });
+
+
+test("Playground P16 consolidates creative controls and targets advanced Studio workspaces", async ({
+  page,
+}) => {
+  const errors = watchRuntimeErrors(page);
+  await waitForPlayground(page);
+
+  const controls = page.getByRole("region", {
+    name: "Creative controls",
+  });
+  await expect(controls).toBeVisible();
+  await expect(
+    controls.getByRole("region", {
+      name: "Pattern experimentation controls",
+    }),
+  ).toBeVisible();
+  await expect(
+    controls.getByRole("region", {
+      name: "Feel and groove",
+    }),
+  ).toBeVisible();
+  await expect(
+    controls.getByRole("region", {
+      name: "Playback and creative flow",
+    }),
+  ).toBeVisible();
+  await expect(
+    controls.getByRole("region", {
+      name: "Grid recording",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Open advanced Arrange Studio",
+  }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Shape the full arc.",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: "Return to Playground",
+  }).click();
+  await expect(controls).toBeVisible();
+
+  await page.getByRole("button", {
+    name: /^Finish$/i,
+  }).click();
+  const finish = page.getByRole("dialog", {
+    name: "Finish and export",
+  });
+  await finish.getByRole("button", {
+    name: "Use Studio",
+  }).click();
+
+  await expect(
+    page.getByRole("heading", {
+      name: "Finish the signal.",
+    }),
+  ).toBeVisible();
+
+  expect(errors).toEqual([]);
+});
