@@ -312,6 +312,35 @@ function polishGeneratedGrid(
         );
       }
     }
+
+    const rhythmSignature = (start: number) =>
+      SEQUENCER_LANES.flatMap((definition) =>
+        lane(grid, definition.id)
+          .map((velocity, offset) =>
+            velocity > 0 &&
+            offset >= start &&
+            offset < Math.min(stepCount, start + 16)
+              ? definition.id + ":" + (offset - start)
+              : "",
+          )
+          .filter(Boolean),
+      )
+        .sort()
+        .join("|");
+
+    if (rhythmSignature(blockStart) === rhythmSignature(0)) {
+      const step = blockEnd - 1;
+      if (percussion[step] > 0) {
+        percussion[step] = 0;
+      } else {
+        setHit(
+          grid,
+          LANE.percussion,
+          step,
+          varyVelocity(random, 0.3, intent, 0.05),
+        );
+      }
+    }
   }
 
   // Re-run choke cleanup after phrase-end variation.
