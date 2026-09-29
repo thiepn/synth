@@ -33,7 +33,7 @@ for (const [source, token, message] of required) {
 
 if (
   arrange.includes(
-    "if (!foundation.blueprint || !family.family) {",
+    "if (!foundation.blueprint || !family.family) {\n    return (",
   )
 ) {
   failures.push(
