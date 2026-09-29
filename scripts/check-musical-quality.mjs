@@ -26,6 +26,7 @@ const required = [
   [family, '"fill-space-closed"', "P18 fills no longer carve space in the source groove."],
   [family, '"transition-no-early-crash"', "P18 transition cymbal-boundary cleanup is missing."],
   [playground, "mixerStore.resetPlaygroundChannel(", "P18 starter mixes must reset unlocked simple channel state before applying the starter baseline."],
+  [playground, "starter.sounds[pad.voice] !==", "P18 starters must explicitly reset unspecified unlocked voices instead of inheriting stale sounds."],
   [e2e, "P18 generation develops phrases and starters keep a deterministic mix baseline", "P18 browser quality certification is missing."],
 ];
 
