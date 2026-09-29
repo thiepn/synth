@@ -20,6 +20,8 @@ const surfaceChecks = [
   ["setSelectedMelodicNote(null);", "Project switching must clear melodic note selection."],
   ["setStepContext(null);", "Project switching must close stale step context."],
   ["setMixLaneId(", "Project hydration must explicitly restore the mixer lane."],
+  ["setSessionHydratedProjectId(null);", "Project switches must suspend old-project session persistence before UI reset."],
+  ["prepareProjectSwitch(true);", "New/open project flows must use the persistence-safe project boundary."],
   ["settleRecordingForNavigation", "Navigation must settle active recording before leaving Playground."],
   ["Stop recording before saving a checkpoint", "Recovery snapshots must reject active recording."],
   ["editRecordingLocked ||", "Destructive project actions must expose their recording lock in the UI."],
