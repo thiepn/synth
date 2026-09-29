@@ -3976,10 +3976,23 @@ export function PlaygroundSurface({
     drumEngine.cancelAudition();
   };
 
-  const openStudio = (targetMode: ModeId = "create") => {
+  const settleRecordingForNavigation = () => {
+    const status =
+      gridRecorder.getSnapshot().status;
+    if (status === "recording") {
+      stopGridRecording();
+    } else if (status === "armed") {
+      cancelCountIn();
+      gridRecorder.cancel();
+      setNotice("Recording cancelled");
+    }
     if (melodicMidiRecording) {
       stopMelodicMidiRecording();
     }
+  };
+
+  const openStudio = (targetMode: ModeId = "create") => {
+    settleRecordingForNavigation();
     if (finishOpen) {
       renderStore.cancel();
       setFinishOpen(false);
@@ -9000,6 +9013,10 @@ export function PlaygroundSurface({
   };
 
   const createRecoverySnapshot = async () => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before saving a checkpoint");
+      return;
+    }
     if (projectBusy) return;
     setProjectBusy("snapshot");
 
@@ -9455,6 +9472,7 @@ export function PlaygroundSurface({
             onClick={() => void createFreshProject()}
             disabled={
               Boolean(projectBusy) ||
+              editRecordingLocked ||
               !project.initialized ||
               !project.supported
             }
@@ -9469,6 +9487,7 @@ export function PlaygroundSurface({
             }
             disabled={
               Boolean(projectBusy) ||
+              editRecordingLocked ||
               !project.initialized ||
               !project.supported
             }
@@ -9483,6 +9502,7 @@ export function PlaygroundSurface({
             }
             disabled={
               Boolean(projectBusy) ||
+              editRecordingLocked ||
               !project.initialized ||
               !project.supported ||
               project.saveStatus === "conflict"
@@ -9502,6 +9522,10 @@ export function PlaygroundSurface({
               setProjectMenuOpen(false);
               if (finishOpen) {
                 renderStore.cancel();
+              } else {
+                settleRecordingForNavigation();
+                setStepContext(null);
+                setSoundPickerVoice(null);
               }
               if (!finishOpen && jamOpen) {
                 performanceStore.setActive(false);
