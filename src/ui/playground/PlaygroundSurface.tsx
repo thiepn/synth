@@ -3300,6 +3300,8 @@ export function PlaygroundSurface({
     useState<string | null>(null);
   const [sessionHydratedProjectId, setSessionHydratedProjectId] =
     useState<string | null>(null);
+  const sessionPersistenceSuspendedRef =
+    useRef(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [firstUseHintVisible, setFirstUseHintVisible] =
     useState(() => !readDiscoverySeen());
@@ -3976,10 +3978,23 @@ export function PlaygroundSurface({
     drumEngine.cancelAudition();
   };
 
-  const openStudio = (targetMode: ModeId = "create") => {
+  const settleRecordingForNavigation = () => {
+    const status =
+      gridRecorder.getSnapshot().status;
+    if (status === "recording") {
+      stopGridRecording();
+    } else if (status === "armed") {
+      cancelCountIn();
+      gridRecorder.cancel();
+      setNotice("Recording cancelled");
+    }
     if (melodicMidiRecording) {
       stopMelodicMidiRecording();
     }
+  };
+
+  const openStudio = (targetMode: ModeId = "create") => {
+    settleRecordingForNavigation();
     if (finishOpen) {
       renderStore.cancel();
       setFinishOpen(false);
@@ -6613,10 +6628,14 @@ export function PlaygroundSurface({
     ) {
       selectionDragRef.current = null;
       setSelectedSteps([]);
+      setSelectedMelodicLaneId(null);
+      setSelectedMelodicNote(null);
+      setStepContext(null);
     }
 
     if (!projectId) {
       setSessionHydratedProjectId(null);
+      sessionPersistenceSuspendedRef.current = false;
       return;
     }
 
@@ -6627,9 +6646,18 @@ export function PlaygroundSurface({
         (pad) => pad.voice === saved.selectedVoice,
       )
     ) {
+      const restoredDefinition =
+        SEQUENCER_LANES.find(
+          (entry) =>
+            entry.voice === saved.selectedVoice,
+        );
       setSelectedVoice(saved.selectedVoice);
+      setMixLaneId(
+        restoredDefinition?.id ?? "lane-kick",
+      );
     } else {
       setSelectedVoice("kick");
+      setMixLaneId("lane-kick");
     }
 
     if (
@@ -6664,8 +6692,21 @@ export function PlaygroundSurface({
   }, [project.projectId, project.name]);
 
   useEffect(() => {
+    if (
+      project.projectId &&
+      sessionHydratedProjectId === project.projectId
+    ) {
+      sessionPersistenceSuspendedRef.current = false;
+    }
+  }, [
+    project.projectId,
+    sessionHydratedProjectId,
+  ]);
+
+  useEffect(() => {
     const projectId = project.projectId;
     if (
+      sessionPersistenceSuspendedRef.current ||
       !projectId ||
       sessionHydratedProjectId !== projectId
     ) {
@@ -8906,18 +8947,33 @@ export function PlaygroundSurface({
     );
   };
 
-  const prepareProjectSwitch = () => {
+  const prepareProjectSwitch = (
+    suspendSessionPersistence = false,
+  ) => {
+    if (suspendSessionPersistence) {
+      sessionPersistenceSuspendedRef.current = true;
+      setSessionHydratedProjectId(null);
+    }
     cancelCountIn();
     clearPadRepeat();
     clearPadLongPress();
+    cancelPatternPreview();
     sequencerStore.clearTransientMonitoring();
+    renderStore.cancel();
     if (jamOpen) {
       performanceStore.setActive(false);
       setJamOpen(false);
     }
+    setFinishOpen(false);
+    setMotionOpen(false);
     setMomentaryMonitor(null);
     setSoundPickerVoice(null);
     setStarterOpen(false);
+    setStepContext(null);
+    clearSelection();
+    setSelectedMelodicLaneId(null);
+    setSelectedMelodicNote(null);
+    setSongDraggingSectionId(null);
   };
 
   const createFreshProject = async () => {
@@ -8929,7 +8985,7 @@ export function PlaygroundSurface({
     setProjectBusy("new");
 
     try {
-      prepareProjectSwitch();
+      prepareProjectSwitch(true);
       const id = await projectStore.createNewProject(
         "New Beat",
       );
@@ -8942,6 +8998,11 @@ export function PlaygroundSurface({
         setProjectMenuOpen(false);
         setNotice("New beat ready");
       } else {
+        sessionPersistenceSuspendedRef.current = false;
+        setSessionHydratedProjectId(
+          projectStore.getSnapshot().projectId ??
+            null,
+        );
         setNotice(
           projectStore.getSnapshot().lastError ??
             "New beat could not be created",
@@ -8979,6 +9040,10 @@ export function PlaygroundSurface({
   };
 
   const createRecoverySnapshot = async () => {
+    if (patternRecordingActive()) {
+      setNotice("Stop recording before saving a checkpoint");
+      return;
+    }
     if (projectBusy) return;
     setProjectBusy("snapshot");
 
@@ -9169,13 +9234,18 @@ export function PlaygroundSurface({
 
     setProjectBusy("open");
     try {
-      prepareProjectSwitch();
+      prepareProjectSwitch(true);
       const opened =
         await projectStore.openProject(projectId);
       if (opened) {
         setProjectMenuOpen(false);
         setNotice("Project opened");
       } else {
+        sessionPersistenceSuspendedRef.current = false;
+        setSessionHydratedProjectId(
+          projectStore.getSnapshot().projectId ??
+            null,
+        );
         setNotice(
           projectStore.getSnapshot().lastError ??
             "Project could not be opened",
@@ -9434,6 +9504,7 @@ export function PlaygroundSurface({
             onClick={() => void createFreshProject()}
             disabled={
               Boolean(projectBusy) ||
+              editRecordingLocked ||
               !project.initialized ||
               !project.supported
             }
@@ -9448,6 +9519,7 @@ export function PlaygroundSurface({
             }
             disabled={
               Boolean(projectBusy) ||
+              editRecordingLocked ||
               !project.initialized ||
               !project.supported
             }
@@ -9462,6 +9534,7 @@ export function PlaygroundSurface({
             }
             disabled={
               Boolean(projectBusy) ||
+              editRecordingLocked ||
               !project.initialized ||
               !project.supported ||
               project.saveStatus === "conflict"
@@ -9481,6 +9554,10 @@ export function PlaygroundSurface({
               setProjectMenuOpen(false);
               if (finishOpen) {
                 renderStore.cancel();
+              } else {
+                settleRecordingForNavigation();
+                setStepContext(null);
+                setSoundPickerVoice(null);
               }
               if (!finishOpen && jamOpen) {
                 performanceStore.setActive(false);

@@ -7,7 +7,7 @@
     "predev": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
     "dev": "vite",
     "prebuild": "node scripts/generate-pwa-icons.mjs && node scripts/fetch-cc0-samples.mjs",
-    "build": "npm run check:interaction && npm run check:playground && npm run check:sound && npm run check:mix && npm run check:finish && npm run check:feel && npm run check:variation && npm run check:jam && npm run check:recovery && npm run check:starter && npm run check:song-drafts && npm run check:motion && npm run check:workflow && npm run check:arrange-polish && npm run check:musical-quality && npm run check:mobile-tablet && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
+    "build": "npm run check:interaction && npm run check:playground && npm run check:sound && npm run check:mix && npm run check:finish && npm run check:feel && npm run check:variation && npm run check:jam && npm run check:recovery && npm run check:starter && npm run check:song-drafts && npm run check:motion && npm run check:workflow && npm run check:arrange-polish && npm run check:musical-quality && npm run check:mobile-tablet && npm run check:adversarial && npm run check:performance && npm run check:architecture && npm run check:release && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:interaction": "node scripts/check-interaction-contracts.mjs",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
@@ -33,7 +33,9 @@
     "check:workflow": "node scripts/check-playground-workflow.mjs",
     "check:arrange-polish": "node scripts/check-arrangement-polish.mjs",
     "check:musical-quality": "node scripts/check-musical-quality.mjs",
-    "check:mobile-tablet": "node scripts/check-mobile-tablet-polish.mjs"
+    "check:mobile-tablet": "node scripts/check-mobile-tablet-polish.mjs",
+    "check:adversarial": "node scripts/check-adversarial-audit.mjs",
+    "qa:adversarial": "playwright test e2e/adversarial.spec.ts --repeat-each=2 --retries=0"
   },
   "dependencies": {
     "react": "19.3.0",
