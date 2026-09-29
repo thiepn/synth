@@ -38,6 +38,9 @@ jobs:
       - name: Playground release QA
         run: npm run qa:playground
 
+      - name: P20 adversarial product QA
+        run: npm run qa:adversarial
+
       - name: Production browser QA
         run: npm run qa:e2e
 
