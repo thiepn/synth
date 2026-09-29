@@ -43,6 +43,20 @@ function transitionLabel(
   return "TRN / OFF";
 }
 
+const ROLE_OPTIONS: ReadonlyArray<{
+  id: SceneRole;
+  label: string;
+}> = [
+  { id: "intro", label: "Intro" },
+  { id: "verse", label: "Verse" },
+  { id: "preChorus", label: "Pre-Chorus" },
+  { id: "chorus", label: "Chorus" },
+  { id: "breakdown", label: "Breakdown" },
+  { id: "build", label: "Build" },
+  { id: "drop", label: "Drop" },
+  { id: "outro", label: "Outro" },
+];
+
 export function ArrangeSurface() {
   const foundation = useArrangementFoundationSnapshot();
   const family = useBeatFamilySnapshot();
@@ -50,6 +64,8 @@ export function ArrangeSurface() {
   const playback = useArrangementPlaybackSnapshot();
   const [draggingSectionId, setDraggingSectionId] =
     useState<string | null>(null);
+  const [newSectionPatternId, setNewSectionPatternId] =
+    useState("");
 
   useEffect(() => {
     const handleHistory = (event: KeyboardEvent) => {
@@ -83,34 +99,74 @@ export function ArrangeSurface() {
   }, []);
 
   useEffect(() => {
+    if (arrangement.blueprint) return;
+
     const blueprint = foundation.blueprint;
     if (!blueprint || !family.family) return;
     if (blueprint.familyId !== family.family.id) return;
 
-    if (arrangement.sourceFoundationId !== blueprint.id) {
-      arrangementPlaybackStore.stop();
-      arrangementStore.loadFromFoundation(
-        blueprint,
-        family.patterns,
-      );
-    }
+    arrangementPlaybackStore.stop();
+    arrangementStore.loadFromFoundation(
+      blueprint,
+      family.patterns,
+    );
   }, [
+    arrangement.blueprint?.id,
     foundation.blueprint?.id,
     family.family?.id,
     family.revision,
-    arrangement.sourceFoundationId,
   ]);
 
-  const patternLabelById = useMemo(
+  const arrangementPatterns = useMemo(
     () =>
-      new Map(
-        family.patterns.map((entry) => [
-          entry.pattern.id,
-          entry.label,
-        ]),
-      ),
-    [family.patterns],
+      arrangementStore.exportProjectState().patterns,
+    [arrangement.musicalRevision],
   );
+
+  const patternLabelById = useMemo(() => {
+    const labels = new Map(
+      arrangementPatterns.map((pattern) => [
+        pattern.id,
+        pattern.name,
+      ]),
+    );
+    for (const entry of family.patterns) {
+      if (!labels.has(entry.pattern.id)) {
+        labels.set(entry.pattern.id, entry.label);
+      }
+    }
+    return labels;
+  }, [arrangementPatterns, family.patterns]);
+
+  const editablePatterns = useMemo(() => {
+    if (!arrangement.blueprint) return [];
+    const allowed = new Set(
+      arrangement.blueprint.scenes.flatMap(
+        (scene) => scene.patternIds,
+      ),
+    );
+    return arrangementPatterns.filter(
+      (pattern) => allowed.has(pattern.id),
+    );
+  }, [
+    arrangement.blueprint,
+    arrangementPatterns,
+  ]);
+
+  useEffect(() => {
+    if (
+      newSectionPatternId &&
+      editablePatterns.some(
+        (pattern) =>
+          pattern.id === newSectionPatternId,
+      )
+    ) {
+      return;
+    }
+    setNewSectionPatternId(
+      editablePatterns[0]?.id ?? "",
+    );
+  }, [editablePatterns, newSectionPatternId]);
 
   const selectedSection =
     arrangement.blueprint?.sections.find(
@@ -128,6 +184,18 @@ export function ArrangeSurface() {
         (scene) => scene.id === selectedSection.sceneId,
       )
     : undefined;
+  const selectedPatternId =
+    selectedSection?.patternSequence[0];
+  const foundationAvailable = Boolean(
+    foundation.blueprint &&
+      family.family &&
+      foundation.blueprint.familyId ===
+        family.family.id,
+  );
+  const currentMatchesFoundation =
+    Boolean(foundation.blueprint) &&
+    arrangement.sourceFoundationId ===
+      foundation.blueprint?.id;
 
   const totalTicks = Math.max(1, arrangement.totalTicks);
   const playheadPercent = Math.max(
@@ -135,33 +203,6 @@ export function ArrangeSurface() {
     Math.min(100, (playback.playheadTick / totalTicks) * 100),
   );
   const totalBeats = arrangement.totalTicks / PPQ;
-
-  if (!foundation.blueprint || !family.family) {
-    return (
-      <section className="arrange-surface arrange-surface--empty">
-        <div className="surface-heading">
-          <div>
-            <p className="eyebrow">04 / ARRANGE</p>
-            <h1>Shape the full arc.</h1>
-          </div>
-          <TransportStatusLabel />
-        </div>
-
-        <TransportPulseSpine />
-
-        <div className="arrange-empty-state">
-          <span>NO ARRANGE FOUNDATION</span>
-          <strong>
-            Generate a Beat Family and ARRANGE / FOUNDATION in CREATE first.
-          </strong>
-          <p>
-            Phase 18 edits and plays the Phase 17 Scene/Section blueprint;
-            it does not invent arrangement structure from an unrelated Pattern.
-          </p>
-        </div>
-      </section>
-    );
-  }
 
   if (!arrangement.blueprint) {
     return (
@@ -177,18 +218,33 @@ export function ArrangeSurface() {
         <TransportPulseSpine />
 
         <div className="arrange-empty-state">
-          <span>FOUNDATION READY</span>
-          <strong>{foundation.blueprint.name}</strong>
-          <MachineButton
-            onClick={() =>
-              arrangementStore.loadFromFoundation(
-                foundation.blueprint!,
-                family.patterns,
-              )
-            }
-          >
-            LOAD ARRANGEMENT
-          </MachineButton>
+          <span>
+            {foundationAvailable
+              ? "FOUNDATION READY"
+              : "NO SONG YET"}
+          </span>
+          <strong>
+            {foundationAvailable
+              ? foundation.blueprint!.name
+              : "Build a song in Playground or create an arrangement foundation."}
+          </strong>
+          <p>
+            Playground songs and CREATE foundations both open here as the same
+            canonical arrangement. Nothing is replaced when you move between
+            the two workspaces.
+          </p>
+          {foundationAvailable ? (
+            <MachineButton
+              onClick={() =>
+                arrangementStore.loadFromFoundation(
+                  foundation.blueprint!,
+                  family.patterns,
+                )
+              }
+            >
+              LOAD ARRANGEMENT
+            </MachineButton>
+          ) : null}
         </div>
       </section>
     );
@@ -205,6 +261,84 @@ export function ArrangeSurface() {
       </div>
 
       <TransportPulseSpine />
+
+      <section
+        className="arrange-structure"
+        aria-label="Song structure controls"
+      >
+        <label className="arrange-name-field">
+          <span>SONG</span>
+          <input
+            key={arrangement.blueprint.id + ":" + arrangement.blueprint.name}
+            defaultValue={arrangement.blueprint.name}
+            maxLength={80}
+            aria-label="Arrangement name"
+            onBlur={(event) =>
+              arrangementStore.renameArrangement(
+                event.currentTarget.value,
+              )
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              } else if (event.key === "Escape") {
+                event.currentTarget.value =
+                  arrangement.blueprint!.name;
+                event.currentTarget.blur();
+              }
+            }}
+          />
+        </label>
+
+        <div className="arrange-structure__add">
+          <label>
+            <span>ADD SECTION</span>
+            <select
+              value={newSectionPatternId}
+              disabled={editablePatterns.length === 0}
+              onChange={(event) =>
+                setNewSectionPatternId(
+                  event.currentTarget.value,
+                )
+              }
+              aria-label="New section pattern"
+            >
+              {editablePatterns.map((pattern) => (
+                <option key={pattern.id} value={pattern.id}>
+                  {patternLabelById.get(pattern.id) ?? pattern.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <MachineButton
+            compact
+            disabled={!newSectionPatternId}
+            onClick={() =>
+              arrangementStore.addSectionFromPattern(
+                newSectionPatternId,
+                selectedSection?.id,
+              )
+            }
+          >
+            + ADD
+          </MachineButton>
+          <MachineButton
+            compact
+            disabled={!selectedSection}
+            onClick={() =>
+              selectedSection
+                ? void arrangementPlaybackStore.start(
+                    selectedSection.id,
+                    false,
+                  )
+                : undefined
+            }
+          >
+            PLAY FROM HERE
+          </MachineButton>
+        </div>
+      </section>
 
       <div className="arrange-transport">
         <div className="machine-section-label">
@@ -502,8 +636,76 @@ export function ArrangeSurface() {
           <div className="arrange-editor__body">
             <div className="arrange-editor__identity">
               <span>{roleCode(selectedSection.role)}</span>
-              <strong>{selectedSection.label}</strong>
+              <input
+                key={
+                  selectedSection.id +
+                  ":" +
+                  selectedSection.label
+                }
+                defaultValue={selectedSection.label}
+                maxLength={48}
+                aria-label="Section name"
+                onBlur={(event) =>
+                  arrangementStore.setSectionLabel(
+                    selectedSection.id,
+                    event.currentTarget.value,
+                  )
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  } else if (event.key === "Escape") {
+                    event.currentTarget.value =
+                      selectedSection.label;
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
               <small>{selectedScene?.name ?? selectedSection.role}</small>
+
+              <div className="arrange-editor__identity-selects">
+                <label>
+                  <span>ROLE</span>
+                  <select
+                    value={selectedSection.role}
+                    aria-label="Section role"
+                    onChange={(event) =>
+                      arrangementStore.setSectionRole(
+                        selectedSection.id,
+                        event.currentTarget.value as SceneRole,
+                      )
+                    }
+                  >
+                    {ROLE_OPTIONS.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>PATTERN</span>
+                  <select
+                    value={selectedPatternId ?? ""}
+                    aria-label="Section pattern"
+                    disabled={editablePatterns.length === 0}
+                    onChange={(event) =>
+                      arrangementStore.setSectionPattern(
+                        selectedSection.id,
+                        event.currentTarget.value,
+                      )
+                    }
+                  >
+                    {editablePatterns.map((pattern) => (
+                      <option key={pattern.id} value={pattern.id}>
+                        {patternLabelById.get(pattern.id) ?? pattern.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
 
             <div className="arrange-editor__moves">
@@ -575,6 +777,37 @@ export function ArrangeSurface() {
               >
                 +
               </button>
+              <div
+                className="arrange-editor__cycle-presets"
+                aria-label="Section length presets"
+              >
+                {[1, 2, 4, 8].map((cycles) => (
+                  <button
+                    type="button"
+                    key={cycles}
+                    className={
+                      selectedSection.cycleCount === cycles
+                        ? "is-active"
+                        : ""
+                    }
+                    onClick={() =>
+                      arrangementStore.setSectionCycles(
+                        selectedSection.id,
+                        cycles,
+                      )
+                    }
+                    aria-label={
+                      "Set section to " +
+                      cycles +
+                      (cycles === 1
+                        ? " cycle"
+                        : " cycles")
+                    }
+                  >
+                    {cycles}×
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="arrange-editor__routes">
@@ -668,8 +901,11 @@ export function ArrangeSurface() {
 
       <div className="arrange-footer">
         <span>
-          Source: {arrangement.blueprint.name} ·{" "}
-          {arrangement.edited ? "EDITED" : "FOUNDATION"}
+          Source:{" "}
+          {currentMatchesFoundation
+            ? "CREATE FOUNDATION"
+            : "PLAYGROUND / PROJECT SONG"}{" "}
+          · {arrangement.edited ? "EDITED" : "CLEAN"}
         </span>
 
         <div className="arrange-footer__actions">
@@ -688,10 +924,14 @@ export function ArrangeSurface() {
             REDO
           </MachineButton>
           <MachineButton
+            disabled={!foundationAvailable}
             onClick={() => {
+              if (!foundation.blueprint || !family.family) {
+                return;
+              }
               arrangementPlaybackStore.stop();
               arrangementStore.loadFromFoundation(
-                foundation.blueprint!,
+                foundation.blueprint,
                 family.patterns,
               );
             }}
