@@ -2653,11 +2653,19 @@ test("P18 generation develops phrases and starters keep a deterministic mix base
     name: "Apply starter Warm Lo-Fi",
   }).click();
 
+  await page.getByRole("button", {
+    name: "Change TOM sound",
+    exact: true,
+  }).click();
+  const resetTomSounds = page.getByRole("region", {
+    name: "TOM sounds",
+  });
   await expect(
-    page.getByRole("button", {
-      name: "Change TOM sound. Current sound Core",
+    resetTomSounds.getByRole("button", {
+      name: "Core TOM sound",
     }),
-  ).toBeVisible();
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
 
   await page.getByRole("button", {
     name: "Select TOM tools",
