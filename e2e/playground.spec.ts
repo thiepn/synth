@@ -2482,9 +2482,11 @@ test("P17 preserves Playground songs and polishes canonical Arrange editing", as
   await arrange.getByLabel("Section role").selectOption(
     "build",
   );
-  await arrange.getByLabel("Section pattern").selectOption({
-    label: "Pattern B / Song",
-  });
+  await arrange
+    .getByLabel("Section pattern", { exact: true })
+    .selectOption({
+      label: "Pattern B / Song",
+    });
   await arrange.getByRole("button", {
     name: "Set section to 8 cycles",
   }).click();
